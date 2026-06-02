@@ -49,3 +49,11 @@
 - 页面框架参考 CapaReport 的 Web 后台工具风格：左侧可折叠菜单、顶部页头、内容区工作卡片、居中登录卡片、蓝色主色和明暗主题。
 - 新设计稿保留并整合 SQLite 网站库、RBAC 路由权限与功能权限、注册审核、离线资源、API、数据表、初始化策略和实现顺序。
 - 删除 `docs/design/auth_rbac_framework_design.md`，避免两份认证权限设计文档并行造成歧义。
+
+## 2026-06-03：补充初版实现质量约束
+
+- `docs/design/initial_web_server_design.md` 新增实现质量规则，要求代码轻便、简洁、优雅，避免冗余实现和不必要复杂抽象。
+- 数据库访问要求通过统一数据访问层和 repository 边界，便于后续在 SQLite 和 MySQL 之间切换。
+- 前端规则补充按需导入、路由懒加载、避免大 chunk、CSS 与 Vue 分离、公共样式复用和组件抽离。
+- Python 规则补充按资源和职责拆分 API、service、repository、model、schema、core、db，避免单文件过大过长。
+- 每个功能完成后需要清理未使用导入、函数、变量、常量、方法、组件、样式、依赖和调试日志。
