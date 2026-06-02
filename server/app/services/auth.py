@@ -1,0 +1,66 @@
+from sqlalchemy.orm import Session
+
+from app.core.exceptions import bad_request
+from app.core.security import create_access_token, hash_password, verify_password
+from app.core.time import utc_now
+from app.models import User
+from app.repositories.users import UserRepository
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, ProfileUpdateRequest, RegisterRequest
+from app.services.audit import record_audit
+from app.services.permissions import get_user_permission_codes
+
+
+class AuthService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.users = UserRepository(db)
+
+    def register(self, payload: RegisterRequest) -> User:
+        if self.users.get_by_username(payload.username):
+            raise bad_request("账号已存在")
+        user = User(
+            username=payload.username,
+            full_name=payload.full_name,
+            company=payload.company,
+            department=payload.department,
+            password_hash=hash_password(payload.password),
+            approval_status="pending",
+            is_active=True,
+            is_builtin=False,
+        )
+        self.users.create(user)
+        record_audit(self.db, None, "user.register", "user", str(user.id), user.username)
+        self.db.commit()
+        return user
+
+    def login(self, payload: LoginRequest) -> tuple[str, User, list[str]]:
+        user = self.users.get_by_username(payload.username)
+        if not user or not verify_password(payload.password, user.password_hash):
+            record_audit(self.db, None, "auth.login_failed", "user", "", payload.username)
+            self.db.commit()
+            raise bad_request("账号或密码错误")
+        if user.approval_status != "approved":
+            raise bad_request("账号尚未审核通过")
+        if not user.is_active:
+            raise bad_request("账号已禁用")
+        user.last_login_at = utc_now()
+        token = create_access_token(str(user.id))
+        permissions = sorted(get_user_permission_codes(user))
+        record_audit(self.db, user.id, "auth.login", "user", str(user.id), user.username)
+        self.db.commit()
+        return token, user, permissions
+
+    def update_profile(self, user: User, payload: ProfileUpdateRequest) -> User:
+        user.full_name = payload.full_name
+        user.company = payload.company
+        user.department = payload.department
+        record_audit(self.db, user.id, "auth.profile_update", "user", str(user.id), user.username)
+        self.db.commit()
+        return user
+
+    def change_password(self, user: User, payload: ChangePasswordRequest) -> None:
+        if not verify_password(payload.old_password, user.password_hash):
+            raise bad_request("旧密码不正确")
+        user.password_hash = hash_password(payload.new_password)
+        record_audit(self.db, user.id, "auth.change_password", "user", str(user.id), user.username)
+        self.db.commit()
