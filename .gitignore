@@ -219,8 +219,8 @@ __marimo__/
 
 # Node / frontend
 node_modules/
-frontend/node_modules/
-frontend/dist/
+web/node_modules/
+web/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
