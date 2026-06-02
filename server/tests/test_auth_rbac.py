@@ -2,6 +2,8 @@ import importlib
 
 from fastapi.testclient import TestClient
 
+from app.schemas.install import InstallRequest, MysqlInstallConfig
+
 
 def create_client(tmp_path, monkeypatch):
     monkeypatch.setenv("METRIX_RUNTIME_DIR", str(tmp_path / "runtime"))
@@ -55,6 +57,97 @@ def test_api_docs_use_local_assets(tmp_path, monkeypatch):
     assert "http://" not in response.text
     assert "https://" not in response.text
     assert "/static/swagger-ui/swagger-ui-bundle.js" in response.text
+
+
+def test_mysql_install_runs_database_and_table_creation(monkeypatch):
+    from app.services import install as install_service
+
+    calls = []
+
+    class FakeEngine:
+        def __init__(self, url):
+            self.url = url
+
+        def dispose(self):
+            calls.append(("dispose", self.url))
+
+    class FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class FakeSessionFactory:
+        def __call__(self):
+            return FakeSession()
+
+    payload = InstallRequest(
+        database_type="mysql",
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+        admin_username="mysqladmin",
+        admin_password="MysqlPass123",
+        admin_full_name="MySQL 管理员",
+        admin_company="",
+        admin_department="",
+    )
+    monkeypatch.setattr(install_service, "is_installed", lambda: False)
+    monkeypatch.setattr(install_service, "_create_mysql_database", lambda data: calls.append(("create_db", data.mysql.database)))
+    monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine(url))
+    monkeypatch.setattr(install_service, "create_tables", lambda engine: calls.append(("tables", engine.url)))
+    monkeypatch.setattr(install_service, "sessionmaker", lambda **kwargs: FakeSessionFactory())
+    monkeypatch.setattr(install_service, "seed_database", lambda db, data: calls.append(("seed", data.admin_username)))
+    monkeypatch.setattr(install_service, "write_install_config", lambda database_type, url: calls.append(("config", database_type, url)))
+    monkeypatch.setattr(install_service, "reset_engine", lambda: calls.append("reset"))
+
+    install_service.install_system(payload)
+
+    assert ("create_db", "metrix_test") in calls
+    assert any(call[0] == "tables" and call[1].startswith("mysql+pymysql://root:pass@127.0.0.1:3306/metrix_test") for call in calls)
+    assert ("seed", "mysqladmin") in calls
+    assert any(call[0] == "config" and call[1] == "mysql" for call in calls)
+    assert "reset" in calls
+
+
+def test_mysql_database_creation_sql(monkeypatch):
+    from app.services import install as install_service
+
+    statements = []
+
+    class FakeConnection:
+        def execute(self, statement):
+            statements.append(str(statement))
+
+    class FakeBegin:
+        def __enter__(self):
+            return FakeConnection()
+
+        def __exit__(self, *args):
+            return False
+
+    class FakeEngine:
+        def begin(self):
+            return FakeBegin()
+
+        def dispose(self):
+            statements.append("disposed")
+
+    payload = InstallRequest(
+        database_type="mysql",
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+        admin_username="mysqladmin",
+        admin_password="MysqlPass123",
+        admin_full_name="MySQL 管理员",
+        admin_company="",
+        admin_department="",
+    )
+    monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine())
+
+    install_service._create_mysql_database(payload)
+
+    assert "CREATE DATABASE IF NOT EXISTS `metrix_test`" in statements[0]
+    assert "CHARACTER SET utf8mb4" in statements[0]
+    assert "disposed" in statements
 
 
 def test_admin_login_and_dashboard(tmp_path, monkeypatch):
