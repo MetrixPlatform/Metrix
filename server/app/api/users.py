@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_permission
+from app.core.deps import require_any_permission, require_permission
 from app.core.permissions import USER_CREATE, USER_DELETE, USER_OPERATE, USER_READ, USER_UPDATE
 from app.db.session import get_db
-from app.models import User
+from app.models import Role, User
 from app.schemas.common import MessageResponse
-from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, UserCreateRequest, UserListItem, UserUpdateRequest
+from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, RoleBrief, UserCreateRequest, UserListItem, UserUpdateRequest
 from app.services.users import UserService
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -21,6 +21,14 @@ def list_users(
     _: User = Depends(require_permission(USER_READ)),
 ) -> list[User]:
     return UserService(db).list_users(keyword, approval_status, is_active)
+
+
+@router.get("/role-options", response_model=list[RoleBrief])
+def list_role_options(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_any_permission(USER_CREATE, USER_OPERATE)),
+) -> list[Role]:
+    return UserService(db).list_role_options()
 
 
 @router.get("/{user_id}", response_model=UserListItem)

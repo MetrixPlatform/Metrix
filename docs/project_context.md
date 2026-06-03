@@ -211,3 +211,8 @@
 - `server/app/db/session.py` 不再通过 SQLAlchemy `sessionmaker.kw["bind"]` 内部属性判断绑定引擎，改为显式记录当前 session 工厂对应的 engine，提高后续 SQLAlchemy 版本兼容性。
 - 清理本地生成的 `__pycache__` 缓存目录，保持工作区只保留真实源码和必要配置。
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
+## 2026-06-03：第五轮代码清理
+- 用户管理页不再无条件调用角色权限管理接口加载完整角色列表；只有具备 `action:user:create` 或 `action:user:operate` 时才加载用户管理所需的角色候选。
+- 后端新增 `require_any_permission` 依赖工具和 `GET /api/users/role-options`，仅返回 `RoleBrief` 基础角色信息，避免为了用户新增、审核或分配角色暴露完整权限字典。
+- 后端测试补充验证：拥有用户操作权限的角色可以访问 `/api/users/role-options`，但不能访问 `/api/permissions`。
+- 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。

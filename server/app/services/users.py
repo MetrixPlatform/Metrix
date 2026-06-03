@@ -20,6 +20,9 @@ class UserService:
     def list_users(self, keyword: str = "", approval_status: str = "", is_active: bool | None = None) -> list[User]:
         return self.users.list(keyword, approval_status, is_active)
 
+    def list_role_options(self) -> list[Role]:
+        return self.roles.list()
+
     def get_user(self, user_id: int) -> User:
         user = self.users.get(user_id)
         if not user:

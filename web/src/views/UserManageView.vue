@@ -108,9 +108,8 @@ import {
 } from "naive-ui";
 import type { DataTableColumns, DropdownOption, FormInst, FormRules } from "naive-ui";
 
-import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUser, listUsers, rejectUser, resetPassword, updateUser } from "../api/users";
-import { listRoles } from "../api/roles";
-import type { RoleItem, UserListItem } from "../api/types";
+import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUser, listUserRoleOptions, listUsers, rejectUser, resetPassword, updateUser } from "../api/users";
+import type { RoleBrief, UserListItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { authStore } from "../stores/auth";
@@ -124,7 +123,7 @@ const userFormRef = ref<FormInst | null>(null);
 const passwordFormRef = ref<FormInst | null>(null);
 const rejectFormRef = ref<FormInst | null>(null);
 const users = ref<UserListItem[]>([]);
-const roles = ref<RoleItem[]>([]);
+const roles = ref<RoleBrief[]>([]);
 const showApproveModal = ref(false);
 const showRejectModal = ref(false);
 const showUserModal = ref(false);
@@ -166,6 +165,7 @@ const adminRoleId = computed(() => roles.value.find((role) => role.code === "adm
 const activeAdminCount = computed(
   () => users.value.filter((user) => user.is_active && user.approval_status === "approved" && hasAdminRole(user)).length
 );
+const needsRoleOptions = computed(() => authStore.has("action:user:create") || authStore.has("action:user:operate"));
 
 const approvalOptions = [
   { label: "待审核", value: "pending" },
@@ -213,7 +213,7 @@ const columns: DataTableColumns<UserListItem> = [
 const approvalLabels = { pending: "待审核", approved: "已通过", rejected: "已驳回" };
 
 onMounted(async () => {
-  await Promise.all([loadUsers(), loadRoles()]);
+  await Promise.all([loadUsers(), needsRoleOptions.value ? loadRoles() : Promise.resolve()]);
 });
 
 async function loadUsers() {
@@ -232,7 +232,11 @@ async function loadUsers() {
 }
 
 async function loadRoles() {
-  roles.value = await listRoles();
+  try {
+    roles.value = await listUserRoleOptions();
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 function openCreate() {

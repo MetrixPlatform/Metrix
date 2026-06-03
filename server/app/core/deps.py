@@ -35,3 +35,12 @@ def require_permission(permission_code: str) -> Callable[[User], User]:
         return user
 
     return dependency
+
+
+def require_any_permission(*permission_codes: str) -> Callable[[User], User]:
+    def dependency(user: User = Depends(get_current_user)) -> User:
+        if not any(has_permission(user, permission_code) for permission_code in permission_codes):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权限执行该操作")
+        return user
+
+    return dependency

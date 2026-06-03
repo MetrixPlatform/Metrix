@@ -289,7 +289,8 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     permissions = client.get("/api/permissions", headers=admin_headers).json()
     assert "route:approvals" not in {item["code"] for item in permissions}
     users_route = next(item for item in permissions if item["code"] == "route:users")
-    assign = client.put(f"/api/roles/{role_id}/permissions", json={"permission_ids": [users_route["id"]]}, headers=admin_headers)
+    user_operate = next(item for item in permissions if item["code"] == "action:user:operate")
+    assign = client.put(f"/api/roles/{role_id}/permissions", json={"permission_ids": [users_route["id"], user_operate["id"]]}, headers=admin_headers)
     assert assign.status_code == 200
 
     user = client.post(
@@ -311,4 +312,8 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     assert "route:users" in me["permissions"]
     assert "action:user:read" in me["permissions"]
     assert client.get("/api/users", headers=reader_headers).status_code == 200
+    role_options = client.get("/api/users/role-options", headers=reader_headers)
+    assert role_options.status_code == 200
+    assert role_options.json()[0].keys() == {"id", "code", "name"}
+    assert client.get("/api/permissions", headers=reader_headers).status_code == 403
     assert client.post("/api/users", json={}, headers=reader_headers).status_code == 403

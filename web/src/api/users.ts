@@ -1,5 +1,5 @@
 import { del, post, put, request } from "./client";
-import type { UserListItem } from "./types";
+import type { RoleBrief, UserListItem } from "./types";
 
 export interface UserPayload {
   username?: string;
@@ -24,6 +24,10 @@ export function listUsers(filters: UserFilters = {}) {
     }
   });
   return request<UserListItem[]>(`/users${params.size ? `?${params}` : ""}`);
+}
+
+export function listUserRoleOptions() {
+  return request<RoleBrief[]>("/users/role-options");
 }
 
 export function createUser(payload: UserPayload) {
