@@ -8,7 +8,7 @@
           <p class="auth-subtitle">选择网站数据库并创建初始管理员</p>
         </div>
       </div>
-      <n-form ref="formRef" class="install-form" :model="form" :rules="rules" label-placement="top">
+      <n-form ref="formRef" class="install-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="116">
         <div class="install-grid">
           <section class="install-section">
             <div class="install-section-head">

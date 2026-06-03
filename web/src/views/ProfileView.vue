@@ -1,8 +1,10 @@
 <template>
-  <div class="page-stack">
-    <section class="work-card">
-      <h3>个人信息</h3>
-      <n-form ref="profileFormRef" class="form-stack" :model="profile" :rules="profileRules" label-placement="top">
+  <div class="profile-grid">
+    <section class="work-card profile-card">
+      <div class="profile-card-head">
+        <h3>个人信息</h3>
+      </div>
+      <n-form ref="profileFormRef" class="form-stack inline-form" :model="profile" :rules="profileRules" label-placement="left" label-width="72">
         <n-form-item label="账号">
           <n-input :value="authStore.user?.username" disabled />
         </n-form-item>
@@ -20,9 +22,11 @@
         </div>
       </n-form>
     </section>
-    <section class="work-card">
-      <h3>修改密码</h3>
-      <n-form ref="passwordFormRef" class="form-stack" :model="password" :rules="passwordRules" label-placement="top">
+    <section class="work-card profile-card">
+      <div class="profile-card-head">
+        <h3>修改密码</h3>
+      </div>
+      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="password" :rules="passwordRules" label-placement="left" label-width="72">
         <n-form-item label="旧密码" path="old_password">
           <n-input v-model:value="password.old_password" type="password" show-password-on="click" />
         </n-form-item>

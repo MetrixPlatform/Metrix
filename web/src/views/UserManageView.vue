@@ -1,17 +1,17 @@
 <template>
   <section class="work-card">
-    <div class="toolbar">
-      <div class="toolbar-group">
-        <n-input v-model:value="filters.keyword" placeholder="搜索账号、姓名、公司、部门" clearable />
-        <n-select v-model:value="filters.approval_status" :options="approvalOptions" clearable placeholder="审核状态" />
-        <n-select v-model:value="filters.is_active" :options="activeOptions" clearable placeholder="启用状态" />
+    <div class="toolbar user-toolbar">
+      <div class="user-filter-row">
+        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索账号、姓名、公司、部门" clearable />
+        <n-select v-model:value="filters.approval_status" class="filter-select" :options="approvalOptions" clearable placeholder="审核状态" />
+        <n-select v-model:value="filters.is_active" class="filter-select" :options="activeOptions" clearable placeholder="启用状态" />
         <n-button @click="loadUsers">查询</n-button>
       </div>
       <permission-button permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
     <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1180" />
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? '编辑用户' : '新增用户'">
-      <n-form ref="userFormRef" class="form-stack" :model="userForm" :rules="userRules" label-placement="top">
+      <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="80">
         <n-form-item v-if="!editingUser" label="账号" path="username">
           <n-input v-model:value="userForm.username" />
         </n-form-item>
@@ -52,7 +52,7 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" title="重置密码">
-      <n-form ref="passwordFormRef" class="form-stack" :model="passwordForm" :rules="passwordRules" label-placement="top">
+      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="88">
         <n-form-item label="新密码" path="password">
           <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" />
         </n-form-item>

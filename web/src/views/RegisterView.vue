@@ -1,6 +1,6 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-card">
+  <div class="auth-page register-page">
+    <div class="auth-card register-card">
       <div class="auth-brand">
         <BrandMark />
         <div>
@@ -8,28 +8,39 @@
           <p class="auth-subtitle">提交后等待管理员审核</p>
         </div>
       </div>
-      <n-form ref="formRef" class="form-stack" :model="form" :rules="rules" label-placement="top">
-        <n-form-item label="账号" path="username">
-          <n-input v-model:value="form.username" />
-        </n-form-item>
-        <n-form-item label="密码" path="password">
-          <n-input v-model:value="form.password" type="password" show-password-on="click" />
-        </n-form-item>
-        <n-form-item label="确认密码" path="confirm_password">
-          <n-input v-model:value="form.confirm_password" type="password" show-password-on="click" />
-        </n-form-item>
-        <n-form-item label="公司" path="company">
-          <n-input v-model:value="form.company" />
-        </n-form-item>
-        <n-form-item label="部门" path="department">
-          <n-input v-model:value="form.department" />
-        </n-form-item>
-        <n-form-item label="姓名" path="full_name">
-          <n-input v-model:value="form.full_name" />
-        </n-form-item>
-        <n-button type="primary" block :loading="loading" @click="submit">提交注册</n-button>
-        <div class="form-actions">
-          <router-link class="muted-link" to="/login">返回登录</router-link>
+      <n-form
+        ref="formRef"
+        class="register-form inline-form"
+        :model="form"
+        :rules="rules"
+        label-placement="left"
+        label-width="92"
+      >
+        <div class="register-form-fields">
+          <n-form-item label="账号" path="username">
+            <n-input v-model:value="form.username" />
+          </n-form-item>
+          <n-form-item label="密码" path="password">
+            <n-input v-model:value="form.password" type="password" show-password-on="click" />
+          </n-form-item>
+          <n-form-item label="确认密码" path="confirm_password">
+            <n-input v-model:value="form.confirm_password" type="password" show-password-on="click" />
+          </n-form-item>
+          <n-form-item label="公司" path="company">
+            <n-input v-model:value="form.company" />
+          </n-form-item>
+          <n-form-item label="部门" path="department">
+            <n-input v-model:value="form.department" />
+          </n-form-item>
+          <n-form-item label="姓名" path="full_name">
+            <n-input v-model:value="form.full_name" />
+          </n-form-item>
+        </div>
+        <div class="register-form-footer">
+          <n-button type="primary" block :loading="loading" @click="submit">提交注册</n-button>
+          <div class="form-actions">
+            <router-link class="muted-link" to="/login">返回登录</router-link>
+          </div>
         </div>
       </n-form>
     </div>

@@ -72,7 +72,7 @@
     </section>
 
     <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="editingRole ? '编辑角色' : '新增角色'">
-      <n-form ref="roleFormRef" class="form-stack" :model="roleForm" :rules="roleRules" label-placement="top">
+      <n-form ref="roleFormRef" class="form-stack inline-form" :model="roleForm" :rules="roleRules" label-placement="left" label-width="92">
         <n-form-item v-if="!editingRole" label="角色编码" path="code">
           <n-input v-model:value="roleForm.code" />
         </n-form-item>

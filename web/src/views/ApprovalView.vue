@@ -17,7 +17,7 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" title="驳回注册">
-      <n-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules" label-placement="top">
+      <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="88">
         <n-form-item label="驳回原因" path="reason">
           <n-input v-model:value="rejectForm.reason" type="textarea" placeholder="驳回原因" />
         </n-form-item>
