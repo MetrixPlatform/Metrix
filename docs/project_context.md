@@ -114,3 +114,7 @@
 - 后端新增 `InstallDatabaseTestRequest` 和 `test_database_connection`，测试连接只接收数据库配置，不要求管理员信息。
 - SQLite 测试会尝试打开数据库连接；MySQL 测试只连接服务器并执行 `SELECT 1`，不创建数据库，实际初始化时仍由安装流程按需建库。
 - 后端测试补充 SQLite 测试接口和 MySQL 测试连接路径，确保 MySQL 测试使用服务器级连接 URL。
+## 2026-06-03：修复主框架导航与侧栏
+- `web/src/components/AppShell.vue` 改为 Naive UI `n-layout`、`n-layout-sider` 和 `n-menu` 组成的后台壳布局，参考 CapaReport 的单一菜单选中值模式，不再使用 `router-link-active` 判断导航选中。
+- 侧栏折叠交给 `n-layout-sider` 原生宽度模式处理，折叠状态写入 `localStorage`，折叠后隐藏品牌文字并保持菜单图标居中。
+- 浏览器验证 `/users` 与 `/permissions` 切换时 `.n-menu-item-content--selected` 始终只有 1 个，折叠后侧栏宽度为 64px，当前选中菜单保持正确。

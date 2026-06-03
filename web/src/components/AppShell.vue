@@ -1,20 +1,31 @@
 <template>
-  <div class="app-layout">
-    <aside class="app-sidebar" :class="{ collapsed }">
+  <n-layout has-sider class="app-layout">
+    <n-layout-sider
+      class="app-sider"
+      collapse-mode="width"
+      :collapsed="collapsed"
+      :collapsed-width="64"
+      :width="220"
+      show-trigger="arrow-circle"
+      @update:collapsed="handleCollapsed"
+    >
       <div class="brand">
         <BrandMark />
-        <span v-if="!collapsed">Metrix</span>
+        <span class="brand-text">Metrix</span>
       </div>
-      <nav class="nav-list">
-        <router-link v-for="item in menuItems" :key="item.path" :to="item.path" class="nav-item">
-          <n-icon :component="item.icon" />
-          <span v-if="!collapsed">{{ item.label }}</span>
-        </router-link>
-      </nav>
-    </aside>
-    <section class="app-main">
-      <header class="app-header">
-        <n-button quaternary circle :title="collapsed ? '展开菜单' : '收起菜单'" @click="collapsed = !collapsed">
+      <n-menu
+        class="app-menu"
+        :value="activeMenu"
+        :options="menuOptions"
+        :collapsed-width="64"
+        :collapsed-icon-size="22"
+        @update:value="handleMenuChange"
+      />
+    </n-layout-sider>
+
+    <n-layout class="app-main">
+      <n-layout-header bordered class="app-header">
+        <n-button quaternary circle :title="collapsed ? '展开菜单' : '收起菜单'" @click="handleCollapsed(!collapsed)">
           <template #icon><n-icon :component="PanelLeftContract" /></template>
         </n-button>
         <div class="page-title">
@@ -32,12 +43,12 @@
             </n-button>
           </n-dropdown>
         </div>
-      </header>
-      <main class="app-content">
+      </n-layout-header>
+      <n-layout-content class="app-content">
         <router-view />
-      </main>
-    </section>
-  </div>
+      </n-layout-content>
+    </n-layout>
+  </n-layout>
 </template>
 
 <script setup lang="ts">
@@ -51,16 +62,19 @@ import {
   PersonSettings20Regular,
   WeatherMoon20Regular as WeatherMoon
 } from "@vicons/fluent";
-import { computed, h, ref } from "vue";
+import { computed, h, ref, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NButton, NDropdown, NIcon } from "naive-ui";
+import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu } from "naive-ui";
+import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
-import BrandMark from "./BrandMark.vue";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import BrandMark from "./BrandMark.vue";
 
-const collapsed = ref(false);
+const SIDEBAR_KEY = "metrix.sidebar.collapsed";
+
+const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
@@ -73,14 +87,33 @@ const allMenus = [
 ];
 
 const menuItems = computed(() => allMenus.filter((item) => !item.permission || authStore.has(item.permission)));
+const menuOptions = computed<MenuOption[]>(() =>
+  menuItems.value.map((item) => ({
+    key: item.path,
+    label: item.label,
+    icon: renderIcon(item.icon)
+  }))
+);
+const activeMenu = computed(() => menuItems.value.find((item) => item.path === route.path)?.path || "/");
 const currentMenu = computed(() => allMenus.find((item) => item.path === route.path) || allMenus[0]);
 const currentTitle = computed(() => currentMenu.value.label);
 const currentSubtitle = computed(() => (route.path === "/" ? "基础框架工作台" : "内网平台基础管理"));
 
 const userOptions = [
-  { label: "个人信息", key: "profile", icon: () => h(NIcon, null, { default: () => h(PersonSettings20Regular) }) },
-  { label: "退出登录", key: "logout", icon: () => h(NIcon, null, { default: () => h(PersonCircle) }) }
+  { label: "个人信息", key: "profile", icon: renderIcon(PersonSettings20Regular) },
+  { label: "退出登录", key: "logout", icon: renderIcon(PersonCircle) }
 ];
+
+function handleCollapsed(value: boolean) {
+  collapsed.value = value;
+  localStorage.setItem(SIDEBAR_KEY, value ? "1" : "0");
+}
+
+async function handleMenuChange(key: string | number) {
+  const path = String(key);
+  if (path === route.path) return;
+  await router.push(path);
+}
 
 async function handleUserAction(key: string) {
   if (key === "profile") {
@@ -93,5 +126,9 @@ async function handleUserAction(key: string) {
     authStore.clear();
     await router.push("/login");
   }
+}
+
+function renderIcon(icon: Component) {
+  return () => h(NIcon, null, { default: () => h(icon) });
 }
 </script>
