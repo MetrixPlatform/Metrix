@@ -557,6 +557,21 @@ a {
   width: 100%;
 }
 
+.row-action-button {
+  --n-width: 28px;
+  --n-height: 28px;
+  color: var(--muted-color);
+}
+
+.row-action-button:not(.n-button--disabled):hover {
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+}
+
+.row-action-button .n-button__icon {
+  margin: 0;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.58fr);

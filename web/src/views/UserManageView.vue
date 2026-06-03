@@ -9,7 +9,7 @@
       </div>
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
-    <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="920" />
+    <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="930" />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
@@ -187,7 +187,7 @@ const columns: DataTableColumns<UserListItem> = [
   {
     title: "操作",
     key: "actions",
-    width: 96,
+    width: 64,
     align: "center",
     render: (row) => {
       const options = rowActionOptions(row);
@@ -198,9 +198,8 @@ const columns: DataTableColumns<UserListItem> = [
           default: () =>
             h(
               NButton,
-              { size: "small", disabled: options.length === 0 },
+              { class: "row-action-button", size: "small", quaternary: true, circle: true, title: "更多操作", disabled: options.length === 0 },
               {
-                default: () => "操作",
                 icon: () => h(NIcon, { component: MoreHorizontal20Regular })
               }
             )
