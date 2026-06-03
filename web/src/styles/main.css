@@ -160,6 +160,17 @@ a {
   margin-top: 8px;
 }
 
+.modal-card {
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(76vh, 640px);
+}
+
+.modal-card > .n-card__content,
+.modal-card > .n-card-content {
+  max-height: calc(76vh - 112px);
+  overflow-y: auto;
+}
+
 .muted-link {
   color: #2563eb;
   cursor: pointer;

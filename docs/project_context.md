@@ -123,3 +123,7 @@
 - 主应用壳 `app-layout`、`app-main` 固定在视口内，`app-content` 使用 `height: calc(100vh - 64px)` 和 `overflow: auto` 承担页面内容滚动。
 - 登录、注册和安装等独立认证页通过 `.auth-page` 自身滚动，避免全局禁滚后小屏内容被裁切。
 - 浏览器验证用户管理、注册审批和权限管理页面的 `body/html` 均不滚动，`.app-content` 保持可滚动容器。
+## 2026-06-03：收紧管理弹窗尺寸
+- 删除用户管理、注册审批和权限管理页面里重复的 scoped `.modal-card` 样式，避免 Naive UI Modal Teleport 到 `body` 后页面 scoped 样式不稳定。
+- `web/src/styles/main.css` 统一定义 `.modal-card` 宽度为 `min(460px, calc(100vw - 32px))`，最大高度随视口限制，弹窗内容区域独立滚动。
+- 浏览器验证“新增角色”和“新增用户”弹窗宽度均为 460px，内容区域 `overflow-y` 为 `auto`。

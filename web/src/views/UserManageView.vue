@@ -288,9 +288,3 @@ function confirmDelete(user: UserListItem) {
   });
 }
 </script>
-
-<style scoped>
-.modal-card {
-  width: min(560px, calc(100vw - 32px));
-}
-</style>

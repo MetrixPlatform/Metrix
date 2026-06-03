@@ -128,9 +128,3 @@ async function saveReject() {
   }
 }
 </script>
-
-<style scoped>
-.modal-card {
-  width: min(520px, calc(100vw - 32px));
-}
-</style>
