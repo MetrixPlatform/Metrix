@@ -124,6 +124,12 @@
 - 登录、注册和安装等独立认证页通过 `.auth-page` 自身滚动，避免全局禁滚后小屏内容被裁切。
 - 浏览器验证用户管理、注册审批和权限管理页面的 `body/html` 均不滚动，`.app-content` 保持可滚动容器。
 ## 2026-06-03：收紧管理弹窗尺寸
-- 删除用户管理、注册审批和权限管理页面里重复的 scoped `.modal-card` 样式，避免 Naive UI Modal Teleport 到 `body` 后页面 scoped 样式不稳定。
-- `web/src/styles/main.css` 统一定义 `.modal-card` 宽度为 `min(460px, calc(100vw - 32px))`，最大高度随视口限制，弹窗内容区域独立滚动。
-- 浏览器验证“新增角色”和“新增用户”弹窗宽度均为 460px，内容区域 `overflow-y` 为 `auto`。
+- `web/src/styles/main.css` 新增全局 `.modal-card` 规则，统一控制管理弹窗宽度为 `min(460px, calc(100vw - 32px))`，并限制最大高度。
+- 弹窗内容区统一设置 `overflow-y: auto`，表单内容较多时在弹窗内部滚动，不撑大页面或弹窗本体。
+- 删除用户管理、注册审批和权限管理页面中重复且受 Teleport 影响不稳定的 scoped `.modal-card` 样式，避免多处维护造成尺寸不一致。
+- 浏览器验证权限管理角色弹窗和用户管理新增用户弹窗实际宽度均为 460px，内容区保持内部滚动。
+## 2026-06-03：优化主框架页头与主题切换
+- `web/src/components/AppShell.vue` 去掉页头左侧的收缩按钮和页面副标题，页面顶部只保留主标题、主题切换和用户操作。
+- `web/src/stores/app.ts` 将主题状态同步到 `html[data-theme]`，并避免主题切换依赖事件绑定里的 `this`。
+- `web/src/styles/main.css` 抽取浅色/深色主题变量，主背景、卡片、边框、文字和菜单选中态都跟随主题变化。
+- 折叠侧栏菜单项补充居中样式，确保图标收缩后位于 64px 侧栏中线。

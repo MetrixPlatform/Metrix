@@ -25,16 +25,12 @@
 
     <n-layout class="app-main">
       <n-layout-header bordered class="app-header">
-        <n-button quaternary circle :title="collapsed ? '展开菜单' : '收起菜单'" @click="handleCollapsed(!collapsed)">
-          <template #icon><n-icon :component="PanelLeftContract" /></template>
-        </n-button>
         <div class="page-title">
           <strong>{{ currentTitle }}</strong>
-          <span>{{ currentSubtitle }}</span>
         </div>
         <div class="header-actions">
-          <n-button quaternary circle title="切换主题" @click="appStore.toggleTheme">
-            <template #icon><n-icon :component="WeatherMoon" /></template>
+          <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
+            <template #icon><n-icon :component="themeIcon" /></template>
           </n-button>
           <n-dropdown :options="userOptions" @select="handleUserAction">
             <n-button quaternary>
@@ -56,11 +52,11 @@ import {
   Board20Regular,
   CheckmarkCircle20Regular,
   KeyMultiple20Regular,
-  PanelLeftContract20Regular as PanelLeftContract,
   People20Regular,
   PersonCircle20Regular as PersonCircle,
   PersonSettings20Regular,
-  WeatherMoon20Regular as WeatherMoon
+  WeatherMoon20Regular as WeatherMoon,
+  WeatherSunny20Regular as WeatherSunny
 } from "@vicons/fluent";
 import { computed, h, ref, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -97,7 +93,8 @@ const menuOptions = computed<MenuOption[]>(() =>
 const activeMenu = computed(() => menuItems.value.find((item) => item.path === route.path)?.path || "/");
 const currentMenu = computed(() => allMenus.find((item) => item.path === route.path) || allMenus[0]);
 const currentTitle = computed(() => currentMenu.value.label);
-const currentSubtitle = computed(() => (route.path === "/" ? "基础框架工作台" : "内网平台基础管理"));
+const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
+const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
 
 const userOptions = [
   { label: "个人信息", key: "profile", icon: renderIcon(PersonSettings20Regular) },
@@ -126,6 +123,10 @@ async function handleUserAction(key: string) {
     authStore.clear();
     await router.push("/login");
   }
+}
+
+function toggleTheme() {
+  appStore.toggleTheme();
 }
 
 function renderIcon(icon: Component) {
