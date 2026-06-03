@@ -46,11 +46,6 @@ class UserRepository:
         self.db.delete(user)
         self.db.flush()
 
-    def roles_by_ids(self, role_ids: list[int]) -> list[Role]:
-        if not role_ids:
-            return []
-        return self.db.query(Role).filter(Role.id.in_(role_ids)).all()
-
     def count_admins(self) -> int:
         return (
             self.db.query(User)

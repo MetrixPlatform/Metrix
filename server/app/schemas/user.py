@@ -20,7 +20,7 @@ class UserProfile(BaseModel):
     approval_status: str
     is_active: bool
     is_builtin: bool
-    roles: list[RoleBrief] = []
+    roles: list[RoleBrief] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -37,7 +37,7 @@ class UserCreateRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=80)
     company: str = Field(default="", max_length=120)
     department: str = Field(default="", max_length=120)
-    role_ids: list[int] = []
+    role_ids: list[int] = Field(default_factory=list)
 
 
 class UserUpdateRequest(BaseModel):

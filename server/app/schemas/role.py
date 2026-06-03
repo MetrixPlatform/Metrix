@@ -24,7 +24,7 @@ class RoleItem(BaseModel):
     name: str
     description: str
     is_builtin: bool
-    permissions: list[PermissionItem] = []
+    permissions: list[PermissionItem] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

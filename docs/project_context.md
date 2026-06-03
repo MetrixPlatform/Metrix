@@ -193,3 +193,7 @@
 - 删除未使用的后端 `UserQuery` schema 及 `schemas.__init__` 导出，避免保留没有调用方的类型。
 - 前端路由守卫新增可访问页面 fallback，当前路由无权限时跳转到第一个有权限页面，避免用户没有首页权限时反复跳回 `/`。
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/permissions` 标题、菜单和页脚正常且无控制台错误。
+## 2026-06-03：第二轮代码清理
+- 角色 ID 批量查询从 `UserRepository` 移到 `RoleRepository.by_ids`，用户服务创建用户、审核通过、分配角色和管理员保护逻辑统一走角色仓库，避免用户仓库承担角色聚合职责。
+- Pydantic schema 中的列表默认值改为 `Field(default_factory=list)`，包括用户角色列表、创建用户角色 ID 列表和角色权限列表，消除可变默认值隐患。
+- 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 行操作按钮和 `/permissions` 角色卡片正常且无控制台错误。

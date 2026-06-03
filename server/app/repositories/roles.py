@@ -14,6 +14,11 @@ class RoleRepository:
     def get_by_code(self, code: str) -> Role | None:
         return self.db.query(Role).filter(Role.code == code).first()
 
+    def by_ids(self, role_ids: list[int]) -> list[Role]:
+        if not role_ids:
+            return []
+        return self.db.query(Role).filter(Role.id.in_(role_ids)).all()
+
     def list(self) -> list[Role]:
         return self.db.query(Role).order_by(Role.is_builtin.desc(), Role.id.asc()).all()
 
