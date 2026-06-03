@@ -124,6 +124,7 @@ a {
 
 .register-card {
   width: min(680px, calc(100% - 48px));
+  height: min(680px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
   display: flex;
   flex-direction: column;
@@ -147,8 +148,10 @@ a {
 .register-form-fields {
   display: grid;
   min-height: 0;
+  flex: 1 1 auto;
   gap: 14px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0 60px 18px;
 }
 
@@ -664,6 +667,7 @@ a {
 
   .register-card {
     width: min(100%, calc(100vw - 28px));
+    height: min(680px, calc(100dvh - 28px));
     max-height: calc(100dvh - 28px);
   }
 
