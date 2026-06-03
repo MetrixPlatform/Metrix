@@ -76,3 +76,10 @@
 - 前端公共布局、状态标签、权限按钮和样式已抽离，页面使用懒加载，生产构建已验证 chunk 拆分正常；管理表格在窄屏下使用固定列宽和横向滚动避免文字挤压。
 - API 文档页改为使用 `swagger-ui-bundle` 本地静态资源，不依赖 CDN 或外网 favicon。
 - 新增后端测试 `server/tests/test_auth_rbac.py`，覆盖 SQLite 安装、MySQL 安装建库建表路径、管理员登录、注册审批、普通用户权限拦截、个人信息修改、旧密码校验、路由授权默认查询权限和 API 文档离线资源。
+
+## 2026-06-03：新增后端直接启动入口
+
+- 新增 `server/main.py` 作为轻量启动入口，进入 `server/` 后可直接执行 `python main.py` 启动 FastAPI 后端。
+- 启动入口仍加载 `app.main:app`，不复制 FastAPI 应用创建逻辑，避免形成并行入口。
+- `server/main.py` 默认将 `METRIX_RUNTIME_DIR` 指向项目根目录 `runtime/`，避免从 `server/` 启动时把 SQLite 数据库和安装配置写入 `server/runtime/`。
+- 启动参数可通过环境变量覆盖：`METRIX_HOST` 控制监听地址，`METRIX_PORT` 控制端口，`METRIX_RELOAD=1` 开启开发热重载。
