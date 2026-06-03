@@ -11,6 +11,10 @@
   --primary-soft: #eff6ff;
   --primary-focus: rgba(37, 99, 235, 0.16);
   --shadow-color: rgba(15, 23, 42, 0.10);
+  --scrollbar-thumb: rgba(31, 41, 55, 0.22);
+  --scrollbar-thumb-hover: rgba(31, 41, 55, 0.36);
+  --scrollbar-track: transparent;
+  --auth-bg-layer: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.05));
   color: var(--text-color);
   font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
   font-synthesis: none;
@@ -19,22 +23,50 @@
 }
 
 [data-theme="dark"] {
-  --app-bg: #111827;
-  --app-bg-soft: #172033;
-  --panel-bg: #1f2937;
-  --panel-bg-hover: #273449;
-  --text-color: #e5e7eb;
-  --muted-color: #9ca3af;
-  --border-color: #374151;
-  --primary-color: #60a5fa;
-  --primary-strong: #93c5fd;
-  --primary-soft: rgba(96, 165, 250, 0.14);
-  --primary-focus: rgba(96, 165, 250, 0.28);
-  --shadow-color: rgba(0, 0, 0, 0.28);
+  --app-bg: #101014;
+  --app-bg-soft: #18181c;
+  --panel-bg: #18181c;
+  --panel-bg-hover: #242428;
+  --text-color: rgba(255, 255, 255, 0.82);
+  --muted-color: rgba(255, 255, 255, 0.52);
+  --border-color: rgba(255, 255, 255, 0.09);
+  --primary-color: #63e2b7;
+  --primary-strong: #63e2b7;
+  --primary-soft: rgba(99, 226, 183, 0.16);
+  --primary-focus: rgba(99, 226, 183, 0.28);
+  --shadow-color: rgba(0, 0, 0, 0.32);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.24);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.36);
+  --scrollbar-track: transparent;
+  --auth-bg-layer: linear-gradient(135deg, rgba(99, 226, 183, 0.08), rgba(112, 192, 232, 0.05));
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
 html,
@@ -66,7 +98,7 @@ a {
   overflow: auto;
   padding: 24px;
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.05)),
+    var(--auth-bg-layer),
     var(--app-bg);
 }
 
