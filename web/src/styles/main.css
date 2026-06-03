@@ -359,6 +359,10 @@ a {
   font-weight: 700;
 }
 
+.brand .brand-mark {
+  display: none;
+}
+
 .app-sider .brand-mark {
   width: 36px;
   height: 36px;
@@ -369,6 +373,12 @@ a {
 }
 
 .brand-text {
+  color: transparent;
+  font-size: 24px;
+  line-height: 1;
+  background: linear-gradient(135deg, #4a90e2, #9013fe);
+  background-clip: text;
+  -webkit-background-clip: text;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -410,6 +420,10 @@ a {
 .n-layout-sider--collapsed .brand {
   justify-content: center;
   padding: 0 12px;
+}
+
+.n-layout-sider--collapsed .brand .brand-mark {
+  display: grid;
 }
 
 .n-layout-sider--collapsed .brand-text {
@@ -619,7 +633,7 @@ a {
 
 .permission-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }

@@ -4,9 +4,10 @@
       <div class="toolbar">
         <strong>角色</strong>
         <div class="toolbar-group">
-          <permission-button permission="action:role:create" type="primary" @click="openCreate">新增</permission-button>
+          <permission-button permission="action:role:create" size="small" type="primary" @click="openCreate">新增</permission-button>
           <permission-button
             permission="action:role:update"
+            size="small"
             :disabled="!selectedRole"
             @click="openEdit"
           >
@@ -14,6 +15,7 @@
           </permission-button>
           <permission-button
             permission="action:role:delete"
+            size="small"
             type="error"
             :disabled="!selectedRole || selectedRole.is_builtin"
             @click="removeRole"
@@ -44,6 +46,7 @@
         <strong>权限分配</strong>
         <permission-button
           permission="action:role:operate"
+          size="small"
           type="primary"
           :disabled="!selectedRole"
           @click="savePermissions"

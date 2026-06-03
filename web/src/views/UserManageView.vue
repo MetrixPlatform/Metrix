@@ -9,7 +9,7 @@
       </div>
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
-    <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1180" />
+    <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="920" />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
@@ -88,14 +88,17 @@
 </template>
 
 <script setup lang="ts">
+import { MoreHorizontal20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
 import {
   NButton,
   NCheckbox,
   NCheckboxGroup,
   NDataTable,
+  NDropdown,
   NForm,
   NFormItem,
+  NIcon,
   NInput,
   NModal,
   NSelect,
@@ -103,7 +106,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
+import type { DataTableColumns, DropdownOption, FormInst, FormRules } from "naive-ui";
 
 import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUser, listUsers, rejectUser, resetPassword, updateUser } from "../api/users";
 import { listRoles } from "../api/roles";
@@ -184,34 +187,25 @@ const columns: DataTableColumns<UserListItem> = [
   {
     title: "操作",
     key: "actions",
-    width: 360,
+    width: 96,
+    align: "center",
     render: (row) => {
-      const actions = [
-        row.approval_status === "pending" && authStore.has("action:user:operate")
-          ? h(NButton, { size: "small", type: "primary", onClick: () => openApprove(row) }, { default: () => "通过" })
-          : null,
-        row.approval_status === "pending" && authStore.has("action:user:operate")
-          ? h(NButton, { size: "small", type: "error", onClick: () => openReject(row) }, { default: () => "驳回" })
-          : null,
-        authStore.has("action:user:update") ? h(NButton, { size: "small", onClick: () => openEdit(row) }, { default: () => "编辑" }) : null,
-        row.approval_status === "approved" && authStore.has("action:user:operate")
-          ? h(
+      const options = rowActionOptions(row);
+      return h(
+        NDropdown,
+        { trigger: "click", placement: "bottom-end", options, onSelect: (key) => handleRowAction(row, String(key)) },
+        {
+          default: () =>
+            h(
               NButton,
-              { size: "small", disabled: row.is_active && isLastActiveAdmin(row), onClick: () => toggleActive(row) },
-              { default: () => (row.is_active ? "禁用" : "启用") }
+              { size: "small", disabled: options.length === 0 },
+              {
+                default: () => "操作",
+                icon: () => h(NIcon, { component: MoreHorizontal20Regular })
+              }
             )
-          : null,
-        row.approval_status === "approved" && authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openRoles(row) }, { default: () => "角色" }) : null,
-        row.approval_status === "approved" && authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openPassword(row) }, { default: () => "密码" }) : null,
-        authStore.has("action:user:delete")
-          ? h(
-              NButton,
-              { size: "small", type: "error", disabled: Boolean(deleteDisabledReason(row)), title: deleteDisabledReason(row), onClick: () => confirmDelete(row) },
-              { default: () => "删除" }
-            )
-          : null
-      ].filter(Boolean);
-      return h("div", { class: "toolbar-group" }, actions);
+        }
+      );
     }
   }
 ];
@@ -311,6 +305,40 @@ async function saveReject() {
   } catch (error) {
     message.error((error as Error).message);
   }
+}
+
+function rowActionOptions(user: UserListItem): DropdownOption[] {
+  const options: DropdownOption[] = [];
+  if (user.approval_status === "pending" && authStore.has("action:user:operate")) {
+    options.push({ label: "通过", key: "approve" }, { label: "驳回", key: "reject" });
+  }
+  if (authStore.has("action:user:update")) {
+    options.push({ label: "编辑", key: "edit" });
+  }
+  if (user.approval_status === "approved" && authStore.has("action:user:operate")) {
+    options.push(
+      { label: user.is_active ? "禁用" : "启用", key: "toggle-active", disabled: user.is_active && isLastActiveAdmin(user) },
+      { label: "角色", key: "roles" },
+      { label: "密码", key: "password" }
+    );
+  }
+  if (authStore.has("action:user:delete")) {
+    options.push({ label: "删除", key: "delete", disabled: Boolean(deleteDisabledReason(user)) });
+  }
+  return options;
+}
+
+function handleRowAction(user: UserListItem, key: string) {
+  const actions: Record<string, () => void> = {
+    approve: () => openApprove(user),
+    reject: () => openReject(user),
+    edit: () => openEdit(user),
+    "toggle-active": () => void toggleActive(user),
+    roles: () => openRoles(user),
+    password: () => openPassword(user),
+    delete: () => confirmDelete(user)
+  };
+  actions[key]?.();
 }
 
 async function toggleActive(user: UserListItem) {
