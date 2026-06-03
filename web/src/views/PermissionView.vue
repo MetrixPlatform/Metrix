@@ -1,16 +1,16 @@
 <template>
-  <div class="page-stack">
-    <section class="work-card">
+  <div class="permission-layout">
+    <section class="work-card permission-role-card">
       <div class="toolbar">
         <strong>角色</strong>
         <div class="toolbar-group">
-          <permission-button permission="action:role:create" type="primary" @click="openCreate">新增角色</permission-button>
+          <permission-button permission="action:role:create" type="primary" @click="openCreate">新增</permission-button>
           <permission-button
             permission="action:role:update"
             :disabled="!selectedRole"
             @click="openEdit"
           >
-            编辑角色
+            编辑
           </permission-button>
           <permission-button
             permission="action:role:delete"
@@ -18,7 +18,7 @@
             :disabled="!selectedRole || selectedRole.is_builtin"
             @click="removeRole"
           >
-            删除角色
+            删除
           </permission-button>
         </div>
       </div>
@@ -30,16 +30,16 @@
           :class="{ active: selectedRole?.id === role.id }"
           @click="selectedRole = role"
         >
-          <div>
+          <div class="role-row-info">
             <strong>{{ role.name }}</strong>
-            <div>{{ role.code }} · {{ role.description || "无说明" }}</div>
+            <div class="role-row-description">{{ role.code }} · {{ role.description || "无说明" }}</div>
           </div>
           <status-tag :status="role.is_builtin ? 'builtin' : 'custom'" :labels="{ builtin: '内置', custom: '自定义' }" />
         </div>
       </div>
     </section>
 
-    <section class="work-card">
+    <section class="work-card permission-assign-card">
       <div class="toolbar">
         <strong>权限分配</strong>
         <permission-button
@@ -180,17 +180,22 @@ async function saveRole() {
 }
 
 function removeRole() {
-  if (!selectedRole.value) return;
+  const role = selectedRole.value;
+  if (!role) return;
   dialog.warning({
     title: "删除角色",
-    content: `确认删除角色 ${selectedRole.value.name}？`,
+    content: `确认删除角色 ${role.name}？`,
     positiveText: "删除",
     negativeText: "取消",
     onPositiveClick: async () => {
-      if (!selectedRole.value) return;
-      await deleteRole(selectedRole.value.id);
-      selectedRole.value = null;
-      await loadData();
+      try {
+        await deleteRole(role.id);
+        selectedRole.value = null;
+        await loadData();
+        message.success("角色已删除");
+      } catch (error) {
+        message.error((error as Error).message);
+      }
     }
   });
 }

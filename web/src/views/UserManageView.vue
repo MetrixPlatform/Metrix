@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from "vue";
+import { computed, h, onMounted, reactive, ref } from "vue";
 import {
   NButton,
   NCheckbox,
@@ -128,6 +128,10 @@ const userRules: FormRules = {
 const passwordRules: FormRules = {
   password: [requiredRule("新密码"), minLengthRule("新密码", 6), maxLengthRule("新密码", 128)]
 };
+const adminRoleId = computed(() => roles.value.find((role) => role.code === "admin")?.id ?? null);
+const activeAdminCount = computed(
+  () => users.value.filter((user) => user.is_active && user.approval_status === "approved" && hasAdminRole(user)).length
+);
 
 const approvalOptions = [
   { label: "待审核", value: "pending" },
@@ -155,12 +159,20 @@ const columns: DataTableColumns<UserListItem> = [
       h("div", { class: "toolbar-group" }, [
         authStore.has("action:user:update") ? h(NButton, { size: "small", onClick: () => openEdit(row) }, { default: () => "编辑" }) : null,
         authStore.has("action:user:operate")
-          ? h(NButton, { size: "small", onClick: () => toggleActive(row) }, { default: () => (row.is_active ? "禁用" : "启用") })
+          ? h(
+              NButton,
+              { size: "small", disabled: row.is_active && isLastActiveAdmin(row), onClick: () => toggleActive(row) },
+              { default: () => (row.is_active ? "禁用" : "启用") }
+            )
           : null,
         authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openRoles(row) }, { default: () => "角色" }) : null,
         authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openPassword(row) }, { default: () => "密码" }) : null,
         authStore.has("action:user:delete")
-          ? h(NButton, { size: "small", type: "error", onClick: () => confirmDelete(row) }, { default: () => "删除" })
+          ? h(
+              NButton,
+              { size: "small", type: "error", disabled: Boolean(deleteDisabledReason(row)), title: deleteDisabledReason(row), onClick: () => confirmDelete(row) },
+              { default: () => "删除" }
+            )
           : null
       ])
   }
@@ -227,6 +239,7 @@ async function saveUser() {
 }
 
 async function toggleActive(user: UserListItem) {
+  if (user.is_active && guardLastAdmin(user)) return;
   try {
     if (user.is_active) {
       await disableUser(user.id);
@@ -247,6 +260,7 @@ function openRoles(user: UserListItem) {
 
 async function saveRoles() {
   if (!roleTarget.value) return;
+  if (guardRoleChange(roleTarget.value)) return;
   try {
     await assignRoles(roleTarget.value.id, roleIds.value);
     showRoleModal.value = false;
@@ -276,15 +290,59 @@ async function savePassword() {
 }
 
 function confirmDelete(user: UserListItem) {
+  const disabledReason = deleteDisabledReason(user);
+  if (disabledReason) {
+    message.error(disabledReason);
+    return;
+  }
   dialog.warning({
     title: "删除用户",
     content: `确认删除 ${user.username}？`,
     positiveText: "删除",
     negativeText: "取消",
     onPositiveClick: async () => {
-      await deleteUser(user.id);
-      await loadUsers();
+      try {
+        await deleteUser(user.id);
+        await loadUsers();
+        message.success("用户已删除");
+      } catch (error) {
+        message.error((error as Error).message);
+      }
     }
   });
+}
+
+function hasAdminRole(user: UserListItem) {
+  return user.roles.some((role) => role.code === "admin");
+}
+
+function isLastActiveAdmin(user: UserListItem) {
+  return user.is_active && user.approval_status === "approved" && hasAdminRole(user) && activeAdminCount.value <= 1;
+}
+
+function guardLastAdmin(user: UserListItem) {
+  if (!isLastActiveAdmin(user)) return false;
+  message.error("不能操作最后一个管理员");
+  return true;
+}
+
+function guardRoleChange(user: UserListItem) {
+  const removingAdminRole = hasAdminRole(user) && adminRoleId.value !== null && !roleIds.value.includes(adminRoleId.value);
+  if (!removingAdminRole) return false;
+  if (isLastActiveAdmin(user)) {
+    message.error("不能移除最后一个管理员的管理员角色");
+    return true;
+  }
+  if (authStore.user?.id === user.id) {
+    message.error("不能移除自己的管理员角色");
+    return true;
+  }
+  return false;
+}
+
+function deleteDisabledReason(user: UserListItem) {
+  if (isLastActiveAdmin(user)) return "不能操作最后一个管理员";
+  if (user.is_builtin) return "内置用户不能删除";
+  return "";
 }
 </script>

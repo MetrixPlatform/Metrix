@@ -613,6 +613,18 @@ a {
   gap: 8px;
 }
 
+.permission-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.permission-role-card,
+.permission-assign-card {
+  min-width: 0;
+}
+
 .role-row {
   display: flex;
   align-items: center;
@@ -622,6 +634,24 @@ a {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
+}
+
+.role-row-info {
+  min-width: 0;
+}
+
+.role-row-info strong,
+.role-row-description {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.role-row-description {
+  margin-top: 4px;
+  color: var(--muted-color);
+  font-size: 13px;
 }
 
 .role-row.active {
@@ -685,6 +715,10 @@ a {
 }
 
 @media (max-width: 900px) {
+  .permission-layout {
+    grid-template-columns: 1fr;
+  }
+
   .profile-grid {
     grid-template-columns: 1fr;
   }
