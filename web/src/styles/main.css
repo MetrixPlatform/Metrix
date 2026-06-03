@@ -525,10 +525,14 @@ a {
   flex-wrap: nowrap;
 }
 
+.user-create-button {
+  flex: 0 0 auto;
+}
+
 .user-filter-row {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(260px, 1fr) 160px 160px auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 160px) minmax(140px, 160px) auto;
   gap: 10px;
   align-items: center;
   min-width: 0;
@@ -717,6 +721,19 @@ a {
 @media (max-width: 900px) {
   .permission-layout {
     grid-template-columns: 1fr;
+  }
+
+  .user-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .user-filter-row {
+    flex-basis: 100%;
+  }
+
+  .user-create-button {
+    margin-left: auto;
   }
 
   .profile-grid {

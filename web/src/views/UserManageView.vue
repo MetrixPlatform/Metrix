@@ -7,7 +7,7 @@
         <n-select v-model:value="filters.is_active" class="filter-select" :options="activeOptions" clearable placeholder="启用状态" />
         <n-button @click="loadUsers">查询</n-button>
       </div>
-      <permission-button permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
+      <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
     <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1180" />
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? '编辑用户' : '新增用户'">
