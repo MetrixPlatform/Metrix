@@ -106,3 +106,11 @@
 - 新增 `web/src/components/BrandMark.vue` 统一渲染品牌图标，登录、注册、初始化页面和主应用侧边栏复用该组件。
 - `web/src/styles/main.css` 调整品牌图标尺寸，配合减少透明边距后的 SVG 提升 M 的可视大小；M 使用中等偏粗字重，避免过度加粗。
 - 浏览器验证页面图标实际加载 `/favicon.svg`，favicon 链接同样指向该本地 SVG。
+
+## 2026-06-03：调整安装页操作区与数据库连接测试
+
+- 初始化页面的“初始化”按钮移动到管理员信息区域的部门输入框下方，按钮独占一行并与输入框同宽，避免切换 SQLite/MySQL 时主操作按钮跟随数据库区域高度跳动。
+- 数据库配置区域新增“测试连接”按钮，前端通过 `web/src/api/install.ts` 调用 `/api/install/test-database`。
+- 后端新增 `InstallDatabaseTestRequest` 和 `test_database_connection`，测试连接只接收数据库配置，不要求管理员信息。
+- SQLite 测试会尝试打开数据库连接；MySQL 测试只连接服务器并执行 `SELECT 1`，不创建数据库，实际初始化时仍由安装流程按需建库。
+- 后端测试补充 SQLite 测试接口和 MySQL 测试连接路径，确保 MySQL 测试使用服务器级连接 URL。

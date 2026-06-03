@@ -25,3 +25,9 @@ class InstallRequest(BaseModel):
     admin_full_name: str = Field(min_length=1, max_length=80)
     admin_company: str = Field(default="", max_length=120)
     admin_department: str = Field(default="", max_length=120)
+
+
+class InstallDatabaseTestRequest(BaseModel):
+    database_type: Literal["sqlite", "mysql"]
+    sqlite_path: str = Field(default="", max_length=500)
+    mysql: MysqlInstallConfig | None = None

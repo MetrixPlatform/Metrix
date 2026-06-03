@@ -70,10 +70,18 @@ a {
   border-left: 1px solid #e5e7eb;
 }
 
-.install-section-title {
-  margin: 0 0 16px;
+.install-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.install-section-title {
+  margin: 0;
   font-size: 16px;
 }
 
@@ -88,9 +96,8 @@ a {
   grid-template-columns: minmax(0, 1.6fr) minmax(112px, 0.8fr);
 }
 
-.install-actions {
-  width: min(360px, 100%);
-  margin-left: auto;
+.install-submit {
+  margin-top: 4px;
 }
 
 .full-width {
@@ -382,9 +389,6 @@ a {
     border-left: 0;
   }
 
-  .install-actions {
-    margin-left: 0;
-  }
 }
 
 @media (max-width: 560px) {

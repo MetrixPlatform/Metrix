@@ -2,7 +2,7 @@ import importlib
 
 from fastapi.testclient import TestClient
 
-from app.schemas.install import InstallRequest, MysqlInstallConfig
+from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, MysqlInstallConfig
 
 
 def create_client(tmp_path, monkeypatch):
@@ -48,6 +48,17 @@ def test_install_status_and_sqlite_install(tmp_path, monkeypatch):
     status = client.get("/api/install/status").json()
     assert status == {"installed": True, "database_type": "sqlite"}
     assert client.post("/api/install", json=payload).status_code == 400
+
+
+def test_sqlite_database_test_endpoint(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    db_path = tmp_path / "test-connection.db"
+
+    response = client.post("/api/install/test-database", json={"database_type": "sqlite", "sqlite_path": str(db_path)})
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "数据库连接正常"}
+    assert db_path.exists()
 
 
 def test_api_docs_use_local_assets(tmp_path, monkeypatch):
@@ -148,6 +159,46 @@ def test_mysql_database_creation_sql(monkeypatch):
     assert "CREATE DATABASE IF NOT EXISTS `metrix_test`" in statements[0]
     assert "CHARACTER SET utf8mb4" in statements[0]
     assert "disposed" in statements
+
+
+def test_mysql_database_test_uses_server_connection(monkeypatch):
+    from app.services import install as install_service
+
+    calls = []
+
+    class FakeConnection:
+        def __enter__(self):
+            calls.append("connect")
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def execute(self, statement):
+            calls.append(str(statement))
+
+    class FakeEngine:
+        def __init__(self, url):
+            self.url = url
+
+        def connect(self):
+            calls.append(("url", self.url))
+            return FakeConnection()
+
+        def dispose(self):
+            calls.append("disposed")
+
+    payload = InstallDatabaseTestRequest(
+        database_type="mysql",
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+    )
+    monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine(url))
+
+    install_service.test_database_connection(payload)
+
+    assert ("url", "mysql+pymysql://root:pass@127.0.0.1:3306/?charset=utf8mb4") in calls
+    assert "SELECT 1" in calls
+    assert "disposed" in calls
 
 
 def test_admin_login_and_dashboard(tmp_path, monkeypatch):

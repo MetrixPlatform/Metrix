@@ -11,7 +11,10 @@
       <n-form ref="formRef" class="install-form" :model="form" :rules="rules" label-placement="top">
         <div class="install-grid">
           <section class="install-section">
-            <h2 class="install-section-title">数据库配置</h2>
+            <div class="install-section-head">
+              <h2 class="install-section-title">数据库配置</h2>
+              <n-button secondary :loading="testing" @click="testConnection">测试连接</n-button>
+            </div>
             <n-form-item label="数据库类型" path="database_type">
               <n-radio-group v-model:value="form.database_type">
                 <n-radio-button v-for="option in databaseOptions" :key="option.value" :value="option.value">
@@ -65,10 +68,10 @@
             <n-form-item label="部门" path="admin_department">
               <n-input v-model:value="form.admin_department" />
             </n-form-item>
+            <div class="install-submit">
+              <n-button type="primary" block :loading="loading" @click="submit">初始化</n-button>
+            </div>
           </section>
-        </div>
-        <div class="install-actions">
-          <n-button type="primary" block :loading="loading" @click="submit">初始化</n-button>
         </div>
       </n-form>
     </div>
@@ -81,7 +84,7 @@ import type { FormInst, FormRules } from "naive-ui";
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
-import { installSystem } from "../api/install";
+import { installSystem, testInstallDatabase } from "../api/install";
 import BrandMark from "../components/BrandMark.vue";
 import { maxLengthRule, minLengthRule, numberRequiredRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -89,6 +92,7 @@ const router = useRouter();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
+const testing = ref(false);
 const databaseOptions = [
   { label: "SQLite", value: "sqlite" },
   { label: "MySQL", value: "mysql" }
@@ -125,6 +129,18 @@ const rules: FormRules = {
   admin_department: maxLengthRule("部门", 120)
 };
 
+async function testConnection() {
+  testing.value = true;
+  try {
+    await testInstallDatabase(databasePayload());
+    message.success("数据库连接正常");
+  } catch (error) {
+    message.error((error as Error).message);
+  } finally {
+    testing.value = false;
+  }
+}
+
 async function submit() {
   if (!(await validateForm(formRef.value))) return;
   loading.value = true;
@@ -137,5 +153,13 @@ async function submit() {
   } finally {
     loading.value = false;
   }
+}
+
+function databasePayload() {
+  return {
+    database_type: form.database_type,
+    sqlite_path: form.sqlite_path,
+    mysql: form.database_type === "mysql" ? form.mysql : undefined
+  };
 }
 </script>

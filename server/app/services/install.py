@@ -3,15 +3,28 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.exceptions import bad_request
 from app.core.install import default_sqlite_path, is_installed, load_install_config, write_install_config
 from app.db.init import create_tables, seed_database
 from app.db.session import create_engine_for_url, reset_engine
-from app.schemas.install import InstallRequest
+from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, MysqlInstallConfig
 
 MYSQL_DATABASE_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def test_database_connection(payload: InstallDatabaseTestRequest) -> None:
+    database_url = _test_database_url(payload)
+    engine = create_engine_for_url(database_url)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise bad_request("数据库连接失败，请检查连接配置") from exc
+    finally:
+        engine.dispose()
 
 
 def install_system(payload: InstallRequest) -> None:
@@ -54,6 +67,15 @@ def _database_url(payload: InstallRequest) -> str:
     )
 
 
+def _test_database_url(payload: InstallDatabaseTestRequest) -> str:
+    if payload.database_type == "sqlite":
+        return _sqlite_url(payload.sqlite_path)
+    if payload.mysql is None:
+        raise bad_request("请填写 MySQL 连接信息")
+    _guard_mysql_database(payload.mysql.database)
+    return _mysql_server_url(payload.mysql)
+
+
 def _sqlite_url(sqlite_path: str) -> str:
     path = Path(sqlite_path.strip()) if sqlite_path.strip() else default_sqlite_path()
     if not path.is_absolute():
@@ -67,15 +89,18 @@ def _create_mysql_database(payload: InstallRequest) -> None:
         raise bad_request("请填写 MySQL 连接信息")
     mysql = payload.mysql
     _guard_mysql_database(mysql.database)
-    username = quote_plus(mysql.username)
-    password = quote_plus(mysql.password)
-    server_url = f"mysql+pymysql://{username}:{password}@{mysql.host}:{mysql.port}/?charset=utf8mb4"
-    engine = create_engine_for_url(server_url)
+    engine = create_engine_for_url(_mysql_server_url(mysql))
     try:
         with engine.begin() as conn:
             conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{mysql.database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
     finally:
         engine.dispose()
+
+
+def _mysql_server_url(mysql: MysqlInstallConfig) -> str:
+    username = quote_plus(mysql.username)
+    password = quote_plus(mysql.password)
+    return f"mysql+pymysql://{username}:{password}@{mysql.host}:{mysql.port}/?charset=utf8mb4"
 
 
 def _guard_mysql_database(database: str) -> None:
