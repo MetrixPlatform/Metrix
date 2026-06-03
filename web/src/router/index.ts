@@ -14,7 +14,6 @@ const routes = [
     children: [
       { path: "", component: () => import("../views/DashboardView.vue"), meta: { permission: "route:dashboard" } },
       { path: "users", component: () => import("../views/UserManageView.vue"), meta: { permission: "route:users" } },
-      { path: "approvals", component: () => import("../views/ApprovalView.vue"), meta: { permission: "route:approvals" } },
       { path: "permissions", component: () => import("../views/PermissionView.vue"), meta: { permission: "route:permissions" } },
       { path: "profile", component: () => import("../views/ProfileView.vue") }
     ]

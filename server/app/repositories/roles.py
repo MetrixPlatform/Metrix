@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.core.permissions import DEPRECATED_PERMISSION_CODES
 from app.models import Permission, Role
 
 
@@ -26,12 +27,18 @@ class RoleRepository:
         self.db.flush()
 
     def permissions(self) -> list[Permission]:
-        return self.db.query(Permission).order_by(Permission.sort_order.asc(), Permission.id.asc()).all()
+        query = self.db.query(Permission)
+        if DEPRECATED_PERMISSION_CODES:
+            query = query.filter(Permission.code.not_in(DEPRECATED_PERMISSION_CODES))
+        return query.order_by(Permission.sort_order.asc(), Permission.id.asc()).all()
 
     def permissions_by_ids(self, permission_ids: list[int]) -> list[Permission]:
         if not permission_ids:
             return []
-        return self.db.query(Permission).filter(Permission.id.in_(permission_ids)).all()
+        query = self.db.query(Permission).filter(Permission.id.in_(permission_ids))
+        if DEPRECATED_PERMISSION_CODES:
+            query = query.filter(Permission.code.not_in(DEPRECATED_PERMISSION_CODES))
+        return query.all()
 
     def count(self) -> int:
         return self.db.query(Role).count()

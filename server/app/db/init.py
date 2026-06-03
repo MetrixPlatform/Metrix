@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.core.permissions import ADMIN_ROLE, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
+from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
 from app.core.security import hash_password
 from app.db.base import Base
 from app.models import Permission, Role, User
@@ -34,6 +34,7 @@ def seed_database(db: Session, payload: InstallRequest) -> None:
             permission.description = seed.description
             permission.sort_order = seed.sort_order
         permissions_by_code[seed.code] = permission
+    _delete_deprecated_permissions(db)
 
     admin_role = _ensure_role(db, ADMIN_ROLE, "超级管理员", "拥有全部权限", True)
     user_role = _ensure_role(db, USER_ROLE, "普通用户", "默认基础用户", True)
@@ -70,3 +71,12 @@ def _ensure_role(db: Session, code: str, name: str, description: str, is_builtin
         role.description = description
         role.is_builtin = is_builtin
     return role
+
+
+def _delete_deprecated_permissions(db: Session) -> None:
+    if not DEPRECATED_PERMISSION_CODES:
+        return
+    permissions = db.query(Permission).filter(Permission.code.in_(DEPRECATED_PERMISSION_CODES)).all()
+    for permission in permissions:
+        permission.roles.clear()
+        db.delete(permission)

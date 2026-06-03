@@ -6,7 +6,7 @@ from app.core.permissions import USER_CREATE, USER_DELETE, USER_OPERATE, USER_RE
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import MessageResponse
-from app.schemas.user import AssignRolesRequest, ResetPasswordRequest, UserCreateRequest, UserListItem, UserUpdateRequest
+from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, UserCreateRequest, UserListItem, UserUpdateRequest
 from app.services.users import UserService
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -98,3 +98,23 @@ def assign_roles(
     actor: User = Depends(require_permission(USER_OPERATE)),
 ) -> User:
     return UserService(db).assign_roles(actor, user_id, payload)
+
+
+@router.post("/{user_id}/approve", response_model=UserListItem)
+def approve_user(
+    user_id: int,
+    payload: AssignRolesRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(USER_OPERATE)),
+) -> User:
+    return UserService(db).approve_user(actor, user_id, payload.role_ids)
+
+
+@router.post("/{user_id}/reject", response_model=UserListItem)
+def reject_user(
+    user_id: int,
+    payload: RejectUserRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(USER_OPERATE)),
+) -> User:
+    return UserService(db).reject_user(actor, user_id, payload)

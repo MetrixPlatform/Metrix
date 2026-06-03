@@ -50,7 +50,6 @@
 <script setup lang="ts">
 import {
   Board20Regular,
-  CheckmarkCircle20Regular,
   KeyMultiple20Regular,
   People20Regular,
   PersonCircle20Regular as PersonCircle,
@@ -77,7 +76,6 @@ const router = useRouter();
 const allMenus = [
   { path: "/", label: "首页", permission: "route:dashboard", icon: Board20Regular },
   { path: "/users", label: "用户管理", permission: "route:users", icon: People20Regular },
-  { path: "/approvals", label: "注册审批", permission: "route:approvals", icon: CheckmarkCircle20Regular },
   { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular },
   { path: "/profile", label: "个人信息", permission: "", icon: PersonSettings20Regular }
 ];

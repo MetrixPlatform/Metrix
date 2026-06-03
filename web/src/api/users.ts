@@ -53,3 +53,11 @@ export function resetPassword(userId: number, password: string) {
 export function assignRoles(userId: number, roleIds: number[]) {
   return put<UserListItem>(`/users/${userId}/roles`, { role_ids: roleIds });
 }
+
+export function approveUser(userId: number, roleIds: number[]) {
+  return post<UserListItem>(`/users/${userId}/approve`, { role_ids: roleIds });
+}
+
+export function rejectUser(userId: number, reason: string) {
+  return post<UserListItem>(`/users/${userId}/reject`, { reason });
+}

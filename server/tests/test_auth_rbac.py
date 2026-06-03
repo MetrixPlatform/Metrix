@@ -233,10 +233,10 @@ def test_register_approve_and_user_login(tmp_path, monkeypatch):
     assert register_response.status_code == 200
     assert client.post("/api/auth/login", json={"username": "user01", "password": "UserPass123"}).status_code == 400
 
-    pending = client.get("/api/approvals/users", headers=admin_headers)
+    pending = client.get("/api/users", params={"approval_status": "pending"}, headers=admin_headers)
     assert pending.status_code == 200
     user_id = pending.json()[0]["id"]
-    approve = client.post(f"/api/approvals/users/{user_id}/approve", json={"role_ids": []}, headers=admin_headers)
+    approve = client.post(f"/api/users/{user_id}/approve", json={"role_ids": []}, headers=admin_headers)
     assert approve.status_code == 200
 
     user_headers = login(client, "user01", "UserPass123")
@@ -287,6 +287,7 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     role_id = role.json()["id"]
 
     permissions = client.get("/api/permissions", headers=admin_headers).json()
+    assert "route:approvals" not in {item["code"] for item in permissions}
     users_route = next(item for item in permissions if item["code"] == "route:users")
     assign = client.put(f"/api/roles/{role_id}/permissions", json={"permission_ids": [users_route["id"]]}, headers=admin_headers)
     assert assign.status_code == 200

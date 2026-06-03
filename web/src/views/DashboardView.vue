@@ -50,7 +50,6 @@ const pages = computed(() => {
   const result = ["个人信息"];
   if (authStore.has("route:dashboard")) result.unshift("首页");
   if (authStore.has("route:users")) result.push("用户管理");
-  if (authStore.has("route:approvals")) result.push("注册审批");
   if (authStore.has("route:permissions")) result.push("权限管理");
   return result;
 });

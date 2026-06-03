@@ -10,6 +10,28 @@
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
     <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1180" />
+    <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
+      <n-checkbox-group v-model:value="roleIds">
+        <n-space>
+          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</n-checkbox>
+        </n-space>
+      </n-checkbox-group>
+      <div class="form-actions">
+        <n-button @click="showApproveModal = false">取消</n-button>
+        <n-button type="primary" @click="saveApprove">通过</n-button>
+      </div>
+    </n-modal>
+    <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" title="驳回注册">
+      <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="88">
+        <n-form-item label="驳回原因" path="reason">
+          <n-input v-model:value="rejectForm.reason" type="textarea" placeholder="驳回原因" />
+        </n-form-item>
+      </n-form>
+      <div class="form-actions">
+        <n-button @click="showRejectModal = false">取消</n-button>
+        <n-button type="error" @click="saveReject">驳回</n-button>
+      </div>
+    </n-modal>
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? '编辑用户' : '新增用户'">
       <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="80">
         <n-form-item v-if="!editingUser" label="账号" path="username">
@@ -83,7 +105,7 @@ import {
 } from "naive-ui";
 import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
 
-import { assignRoles, createUser, deleteUser, disableUser, enableUser, listUsers, resetPassword, updateUser } from "../api/users";
+import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUser, listUsers, rejectUser, resetPassword, updateUser } from "../api/users";
 import { listRoles } from "../api/roles";
 import type { RoleItem, UserListItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
@@ -96,16 +118,21 @@ const dialog = useDialog();
 const loading = ref(false);
 const userFormRef = ref<FormInst | null>(null);
 const passwordFormRef = ref<FormInst | null>(null);
+const rejectFormRef = ref<FormInst | null>(null);
 const users = ref<UserListItem[]>([]);
 const roles = ref<RoleItem[]>([]);
+const showApproveModal = ref(false);
+const showRejectModal = ref(false);
 const showUserModal = ref(false);
 const showRoleModal = ref(false);
 const showPasswordModal = ref(false);
 const editingUser = ref<UserListItem | null>(null);
+const approvalTarget = ref<UserListItem | null>(null);
 const roleTarget = ref<UserListItem | null>(null);
 const passwordTarget = ref<UserListItem | null>(null);
 const roleIds = ref<number[]>([]);
 const passwordForm = reactive({ password: "" });
+const rejectForm = reactive({ reason: "" });
 const filters = reactive<{ keyword: string; approval_status: string | null; is_active: string | null }>({
   keyword: "",
   approval_status: null,
@@ -127,6 +154,9 @@ const userRules: FormRules = {
 };
 const passwordRules: FormRules = {
   password: [requiredRule("新密码"), minLengthRule("新密码", 6), maxLengthRule("新密码", 128)]
+};
+const rejectRules: FormRules = {
+  reason: maxLengthRule("驳回原因", 500)
 };
 const adminRoleId = computed(() => roles.value.find((role) => role.code === "admin")?.id ?? null);
 const activeAdminCount = computed(
@@ -154,19 +184,25 @@ const columns: DataTableColumns<UserListItem> = [
   {
     title: "操作",
     key: "actions",
-    width: 330,
-    render: (row) =>
-      h("div", { class: "toolbar-group" }, [
+    width: 360,
+    render: (row) => {
+      const actions = [
+        row.approval_status === "pending" && authStore.has("action:user:operate")
+          ? h(NButton, { size: "small", type: "primary", onClick: () => openApprove(row) }, { default: () => "通过" })
+          : null,
+        row.approval_status === "pending" && authStore.has("action:user:operate")
+          ? h(NButton, { size: "small", type: "error", onClick: () => openReject(row) }, { default: () => "驳回" })
+          : null,
         authStore.has("action:user:update") ? h(NButton, { size: "small", onClick: () => openEdit(row) }, { default: () => "编辑" }) : null,
-        authStore.has("action:user:operate")
+        row.approval_status === "approved" && authStore.has("action:user:operate")
           ? h(
               NButton,
               { size: "small", disabled: row.is_active && isLastActiveAdmin(row), onClick: () => toggleActive(row) },
               { default: () => (row.is_active ? "禁用" : "启用") }
             )
           : null,
-        authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openRoles(row) }, { default: () => "角色" }) : null,
-        authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openPassword(row) }, { default: () => "密码" }) : null,
+        row.approval_status === "approved" && authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openRoles(row) }, { default: () => "角色" }) : null,
+        row.approval_status === "approved" && authStore.has("action:user:operate") ? h(NButton, { size: "small", onClick: () => openPassword(row) }, { default: () => "密码" }) : null,
         authStore.has("action:user:delete")
           ? h(
               NButton,
@@ -174,7 +210,9 @@ const columns: DataTableColumns<UserListItem> = [
               { default: () => "删除" }
             )
           : null
-      ])
+      ].filter(Boolean);
+      return h("div", { class: "toolbar-group" }, actions);
+    }
   }
 ];
 
@@ -233,6 +271,43 @@ async function saveUser() {
     showUserModal.value = false;
     await loadUsers();
     message.success("用户已保存");
+  } catch (error) {
+    message.error((error as Error).message);
+  }
+}
+
+function openApprove(user: UserListItem) {
+  approvalTarget.value = user;
+  roleIds.value = [];
+  showApproveModal.value = true;
+}
+
+async function saveApprove() {
+  if (!approvalTarget.value) return;
+  try {
+    await approveUser(approvalTarget.value.id, roleIds.value);
+    showApproveModal.value = false;
+    await loadUsers();
+    message.success("已审核通过");
+  } catch (error) {
+    message.error((error as Error).message);
+  }
+}
+
+function openReject(user: UserListItem) {
+  approvalTarget.value = user;
+  rejectForm.reason = "";
+  showRejectModal.value = true;
+}
+
+async function saveReject() {
+  if (!approvalTarget.value) return;
+  if (!(await validateForm(rejectFormRef.value))) return;
+  try {
+    await rejectUser(approvalTarget.value.id, rejectForm.reason);
+    showRejectModal.value = false;
+    await loadUsers();
+    message.success("已驳回");
   } catch (error) {
     message.error((error as Error).message);
   }

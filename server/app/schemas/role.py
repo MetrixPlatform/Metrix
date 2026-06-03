@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.core.permissions import DEPRECATED_PERMISSION_CODES
 
 
 class PermissionItem(BaseModel):
@@ -27,6 +29,11 @@ class RoleItem(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator("permissions")
+    @classmethod
+    def remove_deprecated_permissions(cls, permissions: list[PermissionItem]) -> list[PermissionItem]:
+        return [permission for permission in permissions if permission.code not in DEPRECATED_PERMISSION_CODES]
 
 
 class RoleCreateRequest(BaseModel):

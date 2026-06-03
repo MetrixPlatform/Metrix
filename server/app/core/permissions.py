@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 ROUTE_DASHBOARD = "route:dashboard"
 ROUTE_USERS = "route:users"
-ROUTE_APPROVALS = "route:approvals"
 ROUTE_PERMISSIONS = "route:permissions"
 
 USER_CREATE = "action:user:create"
@@ -23,9 +22,10 @@ USER_ROLE = "user"
 
 ROUTE_READ_PERMISSIONS = {
     ROUTE_USERS: USER_READ,
-    ROUTE_APPROVALS: USER_READ,
     ROUTE_PERMISSIONS: ROLE_READ,
 }
+
+DEPRECATED_PERMISSION_CODES = {"route:approvals"}
 
 
 @dataclass(frozen=True)
@@ -42,7 +42,6 @@ class PermissionSeed:
 PERMISSION_SEEDS = [
     PermissionSeed(ROUTE_DASHBOARD, "首页", "route", "dashboard", "页面", "访问首页", 10),
     PermissionSeed(ROUTE_USERS, "用户管理", "route", "user", "页面", "访问用户管理", 20),
-    PermissionSeed(ROUTE_APPROVALS, "注册审批", "route", "user", "页面", "访问注册审批", 30),
     PermissionSeed(ROUTE_PERMISSIONS, "权限管理", "route", "role", "页面", "访问权限管理", 40),
     PermissionSeed(USER_CREATE, "新增用户", "action", "user", "用户", "创建用户", 110),
     PermissionSeed(USER_READ, "查询用户", "action", "user", "用户", "查询用户", 120),
