@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-const logoUrl = "/metrix-logo.svg";
+const logoUrl = "/favicon.svg";
 </script>
