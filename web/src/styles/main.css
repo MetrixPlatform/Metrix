@@ -98,6 +98,7 @@ a {
 
 .install-submit {
   margin-top: 4px;
+  width: 100%;
 }
 
 .full-width {
@@ -388,7 +389,6 @@ a {
     border-top: 1px solid #e5e7eb;
     border-left: 0;
   }
-
 }
 
 @media (max-width: 560px) {
