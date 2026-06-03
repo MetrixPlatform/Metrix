@@ -206,3 +206,8 @@
 - 新增 `web/src/utils/message.ts`，统一封装页面请求失败提示，页面 catch 中不再重复书写 `message.error((error as Error).message)`。
 - `showError` 接收 `unknown` 错误并对非 `Error` 值给出默认提示，避免异常对象类型不稳定时页面再次抛错。
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/login` 正常且无控制台错误。
+## 2026-06-03：第四轮代码清理
+- `UserService` 新增 `_roles_or_default`，创建用户和审核通过用户复用同一套默认普通角色选择逻辑，保留用户分配角色时允许空角色列表的原有语义。
+- `server/app/db/session.py` 不再通过 SQLAlchemy `sessionmaker.kw["bind"]` 内部属性判断绑定引擎，改为显式记录当前 session 工厂对应的 engine，提高后续 SQLAlchemy 版本兼容性。
+- 清理本地生成的 `__pycache__` 缓存目录，保持工作区只保留真实源码和必要配置。
+- 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。

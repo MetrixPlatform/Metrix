@@ -4,7 +4,7 @@ from app.core.exceptions import bad_request, forbidden, not_found
 from app.core.permissions import ADMIN_ROLE, USER_ROLE
 from app.core.security import hash_password
 from app.core.time import utc_now
-from app.models import User
+from app.models import Role, User
 from app.repositories.roles import RoleRepository
 from app.repositories.users import UserRepository
 from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, UserCreateRequest, UserUpdateRequest
@@ -29,10 +29,6 @@ class UserService:
     def create_user(self, actor: User, payload: UserCreateRequest) -> User:
         if self.users.get_by_username(payload.username):
             raise bad_request("账号已存在")
-        roles = self.roles.by_ids(payload.role_ids)
-        if not roles:
-            default_role = self.roles.get_by_code(USER_ROLE)
-            roles = [default_role] if default_role else []
         user = User(
             username=payload.username,
             full_name=payload.full_name,
@@ -41,7 +37,7 @@ class UserService:
             password_hash=hash_password(payload.password),
             approval_status="approved",
             is_active=True,
-            roles=roles,
+            roles=self._roles_or_default(payload.role_ids),
         )
         self.users.create(user)
         record_audit(self.db, actor.id, "user.create", "user", str(user.id), user.username)
@@ -70,11 +66,7 @@ class UserService:
         user = self.get_user(user_id)
         if user.approval_status != "pending":
             raise bad_request("只能审核待审核用户")
-        roles = self.roles.by_ids(role_ids or [])
-        if not roles:
-            default_role = self.roles.get_by_code(USER_ROLE)
-            roles = [default_role] if default_role else []
-        user.roles = roles
+        user.roles = self._roles_or_default(role_ids)
         user.approval_status = "approved"
         user.approved_by = actor.id
         user.approved_at = utc_now()
@@ -126,6 +118,13 @@ class UserService:
     def _guard_last_admin(self, user: User) -> None:
         if any(role.code == ADMIN_ROLE for role in user.roles) and self.users.count_admins() <= 1:
             raise forbidden("不能操作最后一个管理员")
+
+    def _roles_or_default(self, role_ids: list[int] | None) -> list[Role]:
+        roles = self.roles.by_ids(role_ids or [])
+        if roles:
+            return roles
+        default_role = self.roles.get_by_code(USER_ROLE)
+        return [default_role] if default_role else []
 
     def _guard_last_admin_role_change(self, target: User, role_ids: list[int]) -> None:
         if not any(role.code == ADMIN_ROLE for role in target.roles) or self.users.count_admins() > 1:

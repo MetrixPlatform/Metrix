@@ -10,6 +10,7 @@ from app.core.install import is_installed, load_install_config
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
+_session_factory_engine: Engine | None = None
 _engine_url = ""
 
 
@@ -36,19 +37,21 @@ def get_engine() -> Engine:
 
 
 def get_session_factory() -> sessionmaker[Session]:
-    global _session_factory
+    global _session_factory, _session_factory_engine
     engine = get_engine()
-    if _session_factory is None or _session_factory.kw["bind"] is not engine:
+    if _session_factory is None or _session_factory_engine is not engine:
         _session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+        _session_factory_engine = engine
     return _session_factory
 
 
 def reset_engine() -> None:
-    global _engine, _session_factory, _engine_url
+    global _engine, _session_factory, _session_factory_engine, _engine_url
     if _engine is not None:
         _engine.dispose()
     _engine = None
     _session_factory = None
+    _session_factory_engine = None
     _engine_url = ""
 
 
