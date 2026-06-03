@@ -1,6 +1,6 @@
 <template>
   <div class="auth-page">
-    <div class="auth-card">
+    <div class="auth-card install-card">
       <div class="auth-brand">
         <div class="brand-mark">M</div>
         <div>
@@ -8,50 +8,68 @@
           <p class="auth-subtitle">选择网站数据库并创建初始管理员</p>
         </div>
       </div>
-      <n-form ref="formRef" class="form-stack" :model="form" :rules="rules" label-placement="top">
-        <n-form-item label="数据库类型" path="database_type">
-          <n-radio-group v-model:value="form.database_type">
-            <n-radio-button v-for="option in databaseOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </n-radio-button>
-          </n-radio-group>
-        </n-form-item>
-        <n-form-item v-if="form.database_type === 'sqlite'" label="SQLite 数据库文件" path="sqlite_path">
-          <n-input v-model:value="form.sqlite_path" placeholder="留空使用 runtime/metrix.db" />
-        </n-form-item>
-        <template v-else>
-          <n-form-item label="MySQL 地址" path="mysql.host">
-            <n-input v-model:value="form.mysql.host" />
-          </n-form-item>
-          <n-form-item label="端口" path="mysql.port">
-            <n-input-number v-model:value="form.mysql.port" class="full-width" :min="1" :max="65535" />
-          </n-form-item>
-          <n-form-item label="数据库名" path="mysql.database">
-            <n-input v-model:value="form.mysql.database" />
-          </n-form-item>
-          <n-form-item label="用户名" path="mysql.username">
-            <n-input v-model:value="form.mysql.username" />
-          </n-form-item>
-          <n-form-item label="密码" path="mysql.password">
-            <n-input v-model:value="form.mysql.password" type="password" show-password-on="click" />
-          </n-form-item>
-        </template>
-        <n-form-item label="管理员账号" path="admin_username">
-          <n-input v-model:value="form.admin_username" />
-        </n-form-item>
-        <n-form-item label="管理员密码" path="admin_password">
-          <n-input v-model:value="form.admin_password" type="password" show-password-on="click" />
-        </n-form-item>
-        <n-form-item label="姓名" path="admin_full_name">
-          <n-input v-model:value="form.admin_full_name" />
-        </n-form-item>
-        <n-form-item label="公司" path="admin_company">
-          <n-input v-model:value="form.admin_company" />
-        </n-form-item>
-        <n-form-item label="部门" path="admin_department">
-          <n-input v-model:value="form.admin_department" />
-        </n-form-item>
-        <n-button type="primary" block :loading="loading" @click="submit">初始化</n-button>
+      <n-form ref="formRef" class="install-form" :model="form" :rules="rules" label-placement="top">
+        <div class="install-grid">
+          <section class="install-section">
+            <h2 class="install-section-title">数据库配置</h2>
+            <n-form-item label="数据库类型" path="database_type">
+              <n-radio-group v-model:value="form.database_type">
+                <n-radio-button v-for="option in databaseOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </n-radio-button>
+              </n-radio-group>
+            </n-form-item>
+            <n-form-item v-if="form.database_type === 'sqlite'" label="SQLite 数据库文件" path="sqlite_path">
+              <n-input v-model:value="form.sqlite_path" placeholder="留空使用 runtime/metrix.db" />
+            </n-form-item>
+            <template v-else>
+              <div class="install-field-row compact">
+                <n-form-item label="MySQL 地址" path="mysql.host">
+                  <n-input v-model:value="form.mysql.host" />
+                </n-form-item>
+                <n-form-item label="端口" path="mysql.port">
+                  <n-input-number v-model:value="form.mysql.port" class="full-width" :min="1" :max="65535" />
+                </n-form-item>
+              </div>
+              <div class="install-field-row">
+                <n-form-item label="数据库名" path="mysql.database">
+                  <n-input v-model:value="form.mysql.database" />
+                </n-form-item>
+                <n-form-item label="用户名" path="mysql.username">
+                  <n-input v-model:value="form.mysql.username" />
+                </n-form-item>
+              </div>
+              <n-form-item label="密码" path="mysql.password">
+                <n-input v-model:value="form.mysql.password" type="password" show-password-on="click" />
+              </n-form-item>
+            </template>
+          </section>
+          <section class="install-section">
+            <h2 class="install-section-title">管理员信息</h2>
+            <div class="install-field-row">
+              <n-form-item label="管理员账号" path="admin_username">
+                <n-input v-model:value="form.admin_username" />
+              </n-form-item>
+              <n-form-item label="管理员密码" path="admin_password">
+                <n-input v-model:value="form.admin_password" type="password" show-password-on="click" />
+              </n-form-item>
+            </div>
+            <div class="install-field-row">
+              <n-form-item label="姓名" path="admin_full_name">
+                <n-input v-model:value="form.admin_full_name" />
+              </n-form-item>
+              <n-form-item label="公司" path="admin_company">
+                <n-input v-model:value="form.admin_company" />
+              </n-form-item>
+            </div>
+            <n-form-item label="部门" path="admin_department">
+              <n-input v-model:value="form.admin_department" />
+            </n-form-item>
+          </section>
+        </div>
+        <div class="install-actions">
+          <n-button type="primary" block :loading="loading" @click="submit">初始化</n-button>
+        </div>
       </n-form>
     </div>
   </div>
@@ -120,9 +138,3 @@ async function submit() {
   }
 }
 </script>
-
-<style scoped>
-.full-width {
-  width: 100%;
-}
-</style>
