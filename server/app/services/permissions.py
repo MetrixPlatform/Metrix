@@ -3,9 +3,6 @@ from app.models import User
 
 
 def get_user_permission_codes(user: User) -> set[str]:
-    if any(role.code == ADMIN_ROLE for role in user.roles):
-        codes = {permission.code for role in user.roles for permission in role.permissions}
-        return active_permission_codes(expand_permissions(codes))
     codes = {permission.code for role in user.roles for permission in role.permissions}
     return active_permission_codes(expand_permissions(codes))
 

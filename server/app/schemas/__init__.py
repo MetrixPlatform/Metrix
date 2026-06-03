@@ -12,7 +12,6 @@ from app.schemas.user import (
     UserCreateRequest,
     UserListItem,
     UserProfile,
-    UserQuery,
     UserUpdateRequest,
 )
 
@@ -39,6 +38,5 @@ __all__ = [
     "UserCreateRequest",
     "UserListItem",
     "UserProfile",
-    "UserQuery",
     "UserUpdateRequest",
 ]

@@ -4,6 +4,13 @@ import { getInstallStatus } from "../api/install";
 import { getMe } from "../api/auth";
 import { authStore } from "../stores/auth";
 
+const fallbackPath = () => {
+  if (authStore.has("route:dashboard")) return "/";
+  if (authStore.has("route:users")) return "/users";
+  if (authStore.has("route:permissions")) return "/permissions";
+  return "/profile";
+};
+
 const routes = [
   { path: "/install", component: () => import("../views/InstallView.vue"), meta: { public: true } },
   { path: "/login", component: () => import("../views/LoginView.vue"), meta: { public: true } },
@@ -49,7 +56,8 @@ router.beforeEach(async (to) => {
   }
   const permission = to.meta.permission as string | undefined;
   if (permission && !authStore.has(permission)) {
-    return "/";
+    const path = fallbackPath();
+    return to.path === path ? true : path;
   }
   return true;
 });

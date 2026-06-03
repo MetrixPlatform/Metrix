@@ -27,21 +27,21 @@ class RoleRepository:
         self.db.flush()
 
     def permissions(self) -> list[Permission]:
-        query = self.db.query(Permission)
-        if DEPRECATED_PERMISSION_CODES:
-            query = query.filter(Permission.code.not_in(DEPRECATED_PERMISSION_CODES))
-        return query.order_by(Permission.sort_order.asc(), Permission.id.asc()).all()
+        return self._active_permissions_query().order_by(Permission.sort_order.asc(), Permission.id.asc()).all()
 
     def permissions_by_ids(self, permission_ids: list[int]) -> list[Permission]:
         if not permission_ids:
             return []
-        query = self.db.query(Permission).filter(Permission.id.in_(permission_ids))
-        if DEPRECATED_PERMISSION_CODES:
-            query = query.filter(Permission.code.not_in(DEPRECATED_PERMISSION_CODES))
-        return query.all()
+        return self._active_permissions_query().filter(Permission.id.in_(permission_ids)).all()
 
     def count(self) -> int:
         return self.db.query(Role).count()
 
     def permission_count(self) -> int:
-        return self.db.query(Permission).count()
+        return self._active_permissions_query().count()
+
+    def _active_permissions_query(self):
+        query = self.db.query(Permission)
+        if DEPRECATED_PERMISSION_CODES:
+            query = query.filter(Permission.code.not_in(DEPRECATED_PERMISSION_CODES))
+        return query

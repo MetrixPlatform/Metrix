@@ -56,9 +56,3 @@ class RejectUserRequest(BaseModel):
 
 class AssignRolesRequest(BaseModel):
     role_ids: list[int]
-
-
-class UserQuery(BaseModel):
-    keyword: str = ""
-    approval_status: str = ""
-    is_active: bool | None = None
