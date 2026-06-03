@@ -42,6 +42,7 @@ import { computed, onMounted, ref } from "vue";
 
 import { getDashboardSummary } from "../api/system";
 import type { DashboardSummary } from "../api/types";
+import { showError } from "../utils/message";
 import { authStore } from "../stores/auth";
 
 const message = useMessage();
@@ -58,7 +59,7 @@ onMounted(async () => {
   try {
     summary.value = await getDashboardSummary();
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 });
 </script>

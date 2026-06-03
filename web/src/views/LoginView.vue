@@ -40,6 +40,7 @@ import { useRouter } from "vue-router";
 import { login } from "../api/auth";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
@@ -62,7 +63,7 @@ async function submit() {
     authStore.setSession(session.token, session.user, session.permissions);
     await router.push("/");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   } finally {
     loading.value = false;
   }

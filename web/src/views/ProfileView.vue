@@ -48,6 +48,7 @@ import { reactive, ref } from "vue";
 
 import { changePassword, updateProfile } from "../api/auth";
 import { authStore } from "../stores/auth";
+import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -76,7 +77,7 @@ async function saveProfile() {
     authStore.user = user;
     message.success("资料已保存");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -88,7 +89,7 @@ async function savePassword() {
     password.new_password = "";
     message.success("密码已修改");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 </script>

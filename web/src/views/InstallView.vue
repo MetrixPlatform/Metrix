@@ -86,6 +86,7 @@ import { useRouter } from "vue-router";
 
 import { installSystem, testInstallDatabase } from "../api/install";
 import BrandMark from "../components/BrandMark.vue";
+import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, numberRequiredRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
@@ -135,7 +136,7 @@ async function testConnection() {
     await testInstallDatabase(databasePayload());
     message.success("数据库连接正常");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   } finally {
     testing.value = false;
   }
@@ -149,7 +150,7 @@ async function submit() {
     message.success("初始化完成，请登录");
     await router.push("/login");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   } finally {
     loading.value = false;
   }

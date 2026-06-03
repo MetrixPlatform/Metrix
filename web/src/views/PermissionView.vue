@@ -103,6 +103,7 @@ import { assignPermissions, createRole, deleteRole, listPermissions, listRoles, 
 import type { PermissionItem, RoleItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -178,7 +179,7 @@ async function saveRole() {
     await loadData();
     message.success("角色已保存");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -197,7 +198,7 @@ function removeRole() {
         await loadData();
         message.success("角色已删除");
       } catch (error) {
-        message.error((error as Error).message);
+        showError(message, error);
       }
     }
   });
@@ -210,7 +211,7 @@ async function savePermissions() {
     await loadData();
     message.success("权限已保存");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 </script>

@@ -114,6 +114,7 @@ import type { RoleItem, UserListItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { authStore } from "../stores/auth";
+import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -224,7 +225,7 @@ async function loadUsers() {
       is_active: filters.is_active ? filters.is_active === "true" : null
     });
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   } finally {
     loading.value = false;
   }
@@ -265,7 +266,7 @@ async function saveUser() {
     await loadUsers();
     message.success("用户已保存");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -283,7 +284,7 @@ async function saveApprove() {
     await loadUsers();
     message.success("已审核通过");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -302,7 +303,7 @@ async function saveReject() {
     await loadUsers();
     message.success("已驳回");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -350,7 +351,7 @@ async function toggleActive(user: UserListItem) {
     }
     await loadUsers();
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -369,7 +370,7 @@ async function saveRoles() {
     await loadUsers();
     message.success("角色已更新");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -387,7 +388,7 @@ async function savePassword() {
     showPasswordModal.value = false;
     message.success("密码已重置");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   }
 }
 
@@ -408,7 +409,7 @@ function confirmDelete(user: UserListItem) {
         await loadUsers();
         message.success("用户已删除");
       } catch (error) {
-        message.error((error as Error).message);
+        showError(message, error);
       }
     }
   });

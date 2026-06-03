@@ -55,6 +55,7 @@ import { useRouter } from "vue-router";
 
 import { register } from "../api/auth";
 import BrandMark from "../components/BrandMark.vue";
+import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
@@ -93,7 +94,7 @@ async function submit() {
     message.success("注册申请已提交");
     await router.push("/login");
   } catch (error) {
-    message.error((error as Error).message);
+    showError(message, error);
   } finally {
     loading.value = false;
   }
