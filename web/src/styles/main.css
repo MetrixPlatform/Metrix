@@ -352,6 +352,7 @@ a {
   height: 64px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   padding: 0 18px;
   border-bottom: 1px solid var(--border-color);
@@ -376,6 +377,7 @@ a {
   color: transparent;
   font-size: 24px;
   line-height: 1;
+  text-align: center;
   background: linear-gradient(135deg, #4a90e2, #9013fe);
   background-clip: text;
   -webkit-background-clip: text;
