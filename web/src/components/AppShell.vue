@@ -2,7 +2,7 @@
   <div class="app-layout">
     <aside class="app-sidebar" :class="{ collapsed }">
       <div class="brand">
-        <div class="brand-mark">M</div>
+        <BrandMark />
         <span v-if="!collapsed">Metrix</span>
       </div>
       <nav class="nav-list">
@@ -56,6 +56,7 @@ import { useRoute, useRouter } from "vue-router";
 import { NButton, NDropdown, NIcon } from "naive-ui";
 
 import { logout } from "../api/auth";
+import BrandMark from "./BrandMark.vue";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 

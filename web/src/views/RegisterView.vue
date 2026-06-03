@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-brand">
-        <div class="brand-mark">M</div>
+        <BrandMark />
         <div>
           <h1 class="auth-title">注册账号</h1>
           <p class="auth-subtitle">提交后等待管理员审核</p>
@@ -43,6 +43,7 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { register } from "../api/auth";
+import BrandMark from "../components/BrandMark.vue";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();

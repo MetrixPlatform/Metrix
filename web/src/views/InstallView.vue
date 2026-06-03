@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card install-card">
       <div class="auth-brand">
-        <div class="brand-mark">M</div>
+        <BrandMark />
         <div>
           <h1 class="auth-title">初始化 Metrix</h1>
           <p class="auth-subtitle">选择网站数据库并创建初始管理员</p>
@@ -82,6 +82,7 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { installSystem } from "../api/install";
+import BrandMark from "../components/BrandMark.vue";
 import { maxLengthRule, minLengthRule, numberRequiredRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();

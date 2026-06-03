@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-brand">
-        <div class="brand-mark">M</div>
+        <BrandMark />
         <div>
           <h1 class="auth-title">Metrix</h1>
           <p class="auth-subtitle">内网数据处理平台</p>
@@ -32,6 +32,7 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { login } from "../api/auth";
+import BrandMark from "../components/BrandMark.vue";
 import { authStore } from "../stores/auth";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 

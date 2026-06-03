@@ -98,3 +98,11 @@
 - `web/src/styles/main.css` 新增安装页布局样式：桌面宽度使用双栏，MySQL 地址/端口、数据库名/用户名、管理员账号/密码等字段成行排列，减少首屏高度。
 - 安装页样式从组件内迁移到全局样式文件，继续保持 Vue 结构和 CSS 分离。
 - 浏览器验证 SQLite 和 MySQL 两种状态在约 930px 宽视口下 `scrollHeight` 等于 `innerHeight`，不再需要页面滚动。
+
+## 2026-06-03：替换 Metrix 本地图标
+
+- 新增 `web/public/metrix-logo.svg`，使用渐变 M 本地 SVG 作为 Metrix 标识资源，不依赖外网。
+- `web/index.html` 增加 SVG favicon 链接，浏览器标签页图标指向 `/metrix-logo.svg`。
+- 新增 `web/src/components/BrandMark.vue` 统一渲染品牌图标，登录、注册、初始化页面和主应用侧边栏复用该组件。
+- `web/src/styles/main.css` 调整品牌图标尺寸，保持 SVG 原始宽高比例，避免拉伸变形。
+- 浏览器验证页面图标实际加载 `/metrix-logo.svg`，favicon 链接同样指向该本地 SVG。

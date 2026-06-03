@@ -110,9 +110,13 @@ a {
   display: grid;
   place-items: center;
   border-radius: 8px;
-  color: #ffffff;
-  font-weight: 700;
-  background: #2563eb;
+  background: #ffffff;
+}
+
+.brand-logo {
+  width: 32px;
+  height: auto;
+  display: block;
 }
 
 .auth-title {
