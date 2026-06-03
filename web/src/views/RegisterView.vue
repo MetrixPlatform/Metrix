@@ -44,6 +44,9 @@
         </div>
       </n-form>
     </div>
+    <footer class="auth-footer">
+      <CopyrightNotice />
+    </footer>
   </div>
 </template>
 
@@ -55,6 +58,7 @@ import { useRouter } from "vue-router";
 
 import { register } from "../api/auth";
 import BrandMark from "../components/BrandMark.vue";
+import CopyrightNotice from "../components/CopyrightNotice.vue";
 import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 

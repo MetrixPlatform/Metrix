@@ -27,6 +27,9 @@
         </div>
       </n-form>
     </div>
+    <footer class="auth-footer">
+      <CopyrightNotice />
+    </footer>
   </div>
 </template>
 
@@ -38,6 +41,7 @@ import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { login } from "../api/auth";
+import CopyrightNotice from "../components/CopyrightNotice.vue";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";

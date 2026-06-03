@@ -44,7 +44,7 @@
         <router-view />
       </n-layout-content>
       <n-layout-footer class="app-footer">
-        Copyright © 2025 - 2026 NIXEVOL.All Rights Reserved.
+        <CopyrightNotice />
       </n-layout-footer>
     </n-layout>
   </n-layout>
@@ -69,6 +69,7 @@ import { logout } from "../api/auth";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import BrandMark from "./BrandMark.vue";
+import CopyrightNotice from "./CopyrightNotice.vue";
 
 const SIDEBAR_KEY = "metrix.sidebar.collapsed";
 

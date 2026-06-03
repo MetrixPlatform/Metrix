@@ -187,6 +187,11 @@
 - 已登录后的主框架 `AppShell` 新增统一底部页脚，显示 `Copyright © 2025 - 2026 NIXEVOL.All Rights Reserved.`。
 - 页脚高度为 36px，内容区高度同步扣除 header 和 footer，继续由 `.app-content` 内部滚动，避免出现 body 级滚动条。
 - 浏览器验证页脚位于视口底部、文本准确，`body.scrollHeight` 与 `body.clientHeight` 一致。
+## 2026-06-03：统一 Web 版权页脚
+- 新增 `web/src/components/CopyrightNotice.vue` 作为版权声明组件，统一维护 `Copyright © 2025 - 2026 NIXEVOL.All Rights Reserved.` 文案。
+- 主框架 `AppShell`、登录页、注册页和初始化页均复用该组件，避免版权文本分散在多个页面里重复维护。
+- 认证页新增公共 `.auth-footer` 样式，注册页高度同步扣除页脚空间，保持标题和底部操作固定、中间表单内部滚动的布局。
+- 验证：前端 `npm run build` 通过；浏览器验证 `/login` 和 `/register` 页脚文本准确、可见且无控制台错误。
 ## 2026-06-03：第一轮代码清理
 - `RoleRepository` 的废弃权限过滤抽为统一查询入口，权限字典、按 ID 取权限和权限数量统计都使用同一口径，避免仪表盘把 `route:approvals` 等废弃权限计入数量。
 - `get_user_permission_codes` 去掉管理员和普通角色完全相同的重复计算分支，保留管理员在 `has_permission` 中的全权限判断。

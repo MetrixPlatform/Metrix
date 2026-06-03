@@ -97,12 +97,23 @@ a {
   height: 100dvh;
   min-height: 100dvh;
   display: grid;
-  place-items: center;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  justify-items: center;
   overflow: auto;
   padding: 24px;
   background:
     var(--auth-bg-layer),
     var(--app-bg);
+}
+
+.auth-footer {
+  width: 100%;
+  color: var(--muted-color);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
 }
 
 .auth-card {
@@ -124,8 +135,8 @@ a {
 
 .register-card {
   width: min(680px, calc(100% - 48px));
-  height: min(680px, calc(100dvh - 48px));
-  max-height: calc(100dvh - 48px);
+  height: min(680px, calc(100dvh - 80px));
+  max-height: calc(100dvh - 80px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -744,8 +755,8 @@ a {
 
   .register-card {
     width: min(100%, calc(100vw - 28px));
-    height: min(680px, calc(100dvh - 28px));
-    max-height: calc(100dvh - 28px);
+    height: min(680px, calc(100dvh - 66px));
+    max-height: calc(100dvh - 66px);
   }
 
   .register-card .auth-brand {
