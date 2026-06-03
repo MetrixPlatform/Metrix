@@ -43,6 +43,9 @@
       <n-layout-content class="app-content">
         <router-view />
       </n-layout-content>
+      <n-layout-footer class="app-footer">
+        Copyright © 2025 - 2026 NIXEVOL.All Rights Reserved.
+      </n-layout-footer>
     </n-layout>
   </n-layout>
 </template>
@@ -59,7 +62,7 @@ import {
 } from "@vicons/fluent";
 import { computed, h, ref, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NMenu } from "naive-ui";
+import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLayoutHeader, NLayoutSider, NMenu } from "naive-ui";
 import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";

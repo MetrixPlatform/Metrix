@@ -183,3 +183,7 @@
 ## 2026-06-03：居中侧栏品牌标题
 - 主框架侧栏品牌区改为横向居中布局，展开状态下渐变 `Metrix` 标题中心与侧栏中心对齐。
 - 浏览器验证 `.brand` 与 `.brand-text` 中心偏差为 0，标题不再靠左显示。
+## 2026-06-03：添加主框架版权页脚
+- 已登录后的主框架 `AppShell` 新增统一底部页脚，显示 `Copyright © 2025 - 2026 NIXEVOL.All Rights Reserved.`。
+- 页脚高度为 36px，内容区高度同步扣除 header 和 footer，继续由 `.app-content` 内部滚动，避免出现 body 级滚动条。
+- 浏览器验证页脚位于视口底部、文本准确，`body.scrollHeight` 与 `body.clientHeight` 一致。
