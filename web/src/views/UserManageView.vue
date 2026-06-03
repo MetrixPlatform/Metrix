@@ -11,20 +11,20 @@
     </div>
     <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1180" />
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? '编辑用户' : '新增用户'">
-      <n-form class="form-stack" label-placement="top">
-        <n-form-item v-if="!editingUser" label="账号">
+      <n-form ref="userFormRef" class="form-stack" :model="userForm" :rules="userRules" label-placement="top">
+        <n-form-item v-if="!editingUser" label="账号" path="username">
           <n-input v-model:value="userForm.username" />
         </n-form-item>
-        <n-form-item v-if="!editingUser" label="密码">
+        <n-form-item v-if="!editingUser" label="密码" path="password">
           <n-input v-model:value="userForm.password" type="password" show-password-on="click" />
         </n-form-item>
-        <n-form-item label="姓名">
+        <n-form-item label="姓名" path="full_name">
           <n-input v-model:value="userForm.full_name" />
         </n-form-item>
-        <n-form-item label="公司">
+        <n-form-item label="公司" path="company">
           <n-input v-model:value="userForm.company" />
         </n-form-item>
-        <n-form-item label="部门">
+        <n-form-item label="部门" path="department">
           <n-input v-model:value="userForm.department" />
         </n-form-item>
         <n-form-item v-if="!editingUser" label="角色">
@@ -52,9 +52,9 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" title="重置密码">
-      <n-form class="form-stack" label-placement="top">
-        <n-form-item label="新密码">
-          <n-input v-model:value="newPassword" type="password" show-password-on="click" />
+      <n-form ref="passwordFormRef" class="form-stack" :model="passwordForm" :rules="passwordRules" label-placement="top">
+        <n-form-item label="新密码" path="password">
+          <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" />
         </n-form-item>
         <div class="form-actions">
           <n-button @click="showPasswordModal = false">取消</n-button>
@@ -81,7 +81,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
+import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
 
 import { assignRoles, createUser, deleteUser, disableUser, enableUser, listUsers, resetPassword, updateUser } from "../api/users";
 import { listRoles } from "../api/roles";
@@ -89,10 +89,13 @@ import type { RoleItem, UserListItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { authStore } from "../stores/auth";
+import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
 const dialog = useDialog();
 const loading = ref(false);
+const userFormRef = ref<FormInst | null>(null);
+const passwordFormRef = ref<FormInst | null>(null);
 const users = ref<UserListItem[]>([]);
 const roles = ref<RoleItem[]>([]);
 const showUserModal = ref(false);
@@ -102,7 +105,7 @@ const editingUser = ref<UserListItem | null>(null);
 const roleTarget = ref<UserListItem | null>(null);
 const passwordTarget = ref<UserListItem | null>(null);
 const roleIds = ref<number[]>([]);
-const newPassword = ref("");
+const passwordForm = reactive({ password: "" });
 const filters = reactive<{ keyword: string; approval_status: string | null; is_active: string | null }>({
   keyword: "",
   approval_status: null,
@@ -115,6 +118,16 @@ const userForm = reactive({
   company: "",
   department: ""
 });
+const userRules: FormRules = {
+  username: [requiredRule("账号"), minLengthRule("账号", 3), maxLengthRule("账号", 64)],
+  password: [requiredRule("密码"), minLengthRule("密码", 6), maxLengthRule("密码", 128)],
+  full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
+  company: maxLengthRule("公司", 120),
+  department: maxLengthRule("部门", 120)
+};
+const passwordRules: FormRules = {
+  password: [requiredRule("新密码"), minLengthRule("新密码", 6), maxLengthRule("新密码", 128)]
+};
 
 const approvalOptions = [
   { label: "待审核", value: "pending" },
@@ -198,6 +211,7 @@ function openEdit(user: UserListItem) {
 }
 
 async function saveUser() {
+  if (!(await validateForm(userFormRef.value))) return;
   try {
     if (editingUser.value) {
       await updateUser(editingUser.value.id, userForm);
@@ -245,14 +259,15 @@ async function saveRoles() {
 
 function openPassword(user: UserListItem) {
   passwordTarget.value = user;
-  newPassword.value = "";
+  passwordForm.password = "";
   showPasswordModal.value = true;
 }
 
 async function savePassword() {
   if (!passwordTarget.value) return;
+  if (!(await validateForm(passwordFormRef.value))) return;
   try {
-    await resetPassword(passwordTarget.value.id, newPassword.value);
+    await resetPassword(passwordTarget.value.id, passwordForm.password);
     showPasswordModal.value = false;
     message.success("密码已重置");
   } catch (error) {

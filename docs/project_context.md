@@ -83,3 +83,11 @@
 - 启动入口仍加载 `app.main:app`，不复制 FastAPI 应用创建逻辑，避免形成并行入口。
 - `server/main.py` 默认将 `METRIX_RUNTIME_DIR` 指向项目根目录 `runtime/`，避免从 `server/` 启动时把 SQLite 数据库和安装配置写入 `server/runtime/`。
 - 启动参数可通过环境变量覆盖：`METRIX_HOST` 控制监听地址，`METRIX_PORT` 控制端口，`METRIX_RELOAD=1` 开启开发热重载。
+
+## 2026-06-03：完善表单校验和接口错误提示
+
+- 新增 `web/src/utils/validation.ts`，统一封装必填、最小长度、最大长度、数字必填和表单校验执行，避免各页面重复写散乱规则。
+- 安装、登录、注册、个人信息、修改密码、用户管理、重置密码、注册审批驳回和角色管理表单已补充 `path`、`rules` 和提交前校验；未填或长度不符合要求时在字段下方展示中文提示。
+- 注册页确认密码改为表单规则校验，提交接口时只发送后端需要的注册字段，不携带确认密码。
+- `web/src/api/client.ts` 已支持 FastAPI/Pydantic 数组型 `detail` 错误，能把后端字段校验错误转换为中文提示，不再统一显示“请求失败”。
+- 请求层 JSON 解析增加容错，非 JSON 错误响应不会导致前端抛出解析异常。

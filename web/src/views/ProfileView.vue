@@ -2,17 +2,17 @@
   <div class="page-stack">
     <section class="work-card">
       <h3>个人信息</h3>
-      <n-form class="form-stack" label-placement="top">
+      <n-form ref="profileFormRef" class="form-stack" :model="profile" :rules="profileRules" label-placement="top">
         <n-form-item label="账号">
           <n-input :value="authStore.user?.username" disabled />
         </n-form-item>
-        <n-form-item label="姓名">
+        <n-form-item label="姓名" path="full_name">
           <n-input v-model:value="profile.full_name" />
         </n-form-item>
-        <n-form-item label="公司">
+        <n-form-item label="公司" path="company">
           <n-input v-model:value="profile.company" />
         </n-form-item>
-        <n-form-item label="部门">
+        <n-form-item label="部门" path="department">
           <n-input v-model:value="profile.department" />
         </n-form-item>
         <div class="form-actions">
@@ -22,11 +22,11 @@
     </section>
     <section class="work-card">
       <h3>修改密码</h3>
-      <n-form class="form-stack" label-placement="top">
-        <n-form-item label="旧密码">
+      <n-form ref="passwordFormRef" class="form-stack" :model="password" :rules="passwordRules" label-placement="top">
+        <n-form-item label="旧密码" path="old_password">
           <n-input v-model:value="password.old_password" type="password" show-password-on="click" />
         </n-form-item>
-        <n-form-item label="新密码">
+        <n-form-item label="新密码" path="new_password">
           <n-input v-model:value="password.new_password" type="password" show-password-on="click" />
         </n-form-item>
         <div class="form-actions">
@@ -39,20 +39,34 @@
 
 <script setup lang="ts">
 import { NButton, NForm, NFormItem, NInput, useMessage } from "naive-ui";
-import { reactive } from "vue";
+import type { FormInst, FormRules } from "naive-ui";
+import { reactive, ref } from "vue";
 
 import { changePassword, updateProfile } from "../api/auth";
 import { authStore } from "../stores/auth";
+import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
+const profileFormRef = ref<FormInst | null>(null);
+const passwordFormRef = ref<FormInst | null>(null);
 const profile = reactive({
   full_name: authStore.user?.full_name || "",
   company: authStore.user?.company || "",
   department: authStore.user?.department || ""
 });
 const password = reactive({ old_password: "", new_password: "" });
+const profileRules: FormRules = {
+  full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
+  company: [requiredRule("公司"), maxLengthRule("公司", 120)],
+  department: [requiredRule("部门"), maxLengthRule("部门", 120)]
+};
+const passwordRules: FormRules = {
+  old_password: [requiredRule("旧密码"), maxLengthRule("旧密码", 128)],
+  new_password: [requiredRule("新密码"), minLengthRule("新密码", 6), maxLengthRule("新密码", 128)]
+};
 
 async function saveProfile() {
+  if (!(await validateForm(profileFormRef.value))) return;
   try {
     const user = await updateProfile(profile);
     authStore.user = user;
@@ -63,6 +77,7 @@ async function saveProfile() {
 }
 
 async function savePassword() {
+  if (!(await validateForm(passwordFormRef.value))) return;
   try {
     await changePassword(password);
     password.old_password = "";

@@ -17,7 +17,11 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" title="驳回注册">
-      <n-input v-model:value="rejectReason" type="textarea" placeholder="驳回原因" />
+      <n-form ref="rejectFormRef" :model="rejectForm" :rules="rejectRules" label-placement="top">
+        <n-form-item label="驳回原因" path="reason">
+          <n-input v-model:value="rejectForm.reason" type="textarea" placeholder="驳回原因" />
+        </n-form-item>
+      </n-form>
       <div class="form-actions">
         <n-button @click="showRejectModal = false">取消</n-button>
         <n-button type="error" @click="saveReject">驳回</n-button>
@@ -27,23 +31,28 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, ref } from "vue";
-import { NButton, NCheckbox, NCheckboxGroup, NDataTable, NInput, NModal, NSpace, useMessage } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
+import { h, onMounted, reactive, ref } from "vue";
+import { NButton, NCheckbox, NCheckboxGroup, NDataTable, NForm, NFormItem, NInput, NModal, NSpace, useMessage } from "naive-ui";
+import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
 
 import { approveUser, listPendingUsers, rejectUser } from "../api/approvals";
 import { listRoles } from "../api/roles";
 import type { RoleItem, UserListItem } from "../api/types";
+import { maxLengthRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
 const loading = ref(false);
 const users = ref<UserListItem[]>([]);
 const roles = ref<RoleItem[]>([]);
 const current = ref<UserListItem | null>(null);
+const rejectFormRef = ref<FormInst | null>(null);
 const roleIds = ref<number[]>([]);
-const rejectReason = ref("");
+const rejectForm = reactive({ reason: "" });
 const showApproveModal = ref(false);
 const showRejectModal = ref(false);
+const rejectRules: FormRules = {
+  reason: maxLengthRule("驳回原因", 500)
+};
 
 const columns: DataTableColumns<UserListItem> = [
   { title: "账号", key: "username", width: 130 },
@@ -102,14 +111,15 @@ async function saveApprove() {
 
 function openReject(user: UserListItem) {
   current.value = user;
-  rejectReason.value = "";
+  rejectForm.reason = "";
   showRejectModal.value = true;
 }
 
 async function saveReject() {
   if (!current.value) return;
+  if (!(await validateForm(rejectFormRef.value))) return;
   try {
-    await rejectUser(current.value.id, rejectReason.value);
+    await rejectUser(current.value.id, rejectForm.reason);
     showRejectModal.value = false;
     await loadData();
     message.success("已驳回");

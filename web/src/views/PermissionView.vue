@@ -72,14 +72,14 @@
     </section>
 
     <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="editingRole ? '编辑角色' : '新增角色'">
-      <n-form class="form-stack" label-placement="top">
-        <n-form-item v-if="!editingRole" label="角色编码">
+      <n-form ref="roleFormRef" class="form-stack" :model="roleForm" :rules="roleRules" label-placement="top">
+        <n-form-item v-if="!editingRole" label="角色编码" path="code">
           <n-input v-model:value="roleForm.code" />
         </n-form-item>
-        <n-form-item label="角色名称">
+        <n-form-item label="角色名称" path="name">
           <n-input v-model:value="roleForm.name" />
         </n-form-item>
-        <n-form-item label="说明">
+        <n-form-item label="说明" path="description">
           <n-input v-model:value="roleForm.description" type="textarea" />
         </n-form-item>
         <div class="form-actions">
@@ -94,11 +94,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { NButton, NCheckbox, NCheckboxGroup, NEmpty, NForm, NFormItem, NInput, NModal, NSpace, useDialog, useMessage } from "naive-ui";
+import type { FormInst, FormRules } from "naive-ui";
 
 import { assignPermissions, createRole, deleteRole, listPermissions, listRoles, updateRole } from "../api/roles";
 import type { PermissionItem, RoleItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
 const dialog = useDialog();
@@ -107,8 +109,14 @@ const permissions = ref<PermissionItem[]>([]);
 const selectedRole = ref<RoleItem | null>(null);
 const checkedPermissionIds = ref<number[]>([]);
 const showRoleModal = ref(false);
+const roleFormRef = ref<FormInst | null>(null);
 const editingRole = ref<RoleItem | null>(null);
 const roleForm = reactive({ code: "", name: "", description: "" });
+const roleRules: FormRules = {
+  code: [requiredRule("角色编码"), minLengthRule("角色编码", 2), maxLengthRule("角色编码", 64)],
+  name: [requiredRule("角色名称"), maxLengthRule("角色名称", 80)],
+  description: maxLengthRule("说明", 500)
+};
 
 const groupedPermissions = computed(() => {
   const groups = new Map<string, PermissionItem[]>();
@@ -156,6 +164,7 @@ function openEdit() {
 }
 
 async function saveRole() {
+  if (!(await validateForm(roleFormRef.value))) return;
   try {
     if (editingRole.value) {
       await updateRole(editingRole.value.id, roleForm);

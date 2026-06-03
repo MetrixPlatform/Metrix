@@ -1,0 +1,45 @@
+import type { FormInst, FormItemRule } from "naive-ui";
+
+const textTrigger = ["input", "blur"];
+
+export function requiredRule(label: string): FormItemRule {
+  return {
+    required: true,
+    message: `请输入${label}`,
+    trigger: textTrigger
+  };
+}
+
+export function numberRequiredRule(label: string): FormItemRule {
+  return {
+    type: "number",
+    required: true,
+    message: `请输入${label}`,
+    trigger: ["input", "blur", "change"]
+  };
+}
+
+export function minLengthRule(label: string, min: number): FormItemRule {
+  return {
+    min,
+    message: `${label}至少 ${min} 个字符`,
+    trigger: textTrigger
+  };
+}
+
+export function maxLengthRule(label: string, max: number): FormItemRule {
+  return {
+    max,
+    message: `${label}不能超过 ${max} 个字符`,
+    trigger: textTrigger
+  };
+}
+
+export async function validateForm(form: FormInst | null): Promise<boolean> {
+  try {
+    await form?.validate();
+    return true;
+  } catch {
+    return false;
+  }
+}
