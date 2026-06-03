@@ -220,3 +220,7 @@
 - `UserRepository.count_admins` 不再硬编码 `"admin"`，改为复用 `app.core.permissions.ADMIN_ROLE`，保持管理员角色编码统一由权限常量维护。
 - 本轮重新扫描前后端旧模式、未使用残留和调试代码，未发现新的可确认冗余或死代码。
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
+## 2026-06-03：第七轮代码清理
+- 后端 CORS 开发来源补充 `http://localhost:5174` 和 `http://127.0.0.1:5174`，匹配当前前端开发服务端口，避免 5174 端口直接访问后端 API 时被跨域策略拦截。
+- 本轮重新扫描前后端旧模式、未使用残留、调试代码和开发端口配置，未发现新的可确认冗余或死代码。
+- 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
