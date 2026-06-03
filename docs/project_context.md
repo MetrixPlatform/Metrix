@@ -157,3 +157,9 @@
 - 新业务页面新增权限时，需要在后端 `server/app/core/permissions.py` 定义权限常量和种子，接口使用 `require_permission(...)` 做后端强校验，前端按钮和功能入口使用 `authStore.has(...)` 或 `PermissionButton` 做显示控制。
 - 授予页面路由权限后，按现有 `ROUTE_READ_PERMISSIONS` 规则默认扩展对应资源的查询权限；新增业务资源也需要同步维护该映射。
 - 用户管理补充最后一个启用管理员保护，禁止禁用、删除或移除最后一个管理员角色；删除用户和删除角色操作补充成功/失败提示。
+## 2026-06-03：补充数据级权限预留设计
+- `docs/design/initial_web_server_design.md` 新增数据级权限预留规则，明确当前不实现数据级权限，只保留后续接入边界。
+- 权限模型分为路由权限、功能权限和数据级权限三层；数据级权限用于后续控制全部、公司、部门、本人、指派和自定义业务范围内的数据访问。
+- 后续业务接口需要在后端 service/repository 边界保留当前操作人上下文，列表查询在 repository 阶段过滤数据范围，详情和操作接口按资源 ID 再做范围校验。
+- 前端按钮先按功能权限控制，未来接入数据级权限时再叠加后端返回的行级能力，如 `can_download`、`can_start`、`can_stop` 或 `allowed_actions`，页面组件不自行硬编码公司、部门、本人等范围规则。
+- 任务类页面的操作权限建议拆细为 `action:task:download`、`action:task:start`、`action:task:stop` 等，避免所有业务动作共用一个过大的 `operate` 权限。
