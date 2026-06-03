@@ -1,14 +1,19 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <BrandMark />
-        <div>
-          <h1 class="auth-title">Metrix</h1>
-          <p class="auth-subtitle">内网数据处理平台</p>
-        </div>
-      </div>
-      <n-form ref="formRef" class="form-stack" :model="form" :rules="rules" label-placement="top" @keyup.enter="submit">
+  <div class="auth-page login-page">
+    <n-button class="auth-theme-button" quaternary circle :title="themeTitle" @click="toggleTheme">
+      <template #icon><n-icon :component="themeIcon" /></template>
+    </n-button>
+    <div class="auth-card login-card">
+      <h1 class="auth-wordmark">Metrix</h1>
+      <n-form
+        ref="formRef"
+        class="form-stack inline-form"
+        :model="form"
+        :rules="rules"
+        label-placement="left"
+        label-width="64"
+        @keyup.enter="submit"
+      >
         <n-form-item label="账号" path="username">
           <n-input v-model:value="form.username" placeholder="请输入账号" />
         </n-form-item>
@@ -26,13 +31,14 @@
 </template>
 
 <script setup lang="ts">
-import { NButton, NForm, NFormItem, NInput, useMessage } from "naive-ui";
+import { WeatherMoon20Regular as WeatherMoon, WeatherSunny20Regular as WeatherSunny } from "@vicons/fluent";
+import { NButton, NForm, NFormItem, NIcon, NInput, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { login } from "../api/auth";
-import BrandMark from "../components/BrandMark.vue";
+import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -40,6 +46,8 @@ const router = useRouter();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
+const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
+const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
 const form = reactive({ username: "", password: "" });
 const rules: FormRules = {
   username: [requiredRule("账号"), maxLengthRule("账号", 64)],
@@ -58,5 +66,9 @@ async function submit() {
   } finally {
     loading.value = false;
   }
+}
+
+function toggleTheme() {
+  appStore.toggleTheme();
 }
 </script>

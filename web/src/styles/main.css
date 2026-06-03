@@ -91,8 +91,9 @@ a {
 }
 
 .auth-page {
-  height: 100%;
-  min-height: 100%;
+  position: relative;
+  height: 100dvh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   overflow: auto;
@@ -109,6 +110,29 @@ a {
   border-radius: 8px;
   background: var(--panel-bg);
   box-shadow: 0 18px 60px var(--shadow-color);
+}
+
+.login-card {
+  width: min(440px, calc(100% - 48px));
+}
+
+.auth-theme-button {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 1;
+}
+
+.auth-wordmark {
+  margin: 0 0 28px;
+  color: transparent;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  background: linear-gradient(135deg, #4a90e2, #9013fe);
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 
 .install-card {
