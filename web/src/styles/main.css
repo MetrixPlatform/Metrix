@@ -10,10 +10,18 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 a {
@@ -22,9 +30,11 @@ a {
 }
 
 .auth-page {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
   display: grid;
   place-items: center;
+  overflow: auto;
   padding: 24px;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.05)),
@@ -156,7 +166,9 @@ a {
 }
 
 .app-layout {
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #f4f7fb;
 }
 
@@ -268,6 +280,8 @@ a {
 }
 
 .app-main {
+  height: 100%;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -303,8 +317,8 @@ a {
 }
 
 .app-content {
+  height: calc(100vh - 64px);
   min-height: 0;
-  flex: 1;
   overflow: auto;
   padding: 22px;
 }

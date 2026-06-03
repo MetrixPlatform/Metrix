@@ -118,3 +118,8 @@
 - `web/src/components/AppShell.vue` 改为 Naive UI `n-layout`、`n-layout-sider` 和 `n-menu` 组成的后台壳布局，参考 CapaReport 的单一菜单选中值模式，不再使用 `router-link-active` 判断导航选中。
 - 侧栏折叠交给 `n-layout-sider` 原生宽度模式处理，折叠状态写入 `localStorage`，折叠后隐藏品牌文字并保持菜单图标居中。
 - 浏览器验证 `/users` 与 `/permissions` 切换时 `.n-menu-item-content--selected` 始终只有 1 个，折叠后侧栏宽度为 64px，当前选中菜单保持正确。
+## 2026-06-03：修复主内容区滚动边界
+- `web/src/styles/main.css` 将 `html`、`body`、`#app` 固定为 100% 高度，`body` 禁止全局滚动，避免页面内容撑出浏览器级滚动条。
+- 主应用壳 `app-layout`、`app-main` 固定在视口内，`app-content` 使用 `height: calc(100vh - 64px)` 和 `overflow: auto` 承担页面内容滚动。
+- 登录、注册和安装等独立认证页通过 `.auth-page` 自身滚动，避免全局禁滚后小屏内容被裁切。
+- 浏览器验证用户管理、注册审批和权限管理页面的 `body/html` 均不滚动，`.app-content` 保持可滚动容器。
