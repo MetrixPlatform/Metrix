@@ -1,6 +1,7 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.permissions import ADMIN_ROLE
 from app.models import Role, User
 
 
@@ -50,7 +51,7 @@ class UserRepository:
         return (
             self.db.query(User)
             .join(User.roles)
-            .filter(Role.code == "admin", User.is_active.is_(True), User.approval_status == "approved")
+            .filter(Role.code == ADMIN_ROLE, User.is_active.is_(True), User.approval_status == "approved")
             .count()
         )
 

@@ -216,3 +216,7 @@
 - 后端新增 `require_any_permission` 依赖工具和 `GET /api/users/role-options`，仅返回 `RoleBrief` 基础角色信息，避免为了用户新增、审核或分配角色暴露完整权限字典。
 - 后端测试补充验证：拥有用户操作权限的角色可以访问 `/api/users/role-options`，但不能访问 `/api/permissions`。
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
+## 2026-06-03：第六轮代码清理
+- `UserRepository.count_admins` 不再硬编码 `"admin"`，改为复用 `app.core.permissions.ADMIN_ROLE`，保持管理员角色编码统一由权限常量维护。
+- 本轮重新扫描前后端旧模式、未使用残留和调试代码，未发现新的可确认冗余或死代码。
+- 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
