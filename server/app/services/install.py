@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from app.core.exceptions import bad_request
 from app.core.install import default_sqlite_path, is_installed, load_install_config, write_install_config

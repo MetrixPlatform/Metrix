@@ -1,4 +1,5 @@
 """Pydantic schemas."""
+from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementPayload, PublicAnnouncementItem
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, ProfileUpdateRequest, RegisterRequest
 from app.schemas.common import MessageResponse
 from app.schemas.dashboard import DashboardSummary
@@ -18,6 +19,9 @@ from app.schemas.user import (
 __all__ = [
     "AssignPermissionsRequest",
     "AssignRolesRequest",
+    "AnnouncementFeedItem",
+    "AnnouncementItem",
+    "AnnouncementPayload",
     "ChangePasswordRequest",
     "DashboardSummary",
     "InstallRequest",
@@ -28,6 +32,7 @@ __all__ = [
     "MysqlInstallConfig",
     "PermissionItem",
     "ProfileUpdateRequest",
+    "PublicAnnouncementItem",
     "RegisterRequest",
     "RejectUserRequest",
     "ResetPasswordRequest",

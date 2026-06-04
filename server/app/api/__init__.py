@@ -1,3 +1,3 @@
-from app.api import auth, dashboard, health, install, roles, users
+from app.api import announcements, auth, dashboard, health, install, roles, users
 
-__all__ = ["auth", "dashboard", "health", "install", "roles", "users"]
+__all__ = ["announcements", "auth", "dashboard", "health", "install", "roles", "users"]

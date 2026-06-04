@@ -282,3 +282,9 @@
 - `seed_database` 去掉未使用的 `permissions_by_code` 局部变量，只保留初始化管理员所需的内置管理员角色。
 - 清理验证生成的 `web/dist`、`server/.pytest_cache` 和源码目录 `__pycache__`，保留工作区只包含真实源码与必要配置。
 - 验证：前端 `npm run build` 通过，后端测试 14 passed；`git diff --check` 通过；调试残留扫描无命中。
+## 2026-06-04：第二轮全量代码清理
+- `server/app/services/install.py` 删除未使用的 `Session` 导入，安装服务只保留实际使用的 `sessionmaker`。
+- `server/app/api/__init__.py` 同步导出公告 API 模块，避免包级 API 聚合入口落后于当前功能模块。
+- `server/app/schemas/__init__.py` 同步导出公告相关 schema，保持 schema 聚合入口与当前公告功能一致。
+- 第二轮重新扫描前后端调试残留、废弃权限清理逻辑、列表滚动规则、包级导出、入口页、主框架和公告模块；`deprecated` 命中均为旧权限迁移清理逻辑，公告 ticker 的 `setInterval` 为轮播必需逻辑，未作为冗余删除。
+- 验证：前端 `npm run build` 通过，后端测试 14 passed；`git diff --check` 通过；调试残留扫描无命中。
