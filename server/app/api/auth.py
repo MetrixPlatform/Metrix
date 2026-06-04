@@ -22,7 +22,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> Message
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
     token, user, permissions = AuthService(db).login(payload)
-    return LoginResponse(token=token, user=user, permissions=permissions)
+    return LoginResponse(token=token, user=UserProfile.model_validate(user), permissions=permissions)
 
 
 @router.post("/logout", response_model=MessageResponse)
@@ -32,7 +32,7 @@ def logout(user: User = Depends(get_current_user)) -> MessageResponse:
 
 @router.get("/me", response_model=LoginResponse)
 def me(user: User = Depends(get_current_user)) -> LoginResponse:
-    return LoginResponse(token="", user=user, permissions=sorted(get_user_permission_codes(user)))
+    return LoginResponse(token="", user=UserProfile.model_validate(user), permissions=sorted(get_user_permission_codes(user)))
 
 
 @router.put("/profile", response_model=UserProfile)
@@ -40,8 +40,9 @@ def update_profile(
     payload: ProfileUpdateRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> User:
-    return AuthService(db).update_profile(user, payload)
+) -> UserProfile:
+    updated_user = AuthService(db).update_profile(user, payload)
+    return UserProfile.model_validate(updated_user)
 
 
 @router.post("/change-password", response_model=MessageResponse)
