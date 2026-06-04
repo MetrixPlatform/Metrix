@@ -32,7 +32,7 @@
           <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
             <template #icon><n-icon :component="themeIcon" /></template>
           </n-button>
-          <n-dropdown :options="userOptions" @select="handleUserAction">
+          <n-dropdown trigger="click" :options="userOptions" @select="handleUserAction">
             <n-button quaternary>
               <template #icon><n-icon :component="PersonCircle" /></template>
               {{ authStore.user?.full_name || authStore.user?.username }}
@@ -81,9 +81,15 @@ const router = useRouter();
 const allMenus = [
   { path: "/", label: "首页", permission: "route:dashboard", icon: Board20Regular },
   { path: "/users", label: "用户管理", permission: "route:users", icon: People20Regular },
-  { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular },
-  { path: "/profile", label: "个人信息", permission: "", icon: PersonSettings20Regular }
+  { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular }
 ];
+
+const pageTitles: Record<string, string> = {
+  "/": "首页",
+  "/users": "用户管理",
+  "/permissions": "权限管理",
+  "/profile": "个人信息"
+};
 
 const menuItems = computed(() => allMenus.filter((item) => !item.permission || authStore.has(item.permission)));
 const menuOptions = computed<MenuOption[]>(() =>
@@ -93,9 +99,8 @@ const menuOptions = computed<MenuOption[]>(() =>
     icon: renderIcon(item.icon)
   }))
 );
-const activeMenu = computed(() => menuItems.value.find((item) => item.path === route.path)?.path || "/");
-const currentMenu = computed(() => allMenus.find((item) => item.path === route.path) || allMenus[0]);
-const currentTitle = computed(() => currentMenu.value.label);
+const activeMenu = computed(() => menuItems.value.find((item) => item.path === route.path)?.path || null);
+const currentTitle = computed(() => pageTitles[route.path] || APP_NAME);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
 
