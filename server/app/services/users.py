@@ -110,9 +110,9 @@ class UserService:
 
     def assign_roles(self, actor: User, user_id: int, payload: AssignRolesRequest) -> User:
         user = self.get_user(user_id)
-        self._guard_last_admin_role_change(user, payload.role_ids)
-        self._guard_self_admin_role(actor, user, payload.role_ids)
         roles = self.roles.by_ids(payload.role_ids)
+        self._guard_last_admin_role_change(user, roles)
+        self._guard_self_admin_role(actor, user, roles)
         user.roles = roles
         record_audit(self.db, actor.id, "user.assign_roles", "user", str(user.id), user.username)
         self.db.commit()
@@ -129,16 +129,14 @@ class UserService:
         default_role = self.roles.get_by_code(USER_ROLE)
         return [default_role] if default_role else []
 
-    def _guard_last_admin_role_change(self, target: User, role_ids: list[int]) -> None:
+    def _guard_last_admin_role_change(self, target: User, roles: list[Role]) -> None:
         if not any(role.code == ADMIN_ROLE for role in target.roles) or self.users.count_admins() > 1:
             return
-        roles = self.roles.by_ids(role_ids)
         if not any(role.code == ADMIN_ROLE for role in roles):
             raise forbidden("不能移除最后一个管理员的管理员角色")
 
-    def _guard_self_admin_role(self, actor: User, target: User, role_ids: list[int]) -> None:
+    def _guard_self_admin_role(self, actor: User, target: User, roles: list[Role]) -> None:
         if actor.id != target.id:
             return
-        roles = self.roles.by_ids(role_ids)
         if not any(role.code == ADMIN_ROLE for role in roles):
             raise forbidden("不能移除自己的管理员角色")

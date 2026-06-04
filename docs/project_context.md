@@ -276,3 +276,9 @@
 - 权限管理页面的角色列表和权限分组改用 `work-card list-page-card` 内部滚动，左右卡片工具栏不再被列表内容顶走。
 - `docs/development_page_guide.md` 新增列表滚动开发规则：后台列表页必须固定页面标题、筛选区、操作区和表头，新增表格页统一使用 `page-data-table`，非表格列表把滚动限制在数据容器内部。
 - 验证：后端测试 14 passed，前端 `npm run build` 通过；HTTP 验证前后端服务可访问，当前 Browser 插件缓存缺少连接脚本，页面自动化验证受限。
+## 2026-06-04：第一轮全量代码清理
+- `UserService.assign_roles` 复用同一次 `RoleRepository.by_ids` 查询结果，最后管理员保护和本人管理员角色保护不再重复查询同一批角色。
+- `RoleService.list_permissions` 补齐 `list[Permission]` 返回类型，保持 service 类型边界清晰。
+- `seed_database` 去掉未使用的 `permissions_by_code` 局部变量，只保留初始化管理员所需的内置管理员角色。
+- 清理验证生成的 `web/dist`、`server/.pytest_cache` 和源码目录 `__pycache__`，保留工作区只包含真实源码与必要配置。
+- 验证：前端 `npm run build` 通过，后端测试 14 passed；`git diff --check` 通过；调试残留扫描无命中。

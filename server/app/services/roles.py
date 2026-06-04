@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import bad_request, forbidden, not_found
 from app.core.permissions import ADMIN_ROLE
-from app.models import Role
+from app.models import Permission, Role
 from app.repositories.roles import RoleRepository
 from app.schemas.role import AssignPermissionsRequest, RoleCreateRequest, RoleUpdateRequest
 from app.services.audit import record_audit
@@ -16,7 +16,7 @@ class RoleService:
     def list_roles(self) -> list[Role]:
         return self.roles.list()
 
-    def list_permissions(self):
+    def list_permissions(self) -> list[Permission]:
         return self.roles.permissions()
 
     def get_role(self, role_id: int) -> Role:

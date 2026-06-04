@@ -13,7 +13,7 @@ def create_tables(engine) -> None:
 
 
 def seed_database(db: Session, payload: InstallRequest) -> None:
-    permissions_by_code, admin_role = sync_seed_data(db)
+    _, admin_role = sync_seed_data(db)
 
     admin = db.query(User).filter(User.username == payload.admin_username).first()
     if admin is None:
