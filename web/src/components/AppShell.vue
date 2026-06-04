@@ -54,12 +54,8 @@
 
 <script setup lang="ts">
 import {
-  Board20Regular,
-  KeyMultiple20Regular,
-  People20Regular,
   PersonCircle20Regular as PersonCircle,
   PersonSettings20Regular,
-  Settings20Regular,
   WeatherMoon20Regular as WeatherMoon,
   WeatherSunny20Regular as WeatherSunny
 } from "@vicons/fluent";
@@ -70,6 +66,15 @@ import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
 import { APP_NAME, appKey } from "../config/app";
+import {
+  getPageTitle,
+  getVisibleMenuItems,
+  hasMenuKey,
+  hasMenuPath,
+  menuKey,
+  parentKeysForPath,
+  type AppMenuItem
+} from "../router/page-registry";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import BrandMark from "./BrandMark.vue";
@@ -81,40 +86,11 @@ const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
-interface AppMenuItem {
-  key?: string;
-  path?: string;
-  label: string;
-  permission?: string;
-  icon: Component;
-  children?: AppMenuItem[];
-}
-
-const allMenus: AppMenuItem[] = [
-  { path: "/", label: "首页", permission: "route:dashboard", icon: Board20Regular },
-  {
-    key: "system",
-    label: "系统管理",
-    icon: Settings20Regular,
-    children: [
-      { path: "/users", label: "用户管理", permission: "route:users", icon: People20Regular },
-      { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular }
-    ]
-  }
-];
-
-const pageTitles: Record<string, string> = {
-  "/": "首页",
-  "/users": "用户管理",
-  "/permissions": "权限管理",
-  "/profile": "个人信息"
-};
-
-const menuItems = computed(() => filterMenuItems(allMenus));
+const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code)));
 const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);
-const currentTitle = computed(() => pageTitles[route.path] || APP_NAME);
+const currentTitle = computed(() => getPageTitle(route.path) || APP_NAME);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
 
@@ -160,32 +136,10 @@ function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
 
-function filterMenuItems(items: AppMenuItem[]) {
-  return items.reduce<AppMenuItem[]>((result, item) => {
-    const allowed = !item.permission || authStore.has(item.permission);
-    if (!allowed) return result;
-
-    if (item.children) {
-      const children = filterMenuItems(item.children);
-      if (children.length > 0) {
-        result.push({ ...item, children });
-      } else if (item.path) {
-        result.push({ ...item, children: undefined });
-      }
-      return result;
-    }
-
-    if (item.path) {
-      result.push(item);
-    }
-    return result;
-  }, []);
-}
-
 function toMenuOptions(items: AppMenuItem[]) {
   return items.map((item) => {
     const option: MenuOption = {
-      key: item.path || item.key || item.label,
+      key: menuKey(item),
       label: item.label,
       icon: renderIcon(item.icon)
     };
@@ -194,29 +148,6 @@ function toMenuOptions(items: AppMenuItem[]) {
     }
     return option;
   });
-}
-
-function hasMenuPath(items: AppMenuItem[], path: string): boolean {
-  return items.some((item) => item.path === path || (item.children ? hasMenuPath(item.children, path) : false));
-}
-
-function hasMenuKey(items: AppMenuItem[], key: string): boolean {
-  return items.some((item) => menuKey(item) === key || (item.children ? hasMenuKey(item.children, key) : false));
-}
-
-function parentKeysForPath(items: AppMenuItem[], path: string, parents: string[] = []): string[] {
-  for (const item of items) {
-    if (item.path === path) return parents;
-    if (item.children) {
-      const keys = parentKeysForPath(item.children, path, [...parents, menuKey(item)]);
-      if (keys.length > 0) return keys;
-    }
-  }
-  return [];
-}
-
-function menuKey(item: AppMenuItem) {
-  return item.path || item.key || item.label;
 }
 
 watch(

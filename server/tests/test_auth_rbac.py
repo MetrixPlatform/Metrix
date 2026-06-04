@@ -93,6 +93,30 @@ def test_app_config_defaults_and_env_override(monkeypatch):
     get_settings.cache_clear()
 
 
+def test_permission_specs_generate_codes_and_route_read_mapping():
+    from app.core.permissions import (
+        PERMISSION_SEEDS,
+        ROLE_READ,
+        ROUTE_PERMISSIONS,
+        ROUTE_READ_PERMISSIONS,
+        ROUTE_USERS,
+        USER_READ,
+        action_code,
+        expand_permissions,
+        route_code,
+    )
+
+    seeds_by_code = {seed.code: seed for seed in PERMISSION_SEEDS}
+
+    assert len(seeds_by_code) == len(PERMISSION_SEEDS)
+    assert route_code("tasks") == "route:tasks"
+    assert action_code("task", "start") == "action:task:start"
+    assert seeds_by_code[ROUTE_USERS].type == "route"
+    assert seeds_by_code[USER_READ].type == "action"
+    assert ROUTE_READ_PERMISSIONS == {ROUTE_USERS: USER_READ, ROUTE_PERMISSIONS: ROLE_READ}
+    assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
+
+
 def test_api_docs_use_local_assets(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     response = client.get("/docs")

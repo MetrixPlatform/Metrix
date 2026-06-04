@@ -251,3 +251,9 @@
 - 有路由的菜单即使未来带子菜单，也不会因为子菜单被权限过滤为空而误隐藏；父级菜单点击不跳转，只有 `path` 以 `/` 开头的叶子菜单会触发路由跳转。
 - 侧边栏展开状态改为受控 `expandedKeys`，直接进入 `/users` 或 `/permissions` 时会自动展开“系统管理”并选中当前子菜单，同时会清理权限过滤后失效的展开键。
 - 验证：前端 `npm run build` 通过，后端测试 11 passed；浏览器验证 `/users` 与 `/permissions` 直达时系统管理自动展开、对应子菜单选中、父级点击不跳转且无控制台错误。
+## 2026-06-04：集中页面注册和权限模板
+- 新增 `web/src/router/page-registry.ts` 作为主框架页面注册入口，统一维护页面路径、标题、懒加载组件、路由权限、菜单分组、菜单图标、排序和无权限 fallback 顺序。
+- `web/src/router/index.ts` 改为从页面注册表生成主框架子路由，`AppShell` 改为从同一注册表生成侧边栏菜单、页面标题和父级展开状态，避免新增页面时同时维护路由、导航和标题映射。
+- 后端 `server/app/core/permissions.py` 增加 `route_code`、`action_code`、页面权限规格和资源功能权限规格，`PERMISSION_SEEDS` 与 `ROUTE_READ_PERMISSIONS` 由规格自动派生；开发期不做旧安装数据权限同步，只在系统初始化时播种权限。
+- 新增 `docs/development_page_guide.md`，记录新增页面、路由、菜单和权限的最短开发路径，并明确页面内按钮继续复用 `PermissionButton`，为后续数据级权限只预留接入边界、不提前实现。
+- 验证：前端 `npm run build` 通过，后端测试 12 passed；浏览器验证 `/permissions` 与 `/users` 均能自动展开“系统管理”并选中当前子菜单，控制台无错误。
