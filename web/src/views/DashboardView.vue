@@ -1,7 +1,12 @@
 <template>
   <section class="dashboard-hero" aria-label="Metrix">
-    <canvas ref="canvasRef" class="dashboard-particles" aria-hidden="true" />
-    <div class="dashboard-wordmark">Metrix</div>
+    <canvas
+      ref="canvasRef"
+      class="dashboard-particles"
+      :class="{ 'is-hidden': particlesHidden }"
+      aria-hidden="true"
+    />
+    <div v-show="showWordmark" class="dashboard-wordmark">Metrix</div>
   </section>
 </template>
 
@@ -20,31 +25,44 @@ interface Particle {
 }
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
+const showWordmark = ref(false);
+const particlesHidden = ref(false);
 let particles: Particle[] = [];
 let frameId = 0;
 let resizeObserver: ResizeObserver | null = null;
 let startTime = 0;
 
+const assembleDuration = 2400;
+const holdDuration = 650;
+const shrinkDuration = 850;
+
 onMounted(() => {
   const canvas = canvasRef.value;
   if (!canvas) return;
-  resizeObserver = new ResizeObserver(() => setupParticles(canvas));
+  resizeObserver = new ResizeObserver(() => restartParticles(canvas));
   resizeObserver.observe(canvas);
-  setupParticles(canvas);
-  startTime = performance.now();
-  frameId = requestAnimationFrame(draw);
+  restartParticles(canvas);
 });
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
   cancelAnimationFrame(frameId);
+  frameId = 0;
 });
+
+function restartParticles(canvas: HTMLCanvasElement) {
+  cancelAnimationFrame(frameId);
+  setupParticles(canvas);
+  frameId = requestAnimationFrame(draw);
+}
 
 function setupParticles(canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.max(1, Math.floor(rect.width * dpr));
   canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  showWordmark.value = false;
+  particlesHidden.value = false;
   const targets = textTargets(canvas.width, canvas.height);
   particles = targets.map((target, index) => ({
     x: Math.random() * canvas.width,
@@ -89,22 +107,48 @@ function draw(now: number) {
   const canvas = canvasRef.value;
   const context = canvas?.getContext("2d");
   if (!canvas || !context) return;
-  const progress = Math.min(1, (now - startTime) / 2400);
+  const elapsed = now - startTime;
+  const assembleProgress = Math.min(1, elapsed / assembleDuration);
+  const shrinkProgress = Math.max(
+    0,
+    Math.min(1, (elapsed - assembleDuration - holdDuration) / shrinkDuration)
+  );
   context.clearRect(0, 0, canvas.width, canvas.height);
   for (const particle of particles) {
-    const drift = Math.sin(now / 700 + particle.hue) * (1 - progress) * 18;
-    const ax = (particle.tx + drift - particle.x) * (0.012 + progress * 0.045);
-    const ay = (particle.ty - particle.y) * (0.012 + progress * 0.045);
-    particle.vx = (particle.vx + ax) * 0.82;
-    particle.vy = (particle.vy + ay) * 0.82;
-    particle.x += particle.vx;
-    particle.y += particle.vy;
-    const alpha = 0.34 + progress * 0.5;
-    context.fillStyle = `hsla(${particle.hue}, 88%, ${58 + progress * 10}%, ${alpha})`;
+    if (shrinkProgress <= 0) {
+      const drift = Math.sin(now / 700 + particle.hue) * (1 - assembleProgress) * 18;
+      const ax = (particle.tx + drift - particle.x) * (0.012 + assembleProgress * 0.045);
+      const ay = (particle.ty - particle.y) * (0.012 + assembleProgress * 0.045);
+      particle.vx = (particle.vx + ax) * 0.82;
+      particle.vy = (particle.vy + ay) * 0.82;
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+    }
+    const shrinkEase = easeInOutCubic(shrinkProgress);
+    const x = mix(particle.x, canvas.width / 2, shrinkEase);
+    const y = mix(particle.y, canvas.height / 2, shrinkEase);
+    const alpha = (0.34 + assembleProgress * 0.5) * (1 - shrinkEase);
+    const size = particle.size * (1 - shrinkEase * 0.72);
+    context.fillStyle = `hsla(${particle.hue}, 88%, ${58 + assembleProgress * 10}%, ${alpha})`;
     context.beginPath();
-    context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    context.arc(x, y, size, 0, Math.PI * 2);
     context.fill();
   }
+  if (shrinkProgress >= 1) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    particlesHidden.value = true;
+    showWordmark.value = true;
+    frameId = 0;
+    return;
+  }
   frameId = requestAnimationFrame(draw);
+}
+
+function easeInOutCubic(value: number) {
+  return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function mix(from: number, to: number, progress: number) {
+  return from + (to - from) * progress;
 }
 </script>

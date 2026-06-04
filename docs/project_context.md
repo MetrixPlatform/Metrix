@@ -226,6 +226,6 @@
 - 验证：后端测试 10 passed，前端 `npm run build` 通过，浏览器验证 `/users` 和 `/permissions` 正常且无控制台错误。
 ## 2026-06-04：首页粒子视觉改造
 - 首页移除用户数、待审批、角色数、权限数、当前用户和可访问页面等信息面板，改为纯视觉入口。
-- `web/src/views/DashboardView.vue` 使用本地 Canvas 粒子动画，粒子从随机位置聚合成 `Metrix` 字样；页面中心叠加透明底渐变文字，不引入外部资源或新增依赖。
+- `web/src/views/DashboardView.vue` 使用本地 Canvas 粒子动画，粒子从随机位置聚合成 `Metrix` 字样，短暂停留后收缩淡出，最终显示动态渐变 `Metrix` 标签；不引入外部资源或新增依赖。
 - 清理前端未使用的首页摘要 API 封装 `web/src/api/system.ts`、`DashboardSummary` 类型和旧统计卡片样式；后端 `/api/dashboard/summary` 暂保留，避免扩大对外 API 契约变更。
-- 验证：前端 `npm run build` 通过，后端测试 10 passed；浏览器验证首页 Canvas 尺寸正常、粒子文字可见、`Metrix` 居中、页面不溢出且无控制台错误。
+- 验证：前端 `npm run build` 通过，后端测试 10 passed；浏览器验证首页动画结束后 Canvas 隐藏、渐变 `Metrix` 标签可见、页面不溢出且无控制台错误。
