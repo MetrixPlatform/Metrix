@@ -1,5 +1,5 @@
 <template>
-  <section class="work-card">
+  <section class="work-card table-page-card">
     <div class="toolbar user-toolbar">
       <div class="user-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索账号、姓名、公司、部门" clearable />
@@ -9,7 +9,7 @@
       </div>
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
-    <n-data-table :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="930" />
+    <n-data-table class="page-data-table" flex-height :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="930" />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>

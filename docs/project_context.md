@@ -271,3 +271,8 @@
 - `server/app/models/role.py` 与 `server/app/models/user.py` 使用 `TYPE_CHECKING` 补齐关系字段的类型引用，保持运行时仍通过字符串关系名避免循环导入。
 - 侧边栏二级菜单恢复树状层级感：子菜单项相对一级菜单右移，并在展开区域显示轻量层级线；收缩状态下继续保持图标居中。
 - 验证：后端测试 14 passed，前端 `npm run build` 通过；浏览器验证 `/permissions` 下系统管理二级菜单缩进生效且无控制台错误。
+## 2026-06-04：统一列表内部滚动规则
+- 用户管理和公告管理页面改用 `work-card table-page-card` 与 `n-data-table flex-height`，让滚动只发生在表格 body 内，筛选区、操作区和字段表头保持固定。
+- 权限管理页面的角色列表和权限分组改用 `work-card list-page-card` 内部滚动，左右卡片工具栏不再被列表内容顶走。
+- `docs/development_page_guide.md` 新增列表滚动开发规则：后台列表页必须固定页面标题、筛选区、操作区和表头，新增表格页统一使用 `page-data-table`，非表格列表把滚动限制在数据容器内部。
+- 验证：后端测试 14 passed，前端 `npm run build` 通过；HTTP 验证前后端服务可访问，当前 Browser 插件缓存缺少连接脚本，页面自动化验证受限。

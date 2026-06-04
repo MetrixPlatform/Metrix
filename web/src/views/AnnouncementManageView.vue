@@ -1,10 +1,10 @@
 <template>
-  <section class="work-card announcement-manage-card">
+  <section class="work-card table-page-card announcement-manage-card">
     <div class="toolbar">
       <strong>公告管理</strong>
       <permission-button permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
     </div>
-    <n-data-table :columns="columns" :data="announcements" :loading="loading" :row-key="(row) => row.id" :scroll-x="980" />
+    <n-data-table class="page-data-table" flex-height :columns="columns" :data="announcements" :loading="loading" :row-key="(row) => row.id" :scroll-x="980" />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? '编辑公告' : '新增公告'">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="96">

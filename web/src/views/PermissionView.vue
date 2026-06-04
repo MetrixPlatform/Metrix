@@ -1,6 +1,6 @@
 <template>
   <div class="permission-layout">
-    <section class="work-card permission-role-card">
+    <section class="work-card list-page-card permission-role-card">
       <div class="toolbar">
         <strong>角色</strong>
         <div class="toolbar-group">
@@ -41,7 +41,7 @@
       </div>
     </section>
 
-    <section class="work-card permission-assign-card">
+    <section class="work-card list-page-card permission-assign-card">
       <div class="toolbar">
         <strong>权限分配</strong>
         <permission-button
