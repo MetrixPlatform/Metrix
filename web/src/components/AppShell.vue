@@ -19,6 +19,8 @@
         :options="menuOptions"
         :collapsed-width="64"
         :collapsed-icon-size="22"
+        :expanded-keys="expandedKeys"
+        @update:expanded-keys="handleExpandedKeys"
         @update:value="handleMenuChange"
       />
     </n-layout-sider>
@@ -57,10 +59,11 @@ import {
   People20Regular,
   PersonCircle20Regular as PersonCircle,
   PersonSettings20Regular,
+  Settings20Regular,
   WeatherMoon20Regular as WeatherMoon,
   WeatherSunny20Regular as WeatherSunny
 } from "@vicons/fluent";
-import { computed, h, ref, type Component } from "vue";
+import { computed, h, ref, watch, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLayoutHeader, NLayoutSider, NMenu } from "naive-ui";
 import type { MenuOption } from "naive-ui";
@@ -78,10 +81,26 @@ const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
-const allMenus = [
+interface AppMenuItem {
+  key?: string;
+  path?: string;
+  label: string;
+  permission?: string;
+  icon: Component;
+  children?: AppMenuItem[];
+}
+
+const allMenus: AppMenuItem[] = [
   { path: "/", label: "首页", permission: "route:dashboard", icon: Board20Regular },
-  { path: "/users", label: "用户管理", permission: "route:users", icon: People20Regular },
-  { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular }
+  {
+    key: "system",
+    label: "系统管理",
+    icon: Settings20Regular,
+    children: [
+      { path: "/users", label: "用户管理", permission: "route:users", icon: People20Regular },
+      { path: "/permissions", label: "权限管理", permission: "route:permissions", icon: KeyMultiple20Regular }
+    ]
+  }
 ];
 
 const pageTitles: Record<string, string> = {
@@ -91,15 +110,10 @@ const pageTitles: Record<string, string> = {
   "/profile": "个人信息"
 };
 
-const menuItems = computed(() => allMenus.filter((item) => !item.permission || authStore.has(item.permission)));
-const menuOptions = computed<MenuOption[]>(() =>
-  menuItems.value.map((item) => ({
-    key: item.path,
-    label: item.label,
-    icon: renderIcon(item.icon)
-  }))
-);
-const activeMenu = computed(() => menuItems.value.find((item) => item.path === route.path)?.path || null);
+const menuItems = computed(() => filterMenuItems(allMenus));
+const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
+const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
+const expandedKeys = ref<string[]>([]);
 const currentTitle = computed(() => pageTitles[route.path] || APP_NAME);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
@@ -114,8 +128,13 @@ function handleCollapsed(value: boolean) {
   localStorage.setItem(SIDEBAR_KEY, value ? "1" : "0");
 }
 
+function handleExpandedKeys(keys: Array<string | number>) {
+  expandedKeys.value = keys.map(String);
+}
+
 async function handleMenuChange(key: string | number) {
   const path = String(key);
+  if (!path.startsWith("/")) return;
   if (path === route.path) return;
   await router.push(path);
 }
@@ -140,4 +159,73 @@ function toggleTheme() {
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
+
+function filterMenuItems(items: AppMenuItem[]) {
+  return items.reduce<AppMenuItem[]>((result, item) => {
+    const allowed = !item.permission || authStore.has(item.permission);
+    if (!allowed) return result;
+
+    if (item.children) {
+      const children = filterMenuItems(item.children);
+      if (children.length > 0) {
+        result.push({ ...item, children });
+      } else if (item.path) {
+        result.push({ ...item, children: undefined });
+      }
+      return result;
+    }
+
+    if (item.path) {
+      result.push(item);
+    }
+    return result;
+  }, []);
+}
+
+function toMenuOptions(items: AppMenuItem[]) {
+  return items.map((item) => {
+    const option: MenuOption = {
+      key: item.path || item.key || item.label,
+      label: item.label,
+      icon: renderIcon(item.icon)
+    };
+    if (item.children?.length) {
+      option.children = toMenuOptions(item.children);
+    }
+    return option;
+  });
+}
+
+function hasMenuPath(items: AppMenuItem[], path: string): boolean {
+  return items.some((item) => item.path === path || (item.children ? hasMenuPath(item.children, path) : false));
+}
+
+function hasMenuKey(items: AppMenuItem[], key: string): boolean {
+  return items.some((item) => menuKey(item) === key || (item.children ? hasMenuKey(item.children, key) : false));
+}
+
+function parentKeysForPath(items: AppMenuItem[], path: string, parents: string[] = []): string[] {
+  for (const item of items) {
+    if (item.path === path) return parents;
+    if (item.children) {
+      const keys = parentKeysForPath(item.children, path, [...parents, menuKey(item)]);
+      if (keys.length > 0) return keys;
+    }
+  }
+  return [];
+}
+
+function menuKey(item: AppMenuItem) {
+  return item.path || item.key || item.label;
+}
+
+watch(
+  [menuItems, () => route.path],
+  () => {
+    const activeParents = parentKeysForPath(menuItems.value, route.path);
+    const validKeys = expandedKeys.value.filter((key) => hasMenuKey(menuItems.value, key));
+    expandedKeys.value = Array.from(new Set([...validKeys, ...activeParents]));
+  },
+  { immediate: true }
+);
 </script>
