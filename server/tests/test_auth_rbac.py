@@ -1,8 +1,14 @@
 import importlib
+import json
+from pathlib import Path
+import re
 
 from fastapi.testclient import TestClient
 
 from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, MysqlInstallConfig
+
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+MYSQL_TEST_DATABASE = "app_test"
 
 
 def create_client(tmp_path, monkeypatch):
@@ -24,7 +30,7 @@ def install_sqlite(client: TestClient, tmp_path):
         "admin_username": "rootadmin",
         "admin_password": "RootPass123",
         "admin_full_name": "管理员",
-        "admin_company": "Metrix",
+        "admin_company": "平台公司",
         "admin_department": "平台",
     }
     response = client.post("/api/install", json=payload)
@@ -37,6 +43,10 @@ def login(client: TestClient, username: str, password: str) -> dict[str, str]:
     response = client.post("/api/auth/login", json={"username": username, "password": password})
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['token']}"}
+
+
+def slugify(value: str) -> str:
+    return re.sub(r"(^_+|_+$)", "", re.sub(r"[^a-z0-9_]+", "_", value.strip().lower())) or "app"
 
 
 def test_install_status_and_sqlite_install(tmp_path, monkeypatch):
@@ -59,6 +69,28 @@ def test_sqlite_database_test_endpoint(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert response.json() == {"message": "数据库连接正常"}
     assert db_path.exists()
+
+
+def test_app_config_defaults_and_env_override(monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.delenv("APP_NAME", raising=False)
+    monkeypatch.delenv("APP_SLUG", raising=False)
+    monkeypatch.delenv("METRIX_APP_NAME", raising=False)
+    monkeypatch.delenv("METRIX_APP_SLUG", raising=False)
+    get_settings.cache_clear()
+    app_config = json.loads((PROJECT_DIR / "app.config.json").read_text(encoding="utf-8"))
+    settings = get_settings()
+    assert settings.app_name == app_config["appName"]
+    assert settings.app_slug == slugify(app_config["appName"])
+
+    monkeypatch.setenv("APP_NAME", "Custom Portal")
+    monkeypatch.setenv("APP_SLUG", "custom_portal")
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert settings.app_name == "Custom Portal"
+    assert settings.app_slug == "custom_portal"
+    get_settings.cache_clear()
 
 
 def test_api_docs_use_local_assets(tmp_path, monkeypatch):
@@ -95,7 +127,7 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
 
     payload = InstallRequest(
         database_type="mysql",
-        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database=MYSQL_TEST_DATABASE, username="root", password="pass"),
         admin_username="mysqladmin",
         admin_password="MysqlPass123",
         admin_full_name="MySQL 管理员",
@@ -113,8 +145,8 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
 
     install_service.install_system(payload)
 
-    assert ("create_db", "metrix_test") in calls
-    assert any(call[0] == "tables" and call[1].startswith("mysql+pymysql://root:pass@127.0.0.1:3306/metrix_test") for call in calls)
+    assert ("create_db", MYSQL_TEST_DATABASE) in calls
+    assert any(call[0] == "tables" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
     assert ("seed", "mysqladmin") in calls
     assert any(call[0] == "config" and call[1] == "mysql" for call in calls)
     assert "reset" in calls
@@ -145,7 +177,7 @@ def test_mysql_database_creation_sql(monkeypatch):
 
     payload = InstallRequest(
         database_type="mysql",
-        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database=MYSQL_TEST_DATABASE, username="root", password="pass"),
         admin_username="mysqladmin",
         admin_password="MysqlPass123",
         admin_full_name="MySQL 管理员",
@@ -156,7 +188,7 @@ def test_mysql_database_creation_sql(monkeypatch):
 
     install_service._create_mysql_database(payload)
 
-    assert "CREATE DATABASE IF NOT EXISTS `metrix_test`" in statements[0]
+    assert f"CREATE DATABASE IF NOT EXISTS `{MYSQL_TEST_DATABASE}`" in statements[0]
     assert "CHARACTER SET utf8mb4" in statements[0]
     assert "disposed" in statements
 
@@ -190,7 +222,7 @@ def test_mysql_database_test_uses_server_connection(monkeypatch):
 
     payload = InstallDatabaseTestRequest(
         database_type="mysql",
-        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database="metrix_test", username="root", password="pass"),
+        mysql=MysqlInstallConfig(host="127.0.0.1", port=3306, database=MYSQL_TEST_DATABASE, username="root", password="pass"),
     )
     monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine(url))
 

@@ -1,8 +1,9 @@
 import { reactive } from "vue";
 
 import type { UserProfile } from "../api/types";
+import { appKey } from "../config/app";
 
-const TOKEN_KEY = "metrix.token";
+const TOKEN_KEY = appKey("token");
 
 export const authStore = reactive({
   token: localStorage.getItem(TOKEN_KEY) || "",

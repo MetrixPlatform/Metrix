@@ -556,10 +556,12 @@ a {
   position: relative;
   z-index: 1;
   color: transparent;
-  font-size: 92px;
+  max-width: 90%;
+  font-size: clamp(76px, 14vw, 142px);
   font-weight: 700;
   line-height: 1;
   text-align: center;
+  overflow-wrap: anywhere;
   background: linear-gradient(110deg, #4a90e2, #63e2b7, #9013fe, #4a90e2);
   background-size: 260% 100%;
   background-clip: text;
@@ -784,11 +786,6 @@ a {
   .app-content {
     padding: 14px;
   }
-
-  .dashboard-wordmark {
-    font-size: 64px;
-  }
-
   .profile-grid,
   .user-filter-row {
     grid-template-columns: 1fr;

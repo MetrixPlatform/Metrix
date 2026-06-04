@@ -67,7 +67,7 @@ def decode_access_token(token: str) -> str | None:
 def _secret_key(settings: Settings) -> str:
     if is_installed():
         return load_install_config().secret_key
-    return "metrix-installing"
+    return f"{settings.app_slug}-installing"
 
 
 def _sign(payload_part: str, settings: Settings) -> str:

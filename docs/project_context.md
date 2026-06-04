@@ -229,3 +229,13 @@
 - `web/src/views/DashboardView.vue` 使用本地 Canvas 粒子动画，粒子从随机位置聚合成 `Metrix` 字样，短暂停留后收缩淡出，最终显示动态渐变 `Metrix` 标签；不引入外部资源或新增依赖。
 - 清理前端未使用的首页摘要 API 封装 `web/src/api/system.ts`、`DashboardSummary` 类型和旧统计卡片样式；后端 `/api/dashboard/summary` 暂保留，避免扩大对外 API 契约变更。
 - 验证：前端 `npm run build` 通过，后端测试 10 passed；浏览器验证首页动画结束后 Canvas 隐藏、渐变 `Metrix` 标签可见、页面不溢出且无控制台错误。
+## 2026-06-04：集中应用名称配置
+- 新增根目录 `app.config.json` 作为应用默认名称配置入口，默认只需要修改 `appName`；技术前缀、localStorage key、默认 MySQL 数据库名和默认 SQLite 文件名由应用名派生，确需自定义时可补充 `appSlug`。
+- 前端通过 `web/vite.config.ts` 将配置注入为 `__APP_CONFIG__`，`web/src/config/app.ts` 统一导出 `APP_NAME`、`APP_SLUG`、`DEFAULT_DATABASE_NAME`、`DEFAULT_SQLITE_PATH` 和 `appKey`；侧栏品牌、登录页标题、首页粒子文字、浏览器标题、安装页默认数据库名和本地存储 key 均改为使用该配置。
+- 后端 `server/app/core/config.py` 读取同一份 `app.config.json`，并保留 `APP_NAME`、`APP_SLUG`、`METRIX_APP_NAME`、`METRIX_APP_SLUG` 环境变量覆盖；默认 SQLite 文件名和安装前临时 token 签名 key 改为从 `settings.app_slug` 派生。
+- 后端测试新增配置读取与环境变量覆盖验证；验证：前端 `npm run build` 通过，后端测试 11 passed；浏览器验证页面标题、侧栏品牌和首页最终标签均读取到配置中的默认应用名且无控制台错误。
+## 2026-06-04：首页粒子自适应与重绘规则
+- 首页粒子动画起始阶段改为先从中心轻微聚集状态按当前内容区尺寸扩散，再聚合为应用名称，聚合文字尺寸按容器宽高和设备像素比计算，避免高分屏或大窗口下字样偏小。
+- 粒子动画不再监听窗口尺寸变化，只有进入首页并挂载组件时重新绘制；窗口大小变化后仅最终渐变标签通过 CSS `clamp()` 自动适应大小，避免 resize 时动画反复重跑。
+- 最终渐变标签字号调整为 `clamp(76px, 14vw, 142px)`，并限制最大宽度与自动换行，保证小窗口不溢出。
+- 验证：前端 `npm run build` 通过，后端测试 11 passed；浏览器验证首页动画结束后最终标签为配置应用名、Canvas 隐藏、页面不溢出且无控制台错误。

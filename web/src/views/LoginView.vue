@@ -4,7 +4,7 @@
       <template #icon><n-icon :component="themeIcon" /></template>
     </n-button>
     <div class="auth-card login-card">
-      <h1 class="auth-wordmark">Metrix</h1>
+      <h1 class="auth-wordmark">{{ APP_NAME }}</h1>
       <n-form
         ref="formRef"
         class="form-stack inline-form"
@@ -42,6 +42,7 @@ import { useRouter } from "vue-router";
 
 import { login } from "../api/auth";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
+import { APP_NAME } from "../config/app";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";

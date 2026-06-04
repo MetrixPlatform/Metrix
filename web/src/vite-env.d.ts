@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare const __APP_CONFIG__: {
+  appName?: string;
+  appSlug?: string;
+};
+
 declare module "*.vue" {
   import type { DefineComponent } from "vue";
 

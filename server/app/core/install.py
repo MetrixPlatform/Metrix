@@ -41,4 +41,5 @@ def write_install_config(database_type: str, database_url: str) -> InstallConfig
 
 
 def default_sqlite_path() -> Path:
-    return get_settings().runtime_dir / "metrix.db"
+    settings = get_settings()
+    return settings.runtime_dir / f"{settings.app_slug}.db"

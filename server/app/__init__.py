@@ -1,1 +1,1 @@
-"""Metrix server package."""
+"""Server package."""

@@ -11,7 +11,7 @@
     >
       <div class="brand">
         <BrandMark />
-        <span class="brand-text">Metrix</span>
+        <span class="brand-text">{{ APP_NAME }}</span>
       </div>
       <n-menu
         class="app-menu"
@@ -66,12 +66,13 @@ import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLay
 import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
+import { APP_NAME, appKey } from "../config/app";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import BrandMark from "./BrandMark.vue";
 import CopyrightNotice from "./CopyrightNotice.vue";
 
-const SIDEBAR_KEY = "metrix.sidebar.collapsed";
+const SIDEBAR_KEY = appKey("sidebar.collapsed");
 
 const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();

@@ -1,6 +1,8 @@
 import { reactive } from "vue";
 
-const THEME_KEY = "metrix.dark";
+import { appKey } from "../config/app";
+
+const THEME_KEY = appKey("dark");
 
 export const appStore = reactive({
   dark: localStorage.getItem(THEME_KEY) === "1",

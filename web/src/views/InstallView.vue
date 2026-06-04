@@ -4,7 +4,7 @@
       <div class="auth-brand">
         <BrandMark />
         <div>
-          <h1 class="auth-title">初始化 Metrix</h1>
+          <h1 class="auth-title">初始化 {{ APP_NAME }}</h1>
           <p class="auth-subtitle">选择网站数据库并创建初始管理员</p>
         </div>
       </div>
@@ -23,7 +23,7 @@
               </n-radio-group>
             </n-form-item>
             <n-form-item v-if="form.database_type === 'sqlite'" label="SQLite 数据库文件" path="sqlite_path">
-              <n-input v-model:value="form.sqlite_path" placeholder="留空使用 runtime/metrix.db" />
+              <n-input v-model:value="form.sqlite_path" :placeholder="`留空使用 ${DEFAULT_SQLITE_PATH}`" />
             </n-form-item>
             <template v-else>
               <div class="install-field-row compact">
@@ -90,6 +90,7 @@ import { useRouter } from "vue-router";
 import { installSystem, testInstallDatabase } from "../api/install";
 import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
+import { APP_NAME, DEFAULT_DATABASE_NAME, DEFAULT_SQLITE_PATH } from "../config/app";
 import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, numberRequiredRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -109,7 +110,7 @@ const form = reactive({
   mysql: {
     host: "127.0.0.1",
     port: 3306,
-    database: "metrix",
+    database: DEFAULT_DATABASE_NAME,
     username: "root",
     password: ""
   },
