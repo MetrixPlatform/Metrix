@@ -12,6 +12,7 @@ def action_code(resource: str, action: str) -> str:
 ROUTE_DASHBOARD = route_code("dashboard")
 ROUTE_USERS = route_code("users")
 ROUTE_PERMISSIONS = route_code("permissions")
+ROUTE_ANNOUNCEMENTS = route_code("announcements")
 
 USER_CREATE = action_code("user", "create")
 USER_READ = action_code("user", "read")
@@ -24,6 +25,12 @@ ROLE_READ = action_code("role", "read")
 ROLE_UPDATE = action_code("role", "update")
 ROLE_DELETE = action_code("role", "delete")
 ROLE_OPERATE = action_code("role", "operate")
+
+ANNOUNCEMENT_CREATE = action_code("announcement", "create")
+ANNOUNCEMENT_READ = action_code("announcement", "read")
+ANNOUNCEMENT_UPDATE = action_code("announcement", "update")
+ANNOUNCEMENT_DELETE = action_code("announcement", "delete")
+ANNOUNCEMENT_OPERATE = action_code("announcement", "operate")
 
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
@@ -88,7 +95,8 @@ class ResourcePermissionSpec:
 PAGE_PERMISSION_SPECS = (
     PagePermissionSpec(ROUTE_DASHBOARD, "首页", "dashboard", "访问首页", 10),
     PagePermissionSpec(ROUTE_USERS, "用户管理", "user", "访问用户管理", 20, USER_READ),
-    PagePermissionSpec(ROUTE_PERMISSIONS, "权限管理", "role", "访问权限管理", 40, ROLE_READ),
+    PagePermissionSpec(ROUTE_PERMISSIONS, "权限管理", "role", "访问权限管理", 30, ROLE_READ),
+    PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "公告管理", "announcement", "访问公告管理", 40, ANNOUNCEMENT_READ),
 )
 
 RESOURCE_PERMISSION_SPECS = (
@@ -114,6 +122,18 @@ RESOURCE_PERMISSION_SPECS = (
             ResourceActionSpec("update", "修改角色", "修改角色", 30),
             ResourceActionSpec("delete", "删除角色", "删除角色", 40),
             ResourceActionSpec("operate", "操作角色", "分配权限", 50),
+        ),
+    ),
+    ResourcePermissionSpec(
+        "announcement",
+        "公告",
+        300,
+        (
+            ResourceActionSpec("create", "新增公告", "创建公告", 10),
+            ResourceActionSpec("read", "查询公告", "查询公告", 20),
+            ResourceActionSpec("update", "修改公告", "修改公告", 30),
+            ResourceActionSpec("delete", "删除公告", "删除公告", 40),
+            ResourceActionSpec("operate", "操作公告", "发布、停用公告", 50),
         ),
     ),
 )

@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
 from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, MysqlInstallConfig
 
@@ -71,6 +72,32 @@ def test_sqlite_database_test_endpoint(tmp_path, monkeypatch):
     assert db_path.exists()
 
 
+def test_installed_database_auto_syncs_new_tables_and_permissions(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.db.session import reset_engine
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE announcement_reads"))
+        conn.execute(text("DROP TABLE announcements"))
+        conn.execute(text("DELETE FROM role_permissions WHERE permission_id IN (SELECT id FROM permissions WHERE resource = 'announcement')"))
+        conn.execute(text("DELETE FROM permissions WHERE resource = 'announcement' OR code = 'route:announcements'"))
+    engine.dispose()
+    reset_engine()
+
+    headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    announcements = client.get("/api/announcements", headers=headers)
+    assert announcements.status_code == 200
+    assert announcements.json() == []
+
+    permissions = client.get("/api/permissions", headers=headers)
+    assert "route:announcements" in {item["code"] for item in permissions.json()}
+
+
 def test_app_config_defaults_and_env_override(monkeypatch):
     from app.core.config import get_settings
 
@@ -95,8 +122,10 @@ def test_app_config_defaults_and_env_override(monkeypatch):
 
 def test_permission_specs_generate_codes_and_route_read_mapping():
     from app.core.permissions import (
+        ANNOUNCEMENT_READ,
         PERMISSION_SEEDS,
         ROLE_READ,
+        ROUTE_ANNOUNCEMENTS,
         ROUTE_PERMISSIONS,
         ROUTE_READ_PERMISSIONS,
         ROUTE_USERS,
@@ -113,7 +142,11 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert action_code("task", "start") == "action:task:start"
     assert seeds_by_code[ROUTE_USERS].type == "route"
     assert seeds_by_code[USER_READ].type == "action"
-    assert ROUTE_READ_PERMISSIONS == {ROUTE_USERS: USER_READ, ROUTE_PERMISSIONS: ROLE_READ}
+    assert ROUTE_READ_PERMISSIONS == {
+        ROUTE_USERS: USER_READ,
+        ROUTE_PERMISSIONS: ROLE_READ,
+        ROUTE_ANNOUNCEMENTS: ANNOUNCEMENT_READ,
+    }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
 
 
@@ -373,3 +406,89 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     assert role_options.json()[0].keys() == {"id", "code", "name"}
     assert client.get("/api/permissions", headers=reader_headers).status_code == 403
     assert client.post("/api/users", json={}, headers=reader_headers).status_code == 403
+
+
+def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    public = client.post(
+        "/api/announcements",
+        json={
+            "title": "平台维护",
+            "content": "今晚进行平台维护",
+            "target_type": "all",
+            "target_value": "",
+            "show_popup": False,
+            "show_ticker": True,
+            "show_sidebar": True,
+            "is_active": True,
+        },
+        headers=admin_headers,
+    )
+    assert public.status_code == 200
+
+    targeted = client.post(
+        "/api/announcements",
+        json={
+            "title": "部门通知",
+            "content": "请关注部门任务安排",
+            "target_type": "company_department",
+            "target_value": "公司|部门",
+            "show_popup": True,
+            "show_ticker": True,
+            "show_sidebar": True,
+            "is_active": True,
+        },
+        headers=admin_headers,
+    )
+    assert targeted.status_code == 200
+
+    authenticated = client.post(
+        "/api/announcements",
+        json={
+            "title": "登录用户公告",
+            "content": "只对已登录用户显示",
+            "target_type": "authenticated",
+            "target_value": "",
+            "show_popup": False,
+            "show_ticker": True,
+            "show_sidebar": True,
+            "is_active": True,
+        },
+        headers=admin_headers,
+    )
+    assert authenticated.status_code == 200
+
+    public_items = client.get("/api/announcements/public").json()
+    assert [item["title"] for item in public_items] == ["平台维护"]
+
+    register_response = client.post(
+        "/api/auth/register",
+        json={
+            "username": "notice_user",
+            "password": "Notice123",
+            "company": "公司",
+            "department": "部门",
+            "full_name": "公告用户",
+        },
+    )
+    assert register_response.status_code == 200
+    pending = client.get("/api/users", params={"approval_status": "pending"}, headers=admin_headers)
+    user_id = next(item["id"] for item in pending.json() if item["username"] == "notice_user")
+    assert client.post(f"/api/users/{user_id}/approve", json={"role_ids": []}, headers=admin_headers).status_code == 200
+
+    user_headers = login(client, "notice_user", "Notice123")
+    feed = client.get("/api/announcements/mine", headers=user_headers)
+    assert feed.status_code == 200
+    feed_by_title = {item["title"]: item for item in feed.json()}
+    assert set(feed_by_title) == {"平台维护", "部门通知", "登录用户公告"}
+    assert feed_by_title["部门通知"]["is_read"] is False
+
+    read = client.post(f"/api/announcements/{targeted.json()['id']}/read", headers=user_headers)
+    assert read.status_code == 200
+    assert read.json()["is_read"] is True
+
+    updated_feed = client.get("/api/announcements/mine", headers=user_headers).json()
+    assert next(item for item in updated_feed if item["title"] == "部门通知")["is_read"] is True

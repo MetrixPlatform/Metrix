@@ -7,6 +7,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.install import is_installed, load_install_config
+from app.db.init import sync_database
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
@@ -33,6 +34,7 @@ def get_engine() -> Engine:
     if _engine is None or _engine_url != database_url:
         _engine = create_engine_for_url(database_url)
         _engine_url = database_url
+        sync_database(_engine)
     return _engine
 
 

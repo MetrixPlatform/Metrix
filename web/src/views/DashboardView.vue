@@ -1,19 +1,58 @@
 <template>
-  <section class="dashboard-hero" :aria-label="APP_NAME">
-    <canvas
-      ref="canvasRef"
-      class="dashboard-particles"
-      :class="{ 'is-hidden': particlesHidden }"
-      aria-hidden="true"
-    />
-    <div v-show="showWordmark" class="dashboard-wordmark">{{ APP_NAME }}</div>
-  </section>
+  <div class="dashboard-shell">
+    <section class="dashboard-hero" :aria-label="APP_NAME">
+      <canvas
+        ref="canvasRef"
+        class="dashboard-particles"
+        :class="{ 'is-hidden': particlesHidden }"
+        aria-hidden="true"
+      />
+      <div v-show="showWordmark" class="dashboard-wordmark">{{ APP_NAME }}</div>
+    </section>
+    <aside class="dashboard-announcements work-card">
+      <div class="dashboard-announcement-head">
+        <strong>公告</strong>
+        <n-badge :value="unreadCount" :show-zero="false" />
+      </div>
+      <n-empty v-if="sidebarAnnouncements.length === 0" description="暂无公告" />
+      <div v-else class="announcement-timeline">
+        <button
+          v-for="item in sidebarAnnouncements"
+          :key="item.id"
+          class="announcement-timeline-item"
+          :class="{ unread: !item.is_read }"
+          type="button"
+          @click="openAnnouncement(item)"
+        >
+          <span class="announcement-timeline-dot" />
+          <span class="announcement-timeline-card">
+            <span class="announcement-timeline-title">{{ item.title }}</span>
+            <span class="announcement-timeline-content">{{ item.content }}</span>
+            <span class="announcement-timeline-meta">
+              {{ formatTime(item.created_at) }}
+              <status-tag :status="item.is_read ? 'read' : 'unread'" :labels="{ read: '已读', unread: '未读' }" />
+            </span>
+          </span>
+        </button>
+      </div>
+    </aside>
+    <n-modal v-model:show="showDetailModal" preset="card" class="modal-card announcement-popup-modal" :title="selectedAnnouncement?.title || '公告'">
+      <div class="announcement-popup-content">{{ selectedAnnouncement?.content }}</div>
+      <div class="form-actions">
+        <n-button type="primary" @click="showDetailModal = false">关闭</n-button>
+      </div>
+    </n-modal>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { NBadge, NButton, NEmpty, NModal } from "naive-ui";
 
+import type { AnnouncementFeedItem } from "../api/types";
+import StatusTag from "../components/StatusTag.vue";
 import { APP_NAME } from "../config/app";
+import { announcementStore } from "../stores/announcements";
 
 interface Particle {
   x: number;
@@ -33,6 +72,8 @@ interface Particle {
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const showWordmark = ref(false);
 const particlesHidden = ref(false);
+const showDetailModal = ref(false);
+const selectedAnnouncement = ref<AnnouncementFeedItem | null>(null);
 let particles: Particle[] = [];
 let frameId = 0;
 let startTime = 0;
@@ -42,11 +83,16 @@ const assembleDuration = 2300;
 const holdDuration = 650;
 const shrinkDuration = 850;
 const fontFamily = "Segoe UI, Microsoft YaHei, Arial, sans-serif";
+const sidebarAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_sidebar));
+const unreadCount = computed(() => sidebarAnnouncements.value.filter((item) => !item.is_read).length);
 
 onMounted(() => {
   const canvas = canvasRef.value;
   if (!canvas) return;
   restartParticles(canvas);
+  if (!announcementStore.loading && announcementStore.items.length === 0) {
+    void announcementStore.load().catch(() => announcementStore.clear());
+  }
 });
 
 onBeforeUnmount(() => {
@@ -228,5 +274,22 @@ function randomOffset(size: number) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+async function openAnnouncement(item: AnnouncementFeedItem) {
+  selectedAnnouncement.value = item;
+  showDetailModal.value = true;
+  if (!item.is_read) {
+    try {
+      await announcementStore.markRead(item.id);
+      selectedAnnouncement.value = announcementStore.items.find((announcement) => announcement.id === item.id) || item;
+    } catch {
+      await announcementStore.load().catch(() => announcementStore.clear());
+    }
+  }
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleString();
 }
 </script>

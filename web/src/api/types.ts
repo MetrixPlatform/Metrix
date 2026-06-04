@@ -54,3 +54,32 @@ export interface InstallStatus {
   installed: boolean;
   database_type: string | null;
 }
+
+export type AnnouncementTargetType = "all" | "authenticated" | "permission" | "company" | "company_department" | "user";
+
+export interface AnnouncementItem {
+  id: number;
+  title: string;
+  content: string;
+  target_type: AnnouncementTargetType;
+  target_value: string;
+  show_popup: boolean;
+  show_ticker: boolean;
+  show_sidebar: boolean;
+  is_active: boolean;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementFeedItem extends AnnouncementItem {
+  is_read: boolean;
+  read_at: string | null;
+}
+
+export interface PublicAnnouncementItem {
+  id: number;
+  title: string;
+  content: string;
+  created_at: string;
+}

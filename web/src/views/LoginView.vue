@@ -1,8 +1,9 @@
 <template>
-  <div class="auth-page login-page">
+  <div class="auth-page login-page" :class="{ 'has-announcement': publicAnnouncements.length > 0 }">
     <n-button class="auth-theme-button" quaternary circle :title="themeTitle" @click="toggleTheme">
       <template #icon><n-icon :component="themeIcon" /></template>
     </n-button>
+    <announcement-ticker v-if="publicAnnouncements.length > 0" class="auth-announcement-ticker" :items="publicAnnouncements" />
     <div class="auth-card login-card">
       <h1 class="auth-wordmark">{{ APP_NAME }}</h1>
       <n-form
@@ -37,10 +38,13 @@
 import { WeatherMoon20Regular as WeatherMoon, WeatherSunny20Regular as WeatherSunny } from "@vicons/fluent";
 import { NButton, NForm, NFormItem, NIcon, NInput, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
-import { computed, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { login } from "../api/auth";
+import { listPublicAnnouncements } from "../api/announcements";
+import type { PublicAnnouncementItem } from "../api/types";
+import AnnouncementTicker from "../components/AnnouncementTicker.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import { APP_NAME } from "../config/app";
 import { appStore } from "../stores/app";
@@ -52,6 +56,7 @@ const router = useRouter();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
+const publicAnnouncements = ref<PublicAnnouncementItem[]>([]);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
 const form = reactive({ username: "", password: "" });
@@ -59,6 +64,14 @@ const rules: FormRules = {
   username: [requiredRule("账号"), maxLengthRule("账号", 64)],
   password: [requiredRule("密码"), maxLengthRule("密码", 128)]
 };
+
+onMounted(async () => {
+  try {
+    publicAnnouncements.value = await listPublicAnnouncements();
+  } catch {
+    publicAnnouncements.value = [];
+  }
+});
 
 async function submit() {
   if (!(await validateForm(formRef.value))) return;

@@ -1,6 +1,7 @@
 import {
   Board20Regular,
   KeyMultiple20Regular,
+  MegaphoneLoud20Regular,
   People20Regular,
   Settings20Regular
 } from "@vicons/fluent";
@@ -72,6 +73,15 @@ const appPages: AppPage[] = [
     permission: "route:permissions",
     fallbackOrder: 30,
     menu: { group: "system", icon: KeyMultiple20Regular, order: 20 }
+  },
+  {
+    key: "announcements",
+    path: "/announcements",
+    title: "公告管理",
+    component: () => import("../views/AnnouncementManageView.vue"),
+    permission: "route:announcements",
+    fallbackOrder: 40,
+    menu: { group: "system", icon: MegaphoneLoud20Regular, order: 30 }
   },
   {
     key: "profile",

@@ -26,7 +26,11 @@ const FIELD_LABELS: Record<string, string> = {
   description: "说明",
   reason: "驳回原因",
   role_ids: "角色",
-  permission_ids: "权限"
+  permission_ids: "权限",
+  title: "标题",
+  content: "内容",
+  target_type: "推送范围",
+  target_value: "推送目标"
 };
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

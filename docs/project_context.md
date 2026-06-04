@@ -254,6 +254,15 @@
 ## 2026-06-04：集中页面注册和权限模板
 - 新增 `web/src/router/page-registry.ts` 作为主框架页面注册入口，统一维护页面路径、标题、懒加载组件、路由权限、菜单分组、菜单图标、排序和无权限 fallback 顺序。
 - `web/src/router/index.ts` 改为从页面注册表生成主框架子路由，`AppShell` 改为从同一注册表生成侧边栏菜单、页面标题和父级展开状态，避免新增页面时同时维护路由、导航和标题映射。
-- 后端 `server/app/core/permissions.py` 增加 `route_code`、`action_code`、页面权限规格和资源功能权限规格，`PERMISSION_SEEDS` 与 `ROUTE_READ_PERMISSIONS` 由规格自动派生；开发期不做旧安装数据权限同步，只在系统初始化时播种权限。
+- 后端 `server/app/core/permissions.py` 增加 `route_code`、`action_code`、页面权限规格和资源功能权限规格，`PERMISSION_SEEDS` 与 `ROUTE_READ_PERMISSIONS` 由规格自动派生。
 - 新增 `docs/development_page_guide.md`，记录新增页面、路由、菜单和权限的最短开发路径，并明确页面内按钮继续复用 `PermissionButton`，为后续数据级权限只预留接入边界、不提前实现。
 - 验证：前端 `npm run build` 通过，后端测试 12 passed；浏览器验证 `/permissions` 与 `/users` 均能自动展开“系统管理”并选中当前子菜单，控制台无错误。
+## 2026-06-04：新增公告功能和开发库自动同步
+- 后端新增公告模型、公告已读模型、公告 API、repository 和 service，支持全平台公告、按权限/公司/公司-部门或职位/指定账号定向公告，以及弹窗、滚动条、首页侧栏三种展示方式。
+- 新增公告权限 `route:announcements` 与 `action:announcement:create/read/update/delete/operate`，公告管理页通过页面注册表收纳到“系统管理”下，授权路由后默认获得公告查询权限。
+- `server/app/db/session.py` 在已安装库创建 engine 后调用开发期同步入口，自动补齐新增表结构和权限种子，并把新增权限同步给内置管理员角色，方便当前开发 runtime 直接继续使用。
+- 前端新增公告管理页、公告 API、公告 store 和 `AnnouncementTicker` 组件；登录页展示全平台公开滚动公告，登录后主框架展示未读滚动公告和一次性弹窗，首页右侧用时间轴展示公告列表与未读计数。
+- 公告点击弹窗确认、关闭滚动条或点击首页时间轴项都会标记当前用户已读；已读后弹窗不再出现、滚动条消失、首页时间轴状态和未读计数同步更新。
+- 公告目标区分“全平台”和“全部用户”：全平台公告可通过公开接口出现在登录页，全部用户公告必须登录后才会出现在主框架公告展示中。
+- 公告新增表单默认只勾选“首页侧栏”，展示方式三项全不选时前后端都拒绝保存；“全部用户 + 首页侧栏”已通过接口验证可保存，测试公告随后删除。
+- 验证：后端测试 14 passed，前端 `npm run build` 通过；浏览器验证公告管理页可打开、默认勾选状态正确且无控制台错误。

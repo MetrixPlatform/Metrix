@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
 from app.core.security import hash_password
@@ -12,6 +13,47 @@ def create_tables(engine) -> None:
 
 
 def seed_database(db: Session, payload: InstallRequest) -> None:
+    permissions_by_code, admin_role = sync_seed_data(db)
+
+    admin = db.query(User).filter(User.username == payload.admin_username).first()
+    if admin is None:
+        admin = User(
+            username=payload.admin_username,
+            full_name=payload.admin_full_name,
+            company=payload.admin_company,
+            department=payload.admin_department,
+            password_hash=hash_password(payload.admin_password),
+            approval_status="approved",
+            is_active=True,
+            is_builtin=True,
+            roles=[admin_role],
+        )
+        db.add(admin)
+    elif admin_role not in admin.roles:
+        admin.roles.append(admin_role)
+
+    db.commit()
+
+
+def sync_database(engine) -> None:
+    create_tables(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+    with session_factory() as db:
+        sync_seed_data(db)
+        db.commit()
+
+
+def sync_seed_data(db: Session) -> tuple[dict[str, Permission], Role]:
+    permissions_by_code = _sync_permission_seeds(db)
+    admin_role = _ensure_role(db, ADMIN_ROLE, "超级管理员", "拥有全部权限", True)
+    user_role = _ensure_role(db, USER_ROLE, "普通用户", "默认基础用户", True)
+    admin_role.permissions = list(permissions_by_code.values())
+    if not user_role.permissions:
+        user_role.permissions = [permissions_by_code[ROUTE_DASHBOARD]]
+    return permissions_by_code, admin_role
+
+
+def _sync_permission_seeds(db: Session) -> dict[str, Permission]:
     permissions_by_code = {}
     for seed in PERMISSION_SEEDS:
         permission = db.query(Permission).filter(Permission.code == seed.code).first()
@@ -35,30 +77,8 @@ def seed_database(db: Session, payload: InstallRequest) -> None:
             permission.sort_order = seed.sort_order
         permissions_by_code[seed.code] = permission
     _delete_deprecated_permissions(db)
-
-    admin_role = _ensure_role(db, ADMIN_ROLE, "超级管理员", "拥有全部权限", True)
-    user_role = _ensure_role(db, USER_ROLE, "普通用户", "默认基础用户", True)
-    admin_role.permissions = list(permissions_by_code.values())
-    user_role.permissions = [permissions_by_code[ROUTE_DASHBOARD]]
-
-    admin = db.query(User).filter(User.username == payload.admin_username).first()
-    if admin is None:
-        admin = User(
-            username=payload.admin_username,
-            full_name=payload.admin_full_name,
-            company=payload.admin_company,
-            department=payload.admin_department,
-            password_hash=hash_password(payload.admin_password),
-            approval_status="approved",
-            is_active=True,
-            is_builtin=True,
-            roles=[admin_role],
-        )
-        db.add(admin)
-    elif admin_role not in admin.roles:
-        admin.roles.append(admin_role)
-
-    db.commit()
+    db.flush()
+    return permissions_by_code
 
 
 def _ensure_role(db: Session, code: str, name: str, description: str, is_builtin: bool) -> Role:

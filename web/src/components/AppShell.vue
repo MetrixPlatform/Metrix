@@ -42,13 +42,32 @@
           </n-dropdown>
         </div>
       </n-layout-header>
-      <n-layout-content class="app-content">
+      <announcement-ticker
+        v-if="tickerAnnouncements.length > 0"
+        :items="tickerAnnouncements"
+        closable
+        @close="closeTickerAnnouncement"
+      />
+      <n-layout-content class="app-content" :class="{ 'with-announcement': tickerAnnouncements.length > 0 }">
         <router-view />
       </n-layout-content>
       <n-layout-footer class="app-footer">
         <CopyrightNotice />
       </n-layout-footer>
     </n-layout>
+    <n-modal
+      v-model:show="showAnnouncementModal"
+      preset="card"
+      class="modal-card announcement-popup-modal"
+      :title="popupAnnouncement?.title || '公告'"
+      :closable="false"
+      :mask-closable="false"
+    >
+      <div class="announcement-popup-content">{{ popupAnnouncement?.content }}</div>
+      <div class="form-actions">
+        <n-button type="primary" @click="acknowledgePopup">我知道了</n-button>
+      </div>
+    </n-modal>
   </n-layout>
 </template>
 
@@ -59,9 +78,9 @@ import {
   WeatherMoon20Regular as WeatherMoon,
   WeatherSunny20Regular as WeatherSunny
 } from "@vicons/fluent";
-import { computed, h, ref, watch, type Component } from "vue";
+import { computed, h, onMounted, ref, watch, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLayoutHeader, NLayoutSider, NMenu } from "naive-ui";
+import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLayoutHeader, NLayoutSider, NMenu, NModal } from "naive-ui";
 import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
@@ -75,8 +94,10 @@ import {
   parentKeysForPath,
   type AppMenuItem
 } from "../router/page-registry";
+import { announcementStore } from "../stores/announcements";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import AnnouncementTicker from "./AnnouncementTicker.vue";
 import BrandMark from "./BrandMark.vue";
 import CopyrightNotice from "./CopyrightNotice.vue";
 
@@ -90,14 +111,21 @@ const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(cod
 const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);
+const showAnnouncementModal = ref(false);
 const currentTitle = computed(() => getPageTitle(route.path) || APP_NAME);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
+const tickerAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_ticker && !item.is_read));
+const popupAnnouncement = computed(() => announcementStore.items.find((item) => item.show_popup && !item.is_read) || null);
 
 const userOptions = [
   { label: "个人信息", key: "profile", icon: renderIcon(PersonSettings20Regular) },
   { label: "退出登录", key: "logout", icon: renderIcon(PersonCircle) }
 ];
+
+onMounted(async () => {
+  await loadAnnouncements();
+});
 
 function handleCollapsed(value: boolean) {
   collapsed.value = value;
@@ -123,6 +151,7 @@ async function handleUserAction(key: string) {
   try {
     await logout();
   } finally {
+    announcementStore.clear();
     authStore.clear();
     await router.push("/login");
   }
@@ -150,12 +179,48 @@ function toMenuOptions(items: AppMenuItem[]) {
   });
 }
 
+async function loadAnnouncements() {
+  try {
+    await announcementStore.load();
+  } catch {
+    announcementStore.clear();
+  }
+}
+
+async function closeTickerAnnouncement(item: { id: number }) {
+  await markAnnouncementRead(item);
+}
+
+async function acknowledgePopup() {
+  const item = popupAnnouncement.value;
+  showAnnouncementModal.value = false;
+  if (item) {
+    await markAnnouncementRead(item);
+  }
+}
+
+async function markAnnouncementRead(item: { id: number }) {
+  try {
+    await announcementStore.markRead(item.id);
+  } catch {
+    await loadAnnouncements();
+  }
+}
+
 watch(
   [menuItems, () => route.path],
   () => {
     const activeParents = parentKeysForPath(menuItems.value, route.path);
     const validKeys = expandedKeys.value.filter((key) => hasMenuKey(menuItems.value, key));
     expandedKeys.value = Array.from(new Set([...validKeys, ...activeParents]));
+  },
+  { immediate: true }
+);
+
+watch(
+  () => popupAnnouncement.value?.id,
+  (id) => {
+    showAnnouncementModal.value = Boolean(id);
   },
   { immediate: true }
 );
