@@ -50,13 +50,6 @@ export interface LoginResponse {
   permissions: string[];
 }
 
-export interface DashboardSummary {
-  user_count: number;
-  pending_user_count: number;
-  role_count: number;
-  permission_count: number;
-}
-
 export interface InstallStatus {
   installed: boolean;
   database_type: string | null;

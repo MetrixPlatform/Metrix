@@ -530,9 +530,50 @@ a {
   font-size: 12px;
 }
 
-.page-stack {
+.dashboard-hero {
+  position: relative;
+  height: 100%;
+  min-height: 360px;
   display: grid;
-  gap: 16px;
+  place-items: center;
+  overflow: hidden;
+}
+
+.dashboard-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-wordmark {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  font-size: 92px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  background: linear-gradient(110deg, #4a90e2, #63e2b7, #9013fe, #4a90e2);
+  background-size: 260% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: metrix-gradient 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes metrix-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .work-card {
@@ -621,25 +662,6 @@ a {
 .profile-card-head h3 {
   margin: 0;
   font-size: 16px;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-}
-
-.stat-item {
-  padding: 18px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--panel-bg);
-}
-
-.stat-value {
-  margin-top: 8px;
-  font-size: 30px;
-  font-weight: 700;
 }
 
 .status-tag {
@@ -741,6 +763,10 @@ a {
 
   .app-content {
     padding: 14px;
+  }
+
+  .dashboard-wordmark {
+    font-size: 64px;
   }
 
   .profile-grid,
