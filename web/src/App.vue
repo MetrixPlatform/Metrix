@@ -1,5 +1,5 @@
 <template>
-  <n-config-provider :theme="appStore.dark ? darkTheme : null">
+  <n-config-provider :theme="appStore.dark ? darkTheme : null" :locale="zhCN" :date-locale="dateZhCN">
     <n-message-provider>
       <n-dialog-provider>
         <router-view />
@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { darkTheme, NConfigProvider, NDialogProvider, NMessageProvider } from "naive-ui";
+import { darkTheme, dateZhCN, NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from "naive-ui";
 
 import { appStore } from "./stores/app";
 </script>

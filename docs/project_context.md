@@ -312,3 +312,7 @@
 - 后端公告列表接口支持对应 query 参数过滤，并在管理列表、创建和更新响应中返回 `created_by_username`，前端表格显示为“操作账号”，用于追踪公告发布账号。
 - 用户管理表格新增“注册时间”列，继续使用 `page-data-table` 内部滚动规则，避免列表数据滚动顶走筛选区和表头。
 - 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 14 passed，`git diff --check` 通过，调试残留扫描无命中。
+## 2026-06-05：统一 Naive UI 中文语言包
+- `web/src/App.vue` 的 `NConfigProvider` 增加 `zhCN` 和 `dateZhCN`，让日期选择器、确认按钮、清空按钮、月份/星期等 Naive UI 内置文案统一显示中文。
+- 该配置放在全局入口，后续新增 Naive UI 组件默认继承中文语言环境，不需要在单个页面重复配置。
+- 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，`git diff --check` 通过，调试残留扫描无命中。
