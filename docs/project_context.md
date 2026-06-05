@@ -329,3 +329,9 @@
 - 用户信息扩展手机号和邮箱字段，安装管理员、注册、个人资料、用户新增/编辑均使用同一套前后端格式校验；开发库同步会自动补齐 `users.phone` 和 `users.email` 列。
 - `docs/development_page_guide.md` 新增表格分页规则：数据量可能增长的后台列表必须走后端分页，分页、表头筛选和排序统一映射接口参数。
 - 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 16 passed，`git diff --check` 通过，调试残留扫描无命中。
+## 2026-06-05：补充本人和他人数据操作权限规则
+- 权限模型明确拆分为基础动作权限和范围提升权限：`create/read/update/delete/operate` 只表达能否执行动作，不直接代表可以操作他人数据。
+- 未授予范围提升权限时，`update`、`delete`、`operate` 默认只允许操作当前用户本人创建、上传、负责或归属的数据；操作他人数据需要额外拥有 `action:<resource>:manage_others`。
+- 公告后续可使用 `action:announcement:manage_others` 控制是否允许编辑、删除、发布或停用他人公告；数据、任务、文件、脚本等页面也遵循同一规则。
+- 新增业务表默认保留创建人或归属人字段，如 `created_by`、`owner_user_id`；上传、导入、手工新增和脚本生成的数据都要记录操作账号，便于审计和后续本人/他人权限划分。
+- 前端行操作按钮仍先按基础功能权限控制，再叠加后端返回的行级能力字段；页面组件不自行硬编码账号、公司、部门或本人范围判断。
