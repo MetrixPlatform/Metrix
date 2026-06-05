@@ -54,3 +54,7 @@ export function updateAnnouncement(announcementId: number, payload: Announcement
 export function deleteAnnouncement(announcementId: number) {
   return del<{ message: string }>(`/announcements/${announcementId}`);
 }
+
+export function batchDeleteAnnouncements(ids: number[]) {
+  return post<{ message: string }>("/announcements/batch-delete", { ids });
+}

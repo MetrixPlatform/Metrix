@@ -316,3 +316,9 @@
 - `web/src/App.vue` 的 `NConfigProvider` 增加 `zhCN` 和 `dateZhCN`，让日期选择器、确认按钮、清空按钮、月份/星期等 Naive UI 内置文案统一显示中文。
 - 该配置放在全局入口，后续新增 Naive UI 组件默认继承中文语言环境，不需要在单个页面重复配置。
 - 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，`git diff --check` 通过，调试残留扫描无命中。
+## 2026-06-05：完善公告批量删除和表头筛选
+- 公告管理新增勾选批量删除能力：前端表格按删除权限显示选择列和批量删除按钮，后端新增 `/api/announcements/batch-delete`，批量删除会逐条记录审计并一次提交事务。
+- 公告管理顶部筛选栏只保留关键字、创建时间范围和查询按钮；推送范围、展示方式、状态迁移到表格字段表头筛选，筛选状态继续映射到后端列表接口参数。
+- `.announcement-toolbar` 改为可换行布局，公告操作按钮独立放在右侧操作区，窄屏下自然换行，避免和日期范围、查询按钮重叠。
+- `docs/development_page_guide.md` 新增表格筛选规则：枚举字段优先用表头筛选，顶部工具栏避免堆积下拉条件；批量操作放操作区并允许窄屏换行。
+- 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 14 passed，`git diff --check` 通过，调试残留扫描无命中。

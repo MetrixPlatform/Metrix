@@ -475,6 +475,31 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
     keyword_items = client.get("/api/announcements", params={"keyword": "登录用户"}, headers=admin_headers)
     assert [item["title"] for item in keyword_items.json()] == ["登录用户公告"]
 
+    batch_delete_ids = []
+    for title in ["待批量删除一", "待批量删除二"]:
+        item = client.post(
+            "/api/announcements",
+            json={
+                "title": title,
+                "content": "批量删除验证",
+                "target_type": "authenticated",
+                "target_value": "",
+                "show_popup": False,
+                "show_ticker": False,
+                "show_sidebar": True,
+                "is_active": True,
+            },
+            headers=admin_headers,
+        )
+        assert item.status_code == 200
+        batch_delete_ids.append(item.json()["id"])
+    batch_delete = client.post("/api/announcements/batch-delete", json={"ids": batch_delete_ids}, headers=admin_headers)
+    assert batch_delete.status_code == 200
+    assert batch_delete.json() == {"message": "已删除 2 条公告"}
+    remaining_titles = {item["title"] for item in client.get("/api/announcements", headers=admin_headers).json()}
+    assert "待批量删除一" not in remaining_titles
+    assert "待批量删除二" not in remaining_titles
+
     public_items = client.get("/api/announcements/public").json()
     assert [item["title"] for item in public_items] == ["平台维护"]
 

@@ -1,5 +1,11 @@
 """Pydantic schemas."""
-from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementPayload, PublicAnnouncementItem
+from app.schemas.announcement import (
+    AnnouncementBatchDeleteRequest,
+    AnnouncementFeedItem,
+    AnnouncementItem,
+    AnnouncementPayload,
+    PublicAnnouncementItem,
+)
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, ProfileUpdateRequest, RegisterRequest
 from app.schemas.common import MessageResponse
 from app.schemas.dashboard import DashboardSummary
@@ -19,6 +25,7 @@ from app.schemas.user import (
 __all__ = [
     "AssignPermissionsRequest",
     "AssignRolesRequest",
+    "AnnouncementBatchDeleteRequest",
     "AnnouncementFeedItem",
     "AnnouncementItem",
     "AnnouncementPayload",

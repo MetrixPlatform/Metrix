@@ -83,6 +83,16 @@ class AnnouncementService:
         self.announcements.delete(announcement)
         self.db.commit()
 
+    def batch_delete(self, actor: User, announcement_ids: list[int]) -> int:
+        deleted_count = 0
+        for announcement_id in dict.fromkeys(announcement_ids):
+            announcement = self._get(announcement_id)
+            record_audit(self.db, actor.id, "announcement.delete", "announcement", str(announcement.id), announcement.title)
+            self.announcements.delete(announcement)
+            deleted_count += 1
+        self.db.commit()
+        return deleted_count
+
     def mark_read(self, user: User, announcement_id: int) -> AnnouncementFeedItem:
         announcement = self._get(announcement_id)
         if not announcement.is_active or not self._matches_user(announcement, user):

@@ -922,6 +922,7 @@ a {
 }
 
 .user-create-button,
+.announcement-batch-delete-button,
 .announcement-create-button {
   flex: 0 0 auto;
 }
@@ -937,22 +938,24 @@ a {
 
 .announcement-toolbar {
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .announcement-filter-row {
   display: grid;
-  flex: 1;
+  flex: 1 1 620px;
   grid-template-columns:
-    minmax(180px, 1fr)
-    minmax(120px, 150px)
-    minmax(120px, 150px)
-    minmax(100px, 120px)
-    minmax(260px, 320px)
+    minmax(220px, 1fr)
+    minmax(280px, 360px)
     auto;
   gap: 10px;
   align-items: center;
   min-width: 0;
+}
+
+.announcement-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .filter-keyword,

@@ -33,6 +33,10 @@ class AnnouncementPayload(BaseModel):
         return self
 
 
+class AnnouncementBatchDeleteRequest(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=200)
+
+
 class AnnouncementItem(AnnouncementPayload):
     id: int
     created_by: int | None

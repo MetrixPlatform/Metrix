@@ -3,9 +3,6 @@
     <div class="toolbar announcement-toolbar">
       <div class="announcement-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索标题、内容" clearable />
-        <n-select v-model:value="filters.target_type" class="filter-select" :options="targetTypeOptions" clearable placeholder="推送范围" />
-        <n-select v-model:value="filters.display_mode" class="filter-select" :options="displayModeOptions" clearable placeholder="展示方式" />
-        <n-select v-model:value="filters.is_active" class="filter-select" :options="statusOptions" clearable placeholder="状态" />
         <n-date-picker
           v-model:value="filters.time_range"
           class="filter-date-range"
@@ -16,9 +13,30 @@
         />
         <n-button @click="loadAnnouncements">查询</n-button>
       </div>
-      <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
+      <div class="toolbar-group announcement-actions">
+        <permission-button
+          class="announcement-batch-delete-button"
+          permission="action:announcement:delete"
+          type="error"
+          :disabled="checkedRowKeys.length === 0"
+          @click="removeSelectedAnnouncements"
+        >
+          批量删除{{ checkedRowKeys.length ? ` (${checkedRowKeys.length})` : "" }}
+        </permission-button>
+        <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
+      </div>
     </div>
-    <n-data-table class="page-data-table" flex-height :columns="columns" :data="announcements" :loading="loading" :row-key="(row) => row.id" :scroll-x="1160" />
+    <n-data-table
+      v-model:checked-row-keys="checkedRowKeys"
+      class="page-data-table"
+      flex-height
+      :columns="columns"
+      :data="announcements"
+      :loading="loading"
+      :row-key="(row) => row.id"
+      :scroll-x="1210"
+      @update:filters="handleTableFilters"
+    />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? '编辑公告' : '新增公告'">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="96">
@@ -70,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from "vue";
+import { computed, h, onMounted, reactive, ref } from "vue";
 import { Delete20Regular, Edit20Regular } from "@vicons/fluent";
 import {
   NButton,
@@ -89,9 +107,16 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableRowKey, FormInst, FormRules } from "naive-ui";
 
-import { createAnnouncement, deleteAnnouncement, listAnnouncements, updateAnnouncement, type AnnouncementPayload } from "../api/announcements";
+import {
+  batchDeleteAnnouncements,
+  createAnnouncement,
+  deleteAnnouncement,
+  listAnnouncements,
+  updateAnnouncement,
+  type AnnouncementPayload
+} from "../api/announcements";
 import type { AnnouncementItem, AnnouncementTargetType } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
@@ -103,16 +128,19 @@ const message = useMessage();
 const dialog = useDialog();
 const loading = ref(false);
 const announcements = ref<AnnouncementItem[]>([]);
+const checkedRowKeys = ref<DataTableRowKey[]>([]);
 const showModal = ref(false);
 const editing = ref<AnnouncementItem | null>(null);
 const formRef = ref<FormInst | null>(null);
 const targetCompany = ref("");
 const targetDepartment = ref("");
+type AnnouncementDisplayMode = "popup" | "ticker" | "sidebar";
+type AnnouncementStatusFilter = "true" | "false";
 const filters = reactive<{
   keyword: string;
   target_type: AnnouncementTargetType | null;
-  display_mode: "popup" | "ticker" | "sidebar" | null;
-  is_active: string | null;
+  display_mode: AnnouncementDisplayMode | null;
+  is_active: AnnouncementStatusFilter | null;
   time_range: [number, number] | null;
 }>({
   keyword: "",
@@ -160,40 +188,70 @@ const statusOptions = [
   { label: "禁用", value: "false" }
 ];
 
-const columns: DataTableColumns<AnnouncementItem> = [
-  { title: "标题", key: "title", width: 180 },
-  { title: "推送范围", key: "target_type", width: 180, render: (row) => targetLabel(row) },
-  { title: "展示方式", key: "display", width: 150, render: (row) => displayLabel(row) },
-  { title: "状态", key: "is_active", width: 90, render: (row) => h(StatusTag, { status: row.is_active }) },
-  { title: "操作账号", key: "created_by_username", width: 120, render: (row) => row.created_by_username || "-" },
-  { title: "创建时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
-  {
-    title: "操作",
-    key: "actions",
-    width: 130,
-    render: (row) =>
-      h(
-        "div",
-        { class: "table-action-group" },
-        [
-          authStore.has("action:announcement:update")
-            ? h(
-                NButton,
-                { size: "small", quaternary: true, circle: true, title: "编辑", onClick: () => openEdit(row) },
-                { icon: () => h(NIcon, { component: Edit20Regular }) }
-              )
-            : null,
-          authStore.has("action:announcement:delete")
-            ? h(
-                NButton,
-                { size: "small", quaternary: true, circle: true, title: "删除", type: "error", onClick: () => removeAnnouncement(row) },
-                { icon: () => h(NIcon, { component: Delete20Regular }) }
-              )
-            : null
-        ].filter(Boolean)
-      )
-  }
-];
+const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
+  const dataColumns: DataTableColumns<AnnouncementItem> = [
+    { title: "标题", key: "title", width: 180 },
+    {
+      title: "推送范围",
+      key: "target_type",
+      width: 180,
+      filter: (value, row) => row.target_type === value,
+      filterMultiple: false,
+      filterOptionValue: filters.target_type,
+      filterOptions: targetTypeOptions,
+      render: (row) => targetLabel(row)
+    },
+    {
+      title: "展示方式",
+      key: "display_mode",
+      width: 150,
+      filter: (value, row) => matchesDisplayMode(row, value),
+      filterMultiple: false,
+      filterOptionValue: filters.display_mode,
+      filterOptions: displayModeOptions,
+      render: (row) => displayLabel(row)
+    },
+    {
+      title: "状态",
+      key: "is_active",
+      width: 90,
+      filter: (value, row) => row.is_active === (value === "true"),
+      filterMultiple: false,
+      filterOptionValue: filters.is_active,
+      filterOptions: statusOptions,
+      render: (row) => h(StatusTag, { status: row.is_active })
+    },
+    { title: "操作账号", key: "created_by_username", width: 120, render: (row) => row.created_by_username || "-" },
+    { title: "创建时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
+    {
+      title: "操作",
+      key: "actions",
+      width: 130,
+      render: (row) =>
+        h(
+          "div",
+          { class: "table-action-group" },
+          [
+            authStore.has("action:announcement:update")
+              ? h(
+                  NButton,
+                  { size: "small", quaternary: true, circle: true, title: "编辑", onClick: () => openEdit(row) },
+                  { icon: () => h(NIcon, { component: Edit20Regular }) }
+                )
+              : null,
+            authStore.has("action:announcement:delete")
+              ? h(
+                  NButton,
+                  { size: "small", quaternary: true, circle: true, title: "删除", type: "error", onClick: () => removeAnnouncement(row) },
+                  { icon: () => h(NIcon, { component: Delete20Regular }) }
+                )
+              : null
+          ].filter(Boolean)
+        )
+    }
+  ];
+  return authStore.has("action:announcement:delete") ? [{ type: "selection", width: 48 }, ...dataColumns] : dataColumns;
+});
 
 onMounted(async () => {
   await loadAnnouncements();
@@ -210,11 +268,39 @@ async function loadAnnouncements() {
       start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
       end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : ""
     });
+    checkedRowKeys.value = checkedRowKeys.value.filter((key) => announcements.value.some((item) => item.id === key));
   } catch (error) {
     showError(message, error);
   } finally {
     loading.value = false;
   }
+}
+
+function handleTableFilters(filterState: DataTableFilterState) {
+  const targetType = singleFilterValue(filterState, "target_type");
+  const displayMode = singleFilterValue(filterState, "display_mode");
+  const activeStatus = singleFilterValue(filterState, "is_active");
+  filters.target_type = isTargetType(targetType) ? targetType : null;
+  filters.display_mode = isDisplayMode(displayMode) ? displayMode : null;
+  filters.is_active = isStatusFilter(activeStatus) ? activeStatus : null;
+  void loadAnnouncements();
+}
+
+function singleFilterValue(filterState: DataTableFilterState, key: string) {
+  const value = filterState[key];
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function isTargetType(value: unknown): value is AnnouncementTargetType {
+  return typeof value === "string" && targetTypeOptions.some((option) => option.value === value);
+}
+
+function isDisplayMode(value: unknown): value is AnnouncementDisplayMode {
+  return typeof value === "string" && displayModeOptions.some((option) => option.value === value);
+}
+
+function isStatusFilter(value: unknown): value is AnnouncementStatusFilter {
+  return value === "true" || value === "false";
 }
 
 function openCreate() {
@@ -327,6 +413,27 @@ function removeAnnouncement(row: AnnouncementItem) {
   });
 }
 
+function removeSelectedAnnouncements() {
+  const ids = checkedRowKeys.value.filter((id): id is number => typeof id === "number");
+  if (ids.length === 0) return;
+  dialog.warning({
+    title: "批量删除公告",
+    content: `确认删除选中的 ${ids.length} 条公告？`,
+    positiveText: "删除",
+    negativeText: "取消",
+    onPositiveClick: async () => {
+      try {
+        await batchDeleteAnnouncements(ids);
+        checkedRowKeys.value = [];
+        await loadAnnouncements();
+        message.success("公告已删除");
+      } catch (error) {
+        showError(message, error);
+      }
+    }
+  });
+}
+
 function targetLabel(row: AnnouncementItem) {
   const labels: Record<AnnouncementTargetType, string> = {
     all: "全平台",
@@ -345,6 +452,13 @@ function displayLabel(row: AnnouncementItem) {
     row.show_ticker ? "滚动条" : "",
     row.show_sidebar ? "首页侧栏" : ""
   ].filter(Boolean).join("、");
+}
+
+function matchesDisplayMode(row: AnnouncementItem, value: unknown) {
+  if (value === "popup") return row.show_popup;
+  if (value === "ticker") return row.show_ticker;
+  if (value === "sidebar") return row.show_sidebar;
+  return true;
 }
 
 function formatTargetValue(row: AnnouncementItem) {

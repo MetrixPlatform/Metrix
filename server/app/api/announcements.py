@@ -7,7 +7,13 @@ from app.core.deps import get_current_user, require_permission
 from app.core.permissions import ANNOUNCEMENT_CREATE, ANNOUNCEMENT_DELETE, ANNOUNCEMENT_READ, ANNOUNCEMENT_UPDATE
 from app.db.session import get_db
 from app.models import Announcement, User
-from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementPayload, PublicAnnouncementItem
+from app.schemas.announcement import (
+    AnnouncementBatchDeleteRequest,
+    AnnouncementFeedItem,
+    AnnouncementItem,
+    AnnouncementPayload,
+    PublicAnnouncementItem,
+)
 from app.schemas.common import MessageResponse
 from app.services.announcements import AnnouncementService
 
@@ -57,6 +63,16 @@ def create_announcement(
     actor: User = Depends(require_permission(ANNOUNCEMENT_CREATE)),
 ) -> AnnouncementItem:
     return AnnouncementService(db).create(actor, payload)
+
+
+@router.post("/batch-delete", response_model=MessageResponse)
+def batch_delete_announcements(
+    payload: AnnouncementBatchDeleteRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(ANNOUNCEMENT_DELETE)),
+) -> MessageResponse:
+    deleted_count = AnnouncementService(db).batch_delete(actor, payload.ids)
+    return MessageResponse(message=f"已删除 {deleted_count} 条公告")
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementItem)
