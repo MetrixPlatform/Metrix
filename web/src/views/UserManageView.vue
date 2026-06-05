@@ -2,18 +2,18 @@
   <section class="work-card table-page-card">
     <div class="toolbar user-toolbar">
       <div class="user-filter-row">
-        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索账号、姓名、手机、邮箱、公司、部门" clearable />
+        <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('user.searchPlaceholder')" clearable />
         <n-date-picker
           v-model:value="filters.time_range"
           class="filter-date-range"
           type="datetimerange"
           clearable
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          :start-placeholder="t('common.startTime')"
+          :end-placeholder="t('common.endTime')"
         />
-        <n-button @click="searchUsers">查询</n-button>
+        <n-button @click="searchUsers">{{ t("common.search") }}</n-button>
       </div>
-      <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
+      <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">{{ t("user.add") }}</permission-button>
     </div>
     <n-data-table
       class="page-data-table"
@@ -30,83 +30,83 @@
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
     />
-    <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
+    <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" :title="t('user.approveTitle')">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
-          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</n-checkbox>
+          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
         </n-space>
       </n-checkbox-group>
       <div class="form-actions">
-        <n-button @click="showApproveModal = false">取消</n-button>
-        <n-button type="primary" @click="saveApprove">通过</n-button>
+        <n-button @click="showApproveModal = false">{{ t("common.cancel") }}</n-button>
+        <n-button type="primary" @click="saveApprove">{{ t("user.pass") }}</n-button>
       </div>
     </n-modal>
-    <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" title="驳回注册">
+    <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" :title="t('user.rejectTitle')">
       <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="88">
-        <n-form-item label="驳回原因" path="reason">
-          <n-input v-model:value="rejectForm.reason" type="textarea" placeholder="驳回原因" />
+        <n-form-item :label="t('field.reason')" path="reason">
+          <n-input v-model:value="rejectForm.reason" type="textarea" :placeholder="t('field.reason')" />
         </n-form-item>
       </n-form>
       <div class="form-actions">
-        <n-button @click="showRejectModal = false">取消</n-button>
-        <n-button type="error" @click="saveReject">驳回</n-button>
+        <n-button @click="showRejectModal = false">{{ t("common.cancel") }}</n-button>
+        <n-button type="error" @click="saveReject">{{ t("user.reject") }}</n-button>
       </div>
     </n-modal>
-    <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? '编辑用户' : '新增用户'">
+    <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? t('user.edit') : t('user.add')">
       <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="80">
-        <n-form-item v-if="!editingUser" label="账号" path="username">
+        <n-form-item v-if="!editingUser" :label="t('field.username')" path="username">
           <n-input v-model:value="userForm.username" />
         </n-form-item>
-        <n-form-item v-if="!editingUser" label="密码" path="password">
+        <n-form-item v-if="!editingUser" :label="t('field.password')" path="password">
           <n-input v-model:value="userForm.password" type="password" show-password-on="click" />
         </n-form-item>
-        <n-form-item label="姓名" path="full_name">
+        <n-form-item :label="t('field.fullName')" path="full_name">
           <n-input v-model:value="userForm.full_name" />
         </n-form-item>
-        <n-form-item label="手机号码" path="phone">
+        <n-form-item :label="t('field.phone')" path="phone">
           <n-input v-model:value="userForm.phone" />
         </n-form-item>
-        <n-form-item label="邮箱" path="email">
+        <n-form-item :label="t('field.email')" path="email">
           <n-input v-model:value="userForm.email" />
         </n-form-item>
-        <n-form-item label="公司" path="company">
+        <n-form-item :label="t('field.company')" path="company">
           <n-input v-model:value="userForm.company" />
         </n-form-item>
-        <n-form-item label="部门" path="department">
+        <n-form-item :label="t('field.department')" path="department">
           <n-input v-model:value="userForm.department" />
         </n-form-item>
-        <n-form-item v-if="!editingUser" label="角色">
+        <n-form-item v-if="!editingUser" :label="t('field.role')">
           <n-checkbox-group v-model:value="roleIds">
             <n-space>
-              <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</n-checkbox>
+              <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
             </n-space>
           </n-checkbox-group>
         </n-form-item>
         <div class="form-actions">
-          <n-button @click="showUserModal = false">取消</n-button>
-          <n-button type="primary" @click="saveUser">保存</n-button>
+          <n-button @click="showUserModal = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" @click="saveUser">{{ t("common.save") }}</n-button>
         </div>
       </n-form>
     </n-modal>
-    <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" title="分配角色">
+    <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="t('user.assignRoles')">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
-          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</n-checkbox>
+          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
         </n-space>
       </n-checkbox-group>
       <div class="form-actions">
-        <n-button @click="showRoleModal = false">取消</n-button>
-        <n-button type="primary" @click="saveRoles">保存</n-button>
+        <n-button @click="showRoleModal = false">{{ t("common.cancel") }}</n-button>
+        <n-button type="primary" @click="saveRoles">{{ t("common.save") }}</n-button>
       </div>
     </n-modal>
-    <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" title="重置密码">
+    <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" :title="t('user.resetPassword')">
       <n-form ref="passwordFormRef" class="form-stack inline-form" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="88">
-        <n-form-item label="新密码" path="password">
+        <n-form-item :label="t('field.newPassword')" path="password">
           <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" />
         </n-form-item>
         <div class="form-actions">
-          <n-button @click="showPasswordModal = false">取消</n-button>
-          <n-button type="primary" @click="savePassword">保存</n-button>
+          <n-button @click="showPasswordModal = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" @click="savePassword">{{ t("common.save") }}</n-button>
         </div>
       </n-form>
     </n-modal>
@@ -138,6 +138,8 @@ import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUs
 import type { RoleBrief, UserListItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { formatDateTime, t } from "../i18n";
+import { roleName } from "../i18n/builtins";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
@@ -183,7 +185,7 @@ const pagination = reactive({
   itemCount: 0,
   pageSizes: [20, 50, 100, 500],
   showSizePicker: true,
-  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount ?? 0} 条`
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
 const userForm = reactive({
   username: "",
@@ -194,64 +196,64 @@ const userForm = reactive({
   company: "",
   department: ""
 });
-const userRules: FormRules = {
-  username: [requiredRule("账号"), minLengthRule("账号", 3), maxLengthRule("账号", 64)],
-  password: [requiredRule("密码"), minLengthRule("密码", 6), maxLengthRule("密码", 128)],
-  full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
-  phone: [requiredRule("手机号码"), phoneRule()],
-  email: [requiredRule("邮箱"), emailRule(), maxLengthRule("邮箱", 254)],
-  company: maxLengthRule("公司", 120),
-  department: maxLengthRule("部门", 120)
-};
-const passwordRules: FormRules = {
-  password: [requiredRule("新密码"), minLengthRule("新密码", 6), maxLengthRule("新密码", 128)]
-};
-const rejectRules: FormRules = {
-  reason: maxLengthRule("驳回原因", 500)
-};
+const userRules = computed<FormRules>(() => ({
+  username: [requiredRule(t("field.username")), minLengthRule(t("field.username"), 3), maxLengthRule(t("field.username"), 64)],
+  password: [requiredRule(t("field.password")), minLengthRule(t("field.password"), 6), maxLengthRule(t("field.password"), 128)],
+  full_name: [requiredRule(t("field.fullName")), maxLengthRule(t("field.fullName"), 80)],
+  phone: [requiredRule(t("field.phone")), phoneRule()],
+  email: [requiredRule(t("field.email")), emailRule(), maxLengthRule(t("field.email"), 254)],
+  company: maxLengthRule(t("field.company"), 120),
+  department: maxLengthRule(t("field.department"), 120)
+}));
+const passwordRules = computed<FormRules>(() => ({
+  password: [requiredRule(t("field.newPassword")), minLengthRule(t("field.newPassword"), 6), maxLengthRule(t("field.newPassword"), 128)]
+}));
+const rejectRules = computed<FormRules>(() => ({
+  reason: maxLengthRule(t("field.reason"), 500)
+}));
 const adminRoleId = computed(() => roles.value.find((role) => role.code === "admin")?.id ?? null);
 const needsRoleOptions = computed(() => authStore.has("action:user:create") || authStore.has("action:user:operate"));
 
-const approvalOptions = [
-  { label: "待审核", value: "pending" },
-  { label: "已通过", value: "approved" },
-  { label: "已驳回", value: "rejected" }
-];
-const activeOptions = [
-  { label: "启用", value: "true" },
-  { label: "禁用", value: "false" }
-];
+const approvalOptions = computed(() => [
+  { label: t("status.pending"), value: "pending" },
+  { label: t("status.approved"), value: "approved" },
+  { label: t("status.rejected"), value: "rejected" }
+]);
+const activeOptions = computed(() => [
+  { label: t("common.enabled"), value: "true" },
+  { label: t("common.disabled"), value: "false" }
+]);
 
 const columns = computed<DataTableColumns<UserListItem>>(() => [
-  { title: "账号", key: "username", width: 130 },
-  { title: "姓名", key: "full_name", width: 120 },
-  { title: "手机号码", key: "phone", width: 130 },
-  { title: "邮箱", key: "email", width: 200 },
-  { title: "公司", key: "company", width: 140 },
-  { title: "部门", key: "department", width: 120 },
+  { title: t("field.username"), key: "username", width: 130 },
+  { title: t("field.fullName"), key: "full_name", width: 120 },
+  { title: t("field.phone"), key: "phone", width: 130 },
+  { title: t("field.email"), key: "email", width: 200 },
+  { title: t("field.company"), key: "company", width: 140 },
+  { title: t("field.department"), key: "department", width: 120 },
   {
-    title: "审核",
+    title: t("field.approval"),
     key: "approval_status",
     width: 100,
     filter: (value, row) => row.approval_status === value,
     filterMultiple: false,
     filterOptionValue: filters.approval_status,
-    filterOptions: approvalOptions,
-    render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels })
+    filterOptions: approvalOptions.value,
+    render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels.value })
   },
   {
-    title: "状态",
+    title: t("field.status"),
     key: "is_active",
     width: 90,
     filter: (value, row) => row.is_active === (value === "true"),
     filterMultiple: false,
     filterOptionValue: filters.is_active,
-    filterOptions: activeOptions,
+    filterOptions: activeOptions.value,
     render: (row) => h(StatusTag, { status: row.is_active })
   },
-  { title: "角色", key: "roles", width: 160, render: (row) => row.roles.map((role) => role.name).join("、") || "-" },
+  { title: t("field.roles"), key: "roles", width: 160, render: (row) => row.roles.map((role) => roleName(role)).join(t("common.listSeparator")) || t("common.none") },
   {
-    title: "注册时间",
+    title: t("field.createdAt"),
     key: "created_at",
     width: 170,
     sorter: true,
@@ -259,7 +261,7 @@ const columns = computed<DataTableColumns<UserListItem>>(() => [
     render: (row) => formatTime(row.created_at)
   },
   {
-    title: "操作",
+    title: t("common.actions"),
     key: "actions",
     width: 64,
     align: "center",
@@ -272,7 +274,7 @@ const columns = computed<DataTableColumns<UserListItem>>(() => [
           default: () =>
             h(
               NButton,
-              { class: "row-action-button", size: "small", quaternary: true, circle: true, title: "更多操作", disabled: options.length === 0 },
+              { class: "row-action-button", size: "small", quaternary: true, circle: true, title: t("common.moreActions"), disabled: options.length === 0 },
               {
                 icon: () => h(NIcon, { component: MoreHorizontal20Regular })
               }
@@ -283,7 +285,7 @@ const columns = computed<DataTableColumns<UserListItem>>(() => [
   }
 ]);
 
-const approvalLabels = { pending: "待审核", approved: "已通过", rejected: "已驳回" };
+const approvalLabels = computed(() => ({ pending: t("status.pending"), approved: t("status.approved"), rejected: t("status.rejected") }));
 
 onMounted(async () => {
   await Promise.all([loadUsers(), needsRoleOptions.value ? loadRoles() : Promise.resolve()]);
@@ -397,7 +399,7 @@ async function saveUser() {
     }
     showUserModal.value = false;
     await loadUsers();
-    message.success("用户已保存");
+    message.success(t("user.saved"));
   } catch (error) {
     showError(message, error);
   }
@@ -415,7 +417,7 @@ async function saveApprove() {
     await approveUser(approvalTarget.value.id, roleIds.value);
     showApproveModal.value = false;
     await loadUsers();
-    message.success("已审核通过");
+    message.success(t("user.approved"));
   } catch (error) {
     showError(message, error);
   }
@@ -434,7 +436,7 @@ async function saveReject() {
     await rejectUser(approvalTarget.value.id, rejectForm.reason);
     showRejectModal.value = false;
     await loadUsers();
-    message.success("已驳回");
+    message.success(t("user.rejected"));
   } catch (error) {
     showError(message, error);
   }
@@ -443,20 +445,20 @@ async function saveReject() {
 function rowActionOptions(user: UserListItem): DropdownOption[] {
   const options: DropdownOption[] = [];
   if (user.approval_status === "pending" && authStore.has("action:user:operate")) {
-    options.push({ label: "通过", key: "approve" }, { label: "驳回", key: "reject" });
+    options.push({ label: t("user.pass"), key: "approve" }, { label: t("user.reject"), key: "reject" });
   }
   if (authStore.has("action:user:update")) {
-    options.push({ label: "编辑", key: "edit" });
+    options.push({ label: t("common.edit"), key: "edit" });
   }
   if (user.approval_status === "approved" && authStore.has("action:user:operate")) {
     options.push(
-      { label: user.is_active ? "禁用" : "启用", key: "toggle-active" },
-      { label: "角色", key: "roles" },
-      { label: "密码", key: "password" }
+      { label: user.is_active ? t("common.disabled") : t("common.enabled"), key: "toggle-active" },
+      { label: t("field.role"), key: "roles" },
+      { label: t("field.password"), key: "password" }
     );
   }
   if (authStore.has("action:user:delete")) {
-    options.push({ label: "删除", key: "delete", disabled: Boolean(deleteDisabledReason(user)) });
+    options.push({ label: t("common.delete"), key: "delete", disabled: Boolean(deleteDisabledReason(user)) });
   }
   return options;
 }
@@ -500,7 +502,7 @@ async function saveRoles() {
     await assignRoles(roleTarget.value.id, roleIds.value);
     showRoleModal.value = false;
     await loadUsers();
-    message.success("角色已更新");
+    message.success(t("user.rolesUpdated"));
   } catch (error) {
     showError(message, error);
   }
@@ -518,7 +520,7 @@ async function savePassword() {
   try {
     await resetPassword(passwordTarget.value.id, passwordForm.password);
     showPasswordModal.value = false;
-    message.success("密码已重置");
+    message.success(t("user.passwordReset"));
   } catch (error) {
     showError(message, error);
   }
@@ -531,15 +533,15 @@ function confirmDelete(user: UserListItem) {
     return;
   }
   dialog.warning({
-    title: "删除用户",
-    content: `确认删除 ${user.username}？`,
-    positiveText: "删除",
-    negativeText: "取消",
+    title: t("user.deleteTitle"),
+    content: t("user.deleteConfirm", { name: user.username }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
         await deleteUser(user.id);
         await loadUsers();
-        message.success("用户已删除");
+        message.success(t("user.deleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -555,18 +557,18 @@ function guardRoleChange(user: UserListItem) {
   const removingAdminRole = hasAdminRole(user) && adminRoleId.value !== null && !roleIds.value.includes(adminRoleId.value);
   if (!removingAdminRole) return false;
   if (authStore.user?.id === user.id) {
-    message.error("不能移除自己的管理员角色");
+    message.error(t("user.cannotRemoveSelfAdmin"));
     return true;
   }
   return false;
 }
 
 function deleteDisabledReason(user: UserListItem) {
-  if (user.is_builtin) return "内置用户不能删除";
+  if (user.is_builtin) return t("user.builtinCannotDelete");
   return "";
 }
 
 function formatTime(value: string) {
-  return new Date(value).toLocaleString();
+  return formatDateTime(value);
 }
 </script>

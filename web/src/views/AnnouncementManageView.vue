@@ -2,16 +2,16 @@
   <section class="work-card table-page-card announcement-manage-card">
     <div class="toolbar announcement-toolbar">
       <div class="announcement-filter-row">
-        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索标题、内容" clearable />
+        <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('announcement.searchPlaceholder')" clearable />
         <n-date-picker
           v-model:value="filters.time_range"
           class="filter-date-range"
           type="datetimerange"
           clearable
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          :start-placeholder="t('common.startTime')"
+          :end-placeholder="t('common.endTime')"
         />
-        <n-button @click="searchAnnouncements">查询</n-button>
+        <n-button @click="searchAnnouncements">{{ t("common.search") }}</n-button>
       </div>
       <div class="toolbar-group announcement-actions">
         <permission-button
@@ -21,9 +21,9 @@
           :disabled="selectedDeletableIds.length === 0"
           @click="removeSelectedAnnouncements"
         >
-          批量删除{{ selectedDeletableIds.length ? ` (${selectedDeletableIds.length})` : "" }}
+          {{ batchDeleteText }}
         </permission-button>
-        <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
+        <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">{{ t("announcement.add") }}</permission-button>
       </div>
     </div>
     <n-data-table
@@ -43,49 +43,49 @@
       @update:sorter="handleSorter"
     />
 
-    <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? '编辑公告' : '新增公告'">
+    <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? t('announcement.edit') : t('announcement.add')">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="96">
-        <n-form-item label="标题" path="title">
-          <n-input v-model:value="form.title" placeholder="请输入公告标题" />
+        <n-form-item :label="t('field.title')" path="title">
+          <n-input v-model:value="form.title" :placeholder="t('announcement.titlePlaceholder')" />
         </n-form-item>
-        <n-form-item label="内容" path="content">
-          <n-input v-model:value="form.content" type="textarea" placeholder="请输入公告内容" />
+        <n-form-item :label="t('field.content')" path="content">
+          <n-input v-model:value="form.content" type="textarea" :placeholder="t('announcement.contentPlaceholder')" />
         </n-form-item>
-        <n-form-item label="推送范围">
+        <n-form-item :label="t('field.targetType')">
           <n-select v-model:value="form.target_type" :options="targetTypeOptions" />
         </n-form-item>
-        <n-form-item v-if="form.target_type === 'permission'" label="权限编码">
-          <n-input v-model:value="form.target_value" placeholder="多个权限用逗号分隔，如 route:users" />
+        <n-form-item v-if="form.target_type === 'permission'" :label="t('field.permissionCode')">
+          <n-input v-model:value="form.target_value" :placeholder="t('announcement.permissionTargetPlaceholder')" />
         </n-form-item>
-        <n-form-item v-if="form.target_type === 'company'" label="公司">
-          <n-input v-model:value="form.target_value" placeholder="请输入公司名称" />
+        <n-form-item v-if="form.target_type === 'company'" :label="t('field.company')">
+          <n-input v-model:value="form.target_value" :placeholder="t('announcement.companyPlaceholder')" />
         </n-form-item>
         <template v-if="form.target_type === 'company_department'">
-          <n-form-item label="公司">
-            <n-input v-model:value="targetCompany" placeholder="请输入公司名称" />
+          <n-form-item :label="t('field.company')">
+            <n-input v-model:value="targetCompany" :placeholder="t('announcement.companyPlaceholder')" />
           </n-form-item>
-          <n-form-item label="部门/职位">
-            <n-input v-model:value="targetDepartment" placeholder="请输入部门或职位" />
+          <n-form-item :label="t('field.departmentOrPosition')">
+            <n-input v-model:value="targetDepartment" :placeholder="t('announcement.departmentPlaceholder')" />
           </n-form-item>
         </template>
-        <n-form-item v-if="form.target_type === 'user'" label="账号">
-          <n-input v-model:value="form.target_value" type="textarea" placeholder="多个账号用逗号或换行分隔" />
+        <n-form-item v-if="form.target_type === 'user'" :label="t('field.username')">
+          <n-input v-model:value="form.target_value" type="textarea" :placeholder="t('announcement.userTargetPlaceholder')" />
         </n-form-item>
-        <n-form-item label="展示方式" path="display_modes">
+        <n-form-item :label="t('field.displayModes')" path="display_modes">
           <n-checkbox-group v-model:value="form.display_modes">
             <n-space>
-              <n-checkbox value="popup">弹窗</n-checkbox>
-              <n-checkbox value="ticker">滚动条</n-checkbox>
-              <n-checkbox value="sidebar">首页侧栏</n-checkbox>
+              <n-checkbox value="popup">{{ t("announcement.displayPopup") }}</n-checkbox>
+              <n-checkbox value="ticker">{{ t("announcement.displayTicker") }}</n-checkbox>
+              <n-checkbox value="sidebar">{{ t("announcement.displaySidebar") }}</n-checkbox>
             </n-space>
           </n-checkbox-group>
         </n-form-item>
-        <n-form-item label="启用">
+        <n-form-item :label="t('common.enabled')">
           <n-switch v-model:value="form.is_active" />
         </n-form-item>
         <div class="form-actions">
-          <n-button @click="showModal = false">取消</n-button>
-          <n-button type="primary" @click="saveAnnouncement">保存</n-button>
+          <n-button @click="showModal = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" @click="saveAnnouncement">{{ t("common.save") }}</n-button>
         </div>
       </n-form>
     </n-modal>
@@ -125,6 +125,7 @@ import {
 import type { AnnouncementItem, AnnouncementTargetType } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
@@ -165,7 +166,7 @@ const pagination = reactive({
   itemCount: 0,
   pageSizes: [20, 50, 100, 500],
   showSizePicker: true,
-  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount ?? 0} 条`
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
 const form = reactive<AnnouncementPayload & { display_modes: string[] }>({
   title: "",
@@ -178,37 +179,37 @@ const form = reactive<AnnouncementPayload & { display_modes: string[] }>({
   is_active: true,
   display_modes: ["sidebar"]
 });
-const rules: FormRules = {
-  title: [requiredRule("标题"), maxLengthRule("标题", 120)],
-  content: [requiredRule("内容"), maxLengthRule("内容", 2000)],
+const rules = computed<FormRules>(() => ({
+  title: [requiredRule(t("field.title")), maxLengthRule(t("field.title"), 120)],
+  content: [requiredRule(t("field.content")), maxLengthRule(t("field.content"), 2000)],
   display_modes: {
     validator: () => form.display_modes.length > 0,
-    message: "请至少选择一种展示方式",
+    message: t("validation.displayModeRequired"),
     trigger: "change"
   }
-};
+}));
 
-const targetTypeOptions = [
-  { label: "全平台", value: "all" },
-  { label: "全部用户", value: "authenticated" },
-  { label: "指定权限", value: "permission" },
-  { label: "指定公司", value: "company" },
-  { label: "指定公司-部门/职位", value: "company_department" },
-  { label: "指定账号", value: "user" }
-];
-const displayModeOptions = [
-  { label: "弹窗", value: "popup" },
-  { label: "滚动条", value: "ticker" },
-  { label: "首页侧栏", value: "sidebar" }
-];
-const statusOptions = [
-  { label: "启用", value: "true" },
-  { label: "禁用", value: "false" }
-];
-const creatorOptions = [
-  { label: "全部人", value: "all" },
-  { label: "仅自己", value: "me" }
-];
+const targetTypeOptions = computed(() => [
+  { label: t("announcement.targetAll"), value: "all" },
+  { label: t("announcement.targetAuthenticated"), value: "authenticated" },
+  { label: t("announcement.targetPermission"), value: "permission" },
+  { label: t("announcement.targetCompany"), value: "company" },
+  { label: t("announcement.targetCompanyDepartment"), value: "company_department" },
+  { label: t("announcement.targetUser"), value: "user" }
+]);
+const displayModeOptions = computed(() => [
+  { label: t("announcement.displayPopup"), value: "popup" },
+  { label: t("announcement.displayTicker"), value: "ticker" },
+  { label: t("announcement.displaySidebar"), value: "sidebar" }
+]);
+const statusOptions = computed(() => [
+  { label: t("common.enabled"), value: "true" },
+  { label: t("common.disabled"), value: "false" }
+]);
+const creatorOptions = computed(() => [
+  { label: t("announcement.creatorAll"), value: "all" },
+  { label: t("announcement.creatorMe"), value: "me" }
+]);
 const ANNOUNCEMENT_UPDATE = "action:announcement:update";
 const ANNOUNCEMENT_DELETE = "action:announcement:delete";
 const ANNOUNCEMENT_MANAGE_OTHERS = "action:announcement:manage_others";
@@ -220,52 +221,57 @@ const selectedDeletableIds = computed(() =>
     return Boolean(row && canDeleteAnnouncement(row));
   })
 );
+const batchDeleteText = computed(() =>
+  selectedDeletableIds.value.length > 0
+    ? t("announcement.batchDeleteCount", { count: selectedDeletableIds.value.length })
+    : t("announcement.batchDelete")
+);
 
 const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
   const dataColumns: DataTableColumns<AnnouncementItem> = [
-    { title: "标题", key: "title", width: 180 },
+    { title: t("field.title"), key: "title", width: 180 },
     {
-      title: "推送范围",
+      title: t("field.targetType"),
       key: "target_type",
       width: 180,
       filter: (value, row) => row.target_type === value,
       filterMultiple: false,
       filterOptionValue: filters.target_type,
-      filterOptions: targetTypeOptions,
+      filterOptions: targetTypeOptions.value,
       render: (row) => targetLabel(row)
     },
     {
-      title: "展示方式",
+      title: t("field.displayModes"),
       key: "display_mode",
       width: 150,
       filter: (value, row) => matchesDisplayMode(row, value),
       filterMultiple: false,
       filterOptionValue: filters.display_mode,
-      filterOptions: displayModeOptions,
+      filterOptions: displayModeOptions.value,
       render: (row) => displayLabel(row)
     },
     {
-      title: "状态",
+      title: t("field.status"),
       key: "is_active",
       width: 90,
       filter: (value, row) => row.is_active === (value === "true"),
       filterMultiple: false,
       filterOptionValue: filters.is_active,
-      filterOptions: statusOptions,
+      filterOptions: statusOptions.value,
       render: (row) => h(StatusTag, { status: row.is_active })
     },
     {
-      title: "操作账号",
+      title: t("field.creator"),
       key: "created_by",
       width: 120,
       filter: () => true,
       filterMultiple: false,
       filterOptionValue: filters.created_by,
-      filterOptions: creatorOptions,
-      render: (row) => row.created_by_username || "-"
+      filterOptions: creatorOptions.value,
+      render: (row) => row.created_by_username || t("common.none")
     },
     {
-      title: "创建时间",
+      title: t("field.createdAt"),
       key: "created_at",
       width: 170,
       sorter: true,
@@ -273,7 +279,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
       render: (row) => formatTime(row.created_at)
     },
     {
-      title: "操作",
+      title: t("common.actions"),
       key: "actions",
       width: 130,
       render: (row) =>
@@ -284,14 +290,14 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
             canUpdateAnnouncement(row)
               ? h(
                   NButton,
-                  { size: "small", quaternary: true, circle: true, title: "编辑", onClick: () => openEdit(row) },
+                  { size: "small", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEdit(row) },
                   { icon: () => h(NIcon, { component: Edit20Regular }) }
                 )
               : null,
             canDeleteAnnouncement(row)
               ? h(
                   NButton,
-                  { size: "small", quaternary: true, circle: true, title: "删除", type: "error", onClick: () => removeAnnouncement(row) },
+                  { size: "small", quaternary: true, circle: true, title: t("common.delete"), type: "error", onClick: () => removeAnnouncement(row) },
                   { icon: () => h(NIcon, { component: Delete20Regular }) }
                 )
               : null
@@ -380,11 +386,11 @@ function singleFilterValue(filterState: DataTableFilterState, key: string) {
 }
 
 function isTargetType(value: unknown): value is AnnouncementTargetType {
-  return typeof value === "string" && targetTypeOptions.some((option) => option.value === value);
+  return typeof value === "string" && targetTypeOptions.value.some((option) => option.value === value);
 }
 
 function isDisplayMode(value: unknown): value is AnnouncementDisplayMode {
-  return typeof value === "string" && displayModeOptions.some((option) => option.value === value);
+  return typeof value === "string" && displayModeOptions.value.some((option) => option.value === value);
 }
 
 function isStatusFilter(value: unknown): value is AnnouncementStatusFilter {
@@ -460,7 +466,7 @@ async function saveAnnouncement() {
     }
     showModal.value = false;
     await loadAnnouncements();
-    message.success("公告已保存");
+    message.success(t("announcement.saved"));
   } catch (error) {
     showError(message, error);
   }
@@ -470,11 +476,11 @@ function buildPayload(): AnnouncementPayload | null {
   const modes = new Set(form.display_modes);
   const targetValue = normalizedTargetValue();
   if (!["all", "authenticated"].includes(form.target_type) && !targetValue) {
-    message.error("请填写推送目标");
+    message.error(t("announcement.targetRequired"));
     return null;
   }
   if (modes.size === 0) {
-    message.error("请至少选择一种展示方式");
+    message.error(t("validation.displayModeRequired"));
     return null;
   }
   return {
@@ -501,15 +507,15 @@ function normalizedTargetValue() {
 
 function removeAnnouncement(row: AnnouncementItem) {
   dialog.warning({
-    title: "删除公告",
-    content: `确认删除公告 ${row.title}？`,
-    positiveText: "删除",
-    negativeText: "取消",
+    title: t("announcement.deleteTitle"),
+    content: t("announcement.deleteConfirm", { title: row.title }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
         await deleteAnnouncement(row.id);
         await loadAnnouncements();
-        message.success("公告已删除");
+        message.success(t("announcement.deleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -521,16 +527,16 @@ function removeSelectedAnnouncements() {
   const ids = selectedDeletableIds.value;
   if (ids.length === 0) return;
   dialog.warning({
-    title: "批量删除公告",
-    content: `确认删除选中的 ${ids.length} 条公告？`,
-    positiveText: "删除",
-    negativeText: "取消",
+    title: t("announcement.batchDeleteTitle"),
+    content: t("announcement.batchDeleteConfirm", { count: ids.length }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
         await batchDeleteAnnouncements(ids);
         checkedRowKeys.value = [];
         await loadAnnouncements();
-        message.success("公告已删除");
+        message.success(t("announcement.deleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -540,22 +546,24 @@ function removeSelectedAnnouncements() {
 
 function targetLabel(row: AnnouncementItem) {
   const labels: Record<AnnouncementTargetType, string> = {
-    all: "全平台",
-    authenticated: "全部用户",
-    permission: "权限",
-    company: "公司",
-    company_department: "公司-部门/职位",
-    user: "账号"
+    all: t("announcement.targetAll"),
+    authenticated: t("announcement.targetAuthenticated"),
+    permission: t("announcement.targetPermissionShort"),
+    company: t("announcement.targetCompanyShort"),
+    company_department: t("announcement.targetCompanyDepartmentShort"),
+    user: t("announcement.targetUserShort")
   };
-  return ["all", "authenticated"].includes(row.target_type) ? labels[row.target_type] : `${labels[row.target_type]}：${formatTargetValue(row)}`;
+  return ["all", "authenticated"].includes(row.target_type)
+    ? labels[row.target_type]
+    : `${labels[row.target_type]}${t("common.labelSeparator")}${formatTargetValue(row)}`;
 }
 
 function displayLabel(row: AnnouncementItem) {
   return [
-    row.show_popup ? "弹窗" : "",
-    row.show_ticker ? "滚动条" : "",
-    row.show_sidebar ? "首页侧栏" : ""
-  ].filter(Boolean).join("、");
+    row.show_popup ? t("announcement.displayPopup") : "",
+    row.show_ticker ? t("announcement.displayTicker") : "",
+    row.show_sidebar ? t("announcement.displaySidebar") : ""
+  ].filter(Boolean).join(t("common.listSeparator"));
 }
 
 function matchesDisplayMode(row: AnnouncementItem, value: unknown) {
@@ -577,6 +585,6 @@ function splitCompanyDepartment(value: string) {
 }
 
 function formatTime(value: string) {
-  return new Date(value).toLocaleString();
+  return formatDateTime(value);
 }
 </script>

@@ -1,8 +1,11 @@
 <template>
   <div class="auth-page login-page" :class="{ 'has-announcement': publicAnnouncements.length > 0 }">
-    <n-button class="auth-theme-button" quaternary circle :title="themeTitle" @click="toggleTheme">
-      <template #icon><n-icon :component="themeIcon" /></template>
-    </n-button>
+    <div class="auth-top-actions">
+      <LanguageSwitcher />
+      <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
+        <template #icon><n-icon :component="themeIcon" /></template>
+      </n-button>
+    </div>
     <announcement-ticker v-if="publicAnnouncements.length > 0" class="auth-announcement-ticker" :items="publicAnnouncements" />
     <div class="auth-card login-card">
       <h1 class="auth-wordmark">{{ APP_NAME }}</h1>
@@ -15,23 +18,23 @@
         label-width="64"
         @keyup.enter="submit"
       >
-        <n-form-item label="账号" path="username">
-          <n-input v-model:value="form.username" placeholder="请输入账号" />
+        <n-form-item :label="t('field.username')" path="username">
+          <n-input v-model:value="form.username" :placeholder="t('validation.required', { label: t('field.username') })" />
         </n-form-item>
-        <n-form-item label="密码" path="password">
-          <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="请输入密码" />
+        <n-form-item :label="t('field.password')" path="password">
+          <n-input v-model:value="form.password" type="password" show-password-on="click" :placeholder="t('validation.required', { label: t('field.password') })" />
         </n-form-item>
-        <n-button type="primary" block :loading="loading" @click="submit">登录</n-button>
+        <n-button type="primary" block :loading="loading" @click="submit">{{ t("auth.login") }}</n-button>
         <div class="form-actions">
-          <router-link class="muted-link" to="/register">注册账号</router-link>
-          <n-button text class="muted-link" @click="showForgotModal = true">忘记密码</n-button>
+          <router-link class="muted-link" to="/register">{{ t("auth.registerAccount") }}</router-link>
+          <n-button text class="muted-link" @click="showForgotModal = true">{{ t("auth.forgotPassword") }}</n-button>
         </div>
       </n-form>
     </div>
-    <n-modal v-model:show="showForgotModal" preset="card" class="modal-card" title="忘记密码">
-      <div class="forgot-password-content">请联系管理员修改密码。</div>
+    <n-modal v-model:show="showForgotModal" preset="card" class="modal-card" :title="t('auth.forgotPassword')">
+      <div class="forgot-password-content">{{ t("auth.forgotPasswordTip") }}</div>
       <div class="form-actions">
-        <n-button type="primary" @click="showForgotModal = false">我知道了</n-button>
+        <n-button type="primary" @click="showForgotModal = false">{{ t("common.ok") }}</n-button>
       </div>
     </n-modal>
     <footer class="auth-footer">
@@ -52,7 +55,9 @@ import { listPublicAnnouncements } from "../api/announcements";
 import type { PublicAnnouncementItem } from "../api/types";
 import AnnouncementTicker from "../components/AnnouncementTicker.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
+import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import { APP_NAME } from "../config/app";
+import { t } from "../i18n";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";
@@ -65,12 +70,12 @@ const loading = ref(false);
 const showForgotModal = ref(false);
 const publicAnnouncements = ref<PublicAnnouncementItem[]>([]);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
-const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
+const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const form = reactive({ username: "", password: "" });
-const rules: FormRules = {
-  username: [requiredRule("账号"), maxLengthRule("账号", 64)],
-  password: [requiredRule("密码"), maxLengthRule("密码", 128)]
-};
+const rules = computed<FormRules>(() => ({
+  username: [requiredRule(t("field.username")), maxLengthRule(t("field.username"), 64)],
+  password: [requiredRule(t("field.password")), maxLengthRule(t("field.password"), 128)]
+}));
 
 onMounted(async () => {
   try {

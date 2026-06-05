@@ -342,3 +342,11 @@
 - 新增并实现 `action:announcement:manage_others`，用于在已有公告修改或删除权限的前提下控制是否允许编辑、删除、发布、停用他人创建的公告。
 - 公告编辑、单条删除和批量删除在后端服务层统一校验数据归属：未拥有 `manage_others` 时只能操作本人创建的公告，操作他人公告返回“无权限操作他人公告”。
 - 公告管理前端行按钮和批量勾选同步叠加本人/他人判断；权限管理页改为显示所有非查询动作权限，确保 `manage_others`、下载、启停等细粒度动作后续都能授权。
+## 2026-06-05：实现前端中英双语切换
+- 前端新增轻量 i18n 层 `web/src/i18n`，包含语言包、翻译函数、日期格式化、Naive UI 语言映射和内置角色/权限显示映射；当前支持 `zh-CN` 与 `en-US`，默认中文，没有引入额外依赖。
+- `appStore` 新增 `locale` 状态并持久化到 localStorage，同时同步 `document.documentElement.lang`；`App.vue` 根据当前语言切换 Naive UI 的 `locale` 和 `dateLocale`。
+- 新增 `LanguageSwitcher` 组件，登录、注册、初始化和主框架页头均可切换语言；主框架页面注册从硬编码标题改为 `titleKey/labelKey`，菜单和页面标题自动按当前语言渲染。
+- 登录、注册、安装、首页、404、个人信息、用户管理、权限管理、公告管理、公告滚动条、状态标签、校验规则和请求层校验错误已接入 `t(...)`；日期展示统一使用 `formatDateTime`。
+- `docs/development_page_guide.md` 新增多语言开发规则：新增页面文案必须维护语言包，页面注册使用 `titleKey`，表单规则用 `computed` 响应语言切换，内置权限显示通过 `i18n/builtins.ts` 维护。
+- 后端业务错误暂未完整国际化，当前仍可能返回原始中文；后续如需全链路 i18n，优先改为稳定错误码由前端语言包翻译。
+- 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest` 通过 17 passed；页面源码中文扫描仅剩语言包和后端内置权限分组映射。

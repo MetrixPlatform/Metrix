@@ -2,8 +2,8 @@
   <div class="not-found-page">
     <div class="not-found-content">
       <h1>404</h1>
-      <p>页面不存在，{{ seconds }} 秒后返回主页</p>
-      <n-button type="primary" @click="goHome">返回主页</n-button>
+      <p>{{ t("notFound.description", { seconds }) }}</p>
+      <n-button type="primary" @click="goHome">{{ t("notFound.backHome") }}</n-button>
     </div>
   </div>
 </template>
@@ -12,6 +12,8 @@
 import { onBeforeUnmount, ref } from "vue";
 import { useRouter } from "vue-router";
 import { NButton } from "naive-ui";
+
+import { t } from "../i18n";
 
 const router = useRouter();
 const seconds = ref(5);

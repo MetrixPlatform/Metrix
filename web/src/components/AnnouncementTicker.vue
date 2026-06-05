@@ -7,7 +7,7 @@
         <span>{{ currentItem?.content }}</span>
       </div>
     </div>
-    <n-button v-if="closable && currentItem" quaternary circle size="small" title="关闭公告" @click="emitClose">
+    <n-button v-if="closable && currentItem" quaternary circle size="small" :title="t('announcement.closeTicker')" @click="emitClose">
       <template #icon><n-icon :component="Dismiss20Regular" /></template>
     </n-button>
   </div>
@@ -17,6 +17,8 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Dismiss20Regular, MegaphoneLoud20Regular } from "@vicons/fluent";
 import { NButton, NIcon } from "naive-ui";
+
+import { t } from "../i18n";
 
 interface TickerItem {
   id: number;

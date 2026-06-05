@@ -2,16 +2,16 @@
   <div class="permission-layout">
     <section class="work-card list-page-card permission-role-card">
       <div class="toolbar">
-        <strong>角色</strong>
+        <strong>{{ t("permission.roles") }}</strong>
         <div class="toolbar-group">
-          <permission-button permission="action:role:create" size="small" type="primary" @click="openCreate">新增</permission-button>
+          <permission-button permission="action:role:create" size="small" type="primary" @click="openCreate">{{ t("common.create") }}</permission-button>
           <permission-button
             permission="action:role:update"
             size="small"
             :disabled="!selectedRole"
             @click="openEdit"
           >
-            编辑
+            {{ t("common.edit") }}
           </permission-button>
           <permission-button
             permission="action:role:delete"
@@ -20,7 +20,7 @@
             :disabled="!selectedRole || selectedRole.is_builtin"
             @click="removeRole"
           >
-            删除
+            {{ t("common.delete") }}
           </permission-button>
         </div>
       </div>
@@ -33,17 +33,17 @@
           @click="selectedRole = role"
         >
           <div class="role-row-info">
-            <strong>{{ role.name }}</strong>
-            <div class="role-row-description">{{ role.code }} · {{ role.description || "无说明" }}</div>
+            <strong>{{ roleName(role) }}</strong>
+            <div class="role-row-description">{{ role.code }} · {{ roleDescription(role) || t("common.noDescription") }}</div>
           </div>
-          <status-tag :status="role.is_builtin ? 'builtin' : 'custom'" :labels="{ builtin: '内置', custom: '自定义' }" />
+          <status-tag :status="role.is_builtin ? 'builtin' : 'custom'" :labels="roleTypeLabels" />
         </div>
       </div>
     </section>
 
     <section class="work-card list-page-card permission-assign-card">
       <div class="toolbar">
-        <strong>权限分配</strong>
+        <strong>{{ t("permission.assignment") }}</strong>
         <permission-button
           permission="action:role:operate"
           size="small"
@@ -51,12 +51,12 @@
           :disabled="!selectedRole"
           @click="savePermissions"
         >
-          保存权限
+          {{ t("permission.savePermissions") }}
         </permission-button>
       </div>
-      <n-empty v-if="!selectedRole" description="请选择角色" />
+      <n-empty v-if="!selectedRole" :description="t('permission.selectRole')" />
       <div v-else class="permission-grid">
-        <div v-for="group in groupedPermissions" :key="group.name" class="permission-group">
+        <div v-for="group in groupedPermissions" :key="group.key" class="permission-group">
           <div class="permission-group-title">{{ group.name }}</div>
           <n-checkbox-group v-model:value="checkedPermissionIds">
             <n-space vertical>
@@ -66,7 +66,7 @@
                 :value="permission.id"
                 :disabled="selectedRole.code === 'admin'"
               >
-                {{ permission.name }}
+                {{ permissionName(permission) }}
               </n-checkbox>
             </n-space>
           </n-checkbox-group>
@@ -74,20 +74,20 @@
       </div>
     </section>
 
-    <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="editingRole ? '编辑角色' : '新增角色'">
+    <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="editingRole ? t('permission.editRole') : t('permission.addRole')">
       <n-form ref="roleFormRef" class="form-stack inline-form" :model="roleForm" :rules="roleRules" label-placement="left" label-width="92">
-        <n-form-item v-if="!editingRole" label="角色编码" path="code">
+        <n-form-item v-if="!editingRole" :label="t('field.roleCode')" path="code">
           <n-input v-model:value="roleForm.code" />
         </n-form-item>
-        <n-form-item label="角色名称" path="name">
+        <n-form-item :label="t('field.roleName')" path="name">
           <n-input v-model:value="roleForm.name" />
         </n-form-item>
-        <n-form-item label="说明" path="description">
+        <n-form-item :label="t('field.description')" path="description">
           <n-input v-model:value="roleForm.description" type="textarea" />
         </n-form-item>
         <div class="form-actions">
-          <n-button @click="showRoleModal = false">取消</n-button>
-          <n-button type="primary" @click="saveRole">保存</n-button>
+          <n-button @click="showRoleModal = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" @click="saveRole">{{ t("common.save") }}</n-button>
         </div>
       </n-form>
     </n-modal>
@@ -103,6 +103,8 @@ import { assignPermissions, createRole, deleteRole, listPermissions, listRoles, 
 import type { PermissionItem, RoleItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { t } from "../i18n";
+import { permissionGroupName, permissionName, roleDescription, roleName } from "../i18n/builtins";
 import { showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -116,21 +118,26 @@ const showRoleModal = ref(false);
 const roleFormRef = ref<FormInst | null>(null);
 const editingRole = ref<RoleItem | null>(null);
 const roleForm = reactive({ code: "", name: "", description: "" });
-const roleRules: FormRules = {
-  code: [requiredRule("角色编码"), minLengthRule("角色编码", 2), maxLengthRule("角色编码", 64)],
-  name: [requiredRule("角色名称"), maxLengthRule("角色名称", 80)],
-  description: maxLengthRule("说明", 500)
-};
+const roleRules = computed<FormRules>(() => ({
+  code: [requiredRule(t("field.roleCode")), minLengthRule(t("field.roleCode"), 2), maxLengthRule(t("field.roleCode"), 64)],
+  name: [requiredRule(t("field.roleName")), maxLengthRule(t("field.roleName"), 80)],
+  description: maxLengthRule(t("field.description"), 500)
+}));
+const roleTypeLabels = computed(() => ({ builtin: t("common.builtin"), custom: t("common.custom") }));
 
 const groupedPermissions = computed(() => {
   const groups = new Map<string, PermissionItem[]>();
   permissions.value
     .filter((permission) => permission.type === "route" || (permission.type === "action" && !permission.code.endsWith(":read")))
     .forEach((permission) => {
-      const group = permission.group_name || "其他";
+      const group = permission.group_name || "";
       groups.set(group, [...(groups.get(group) || []), permission]);
     });
-  return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
+  return Array.from(groups.entries()).map(([name, items]) => ({
+    key: name || "other",
+    name: name ? permissionGroupName(name) : t("permission.otherGroup"),
+    items
+  }));
 });
 
 watch(selectedRole, (role) => {
@@ -177,7 +184,7 @@ async function saveRole() {
     }
     showRoleModal.value = false;
     await loadData();
-    message.success("角色已保存");
+    message.success(t("permission.roleSaved"));
   } catch (error) {
     showError(message, error);
   }
@@ -187,16 +194,16 @@ function removeRole() {
   const role = selectedRole.value;
   if (!role) return;
   dialog.warning({
-    title: "删除角色",
-    content: `确认删除角色 ${role.name}？`,
-    positiveText: "删除",
-    negativeText: "取消",
+    title: t("permission.deleteRoleTitle"),
+    content: t("permission.deleteRoleConfirm", { name: roleName(role) }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
         await deleteRole(role.id);
         selectedRole.value = null;
         await loadData();
-        message.success("角色已删除");
+        message.success(t("permission.roleDeleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -209,7 +216,7 @@ async function savePermissions() {
   try {
     await assignPermissions(selectedRole.value.id, checkedPermissionIds.value);
     await loadData();
-    message.success("权限已保存");
+    message.success(t("permission.saved"));
   } catch (error) {
     showError(message, error);
   }

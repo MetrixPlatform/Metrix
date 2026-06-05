@@ -177,11 +177,14 @@ a {
   margin-top: 12px;
 }
 
-.auth-theme-button {
+.auth-top-actions {
   position: absolute;
   top: 24px;
   right: 24px;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .auth-announcement-ticker {

@@ -8,6 +8,8 @@ import {
 import type { Component } from "vue";
 import type { RouteRecordRaw } from "vue-router";
 
+import { t, type I18nKey } from "../i18n";
+
 type HasPermission = (permission: string) => boolean;
 type PageComponent = () => Promise<unknown>;
 
@@ -22,7 +24,7 @@ export interface AppMenuItem {
 
 interface AppMenuGroup {
   key: string;
-  label: string;
+  labelKey: I18nKey;
   icon: Component;
   order: number;
 }
@@ -30,7 +32,7 @@ interface AppMenuGroup {
 interface AppPage {
   key: string;
   path: string;
-  title: string;
+  titleKey: I18nKey;
   component: PageComponent;
   permission?: string;
   fallbackOrder?: number;
@@ -42,15 +44,14 @@ interface AppPage {
 }
 
 const menuGroups: AppMenuGroup[] = [
-  { key: "system", label: "系统管理", icon: Settings20Regular, order: 20 }
+  { key: "system", labelKey: "route.group.system", icon: Settings20Regular, order: 20 }
 ];
 
-// 新增主框架页面时优先维护这里，路由、标题、菜单和 fallback 会自动派生。
 const appPages: AppPage[] = [
   {
     key: "dashboard",
     path: "/",
-    title: "首页",
+    titleKey: "route.dashboard",
     component: () => import("../views/DashboardView.vue"),
     permission: "route:dashboard",
     fallbackOrder: 10,
@@ -59,7 +60,7 @@ const appPages: AppPage[] = [
   {
     key: "users",
     path: "/users",
-    title: "用户管理",
+    titleKey: "route.users",
     component: () => import("../views/UserManageView.vue"),
     permission: "route:users",
     fallbackOrder: 20,
@@ -68,7 +69,7 @@ const appPages: AppPage[] = [
   {
     key: "permissions",
     path: "/permissions",
-    title: "权限管理",
+    titleKey: "route.permissions",
     component: () => import("../views/PermissionView.vue"),
     permission: "route:permissions",
     fallbackOrder: 30,
@@ -77,7 +78,7 @@ const appPages: AppPage[] = [
   {
     key: "announcements",
     path: "/announcements",
-    title: "公告管理",
+    titleKey: "route.announcements",
     component: () => import("../views/AnnouncementManageView.vue"),
     permission: "route:announcements",
     fallbackOrder: 40,
@@ -86,7 +87,7 @@ const appPages: AppPage[] = [
   {
     key: "profile",
     path: "/profile",
-    title: "个人信息",
+    titleKey: "route.profile",
     component: () => import("../views/ProfileView.vue"),
     fallbackOrder: 900
   }
@@ -98,7 +99,7 @@ export function createAppPageRoutes() {
     component: page.component,
     meta: {
       permission: page.permission,
-      title: page.title
+      titleKey: page.titleKey
     }
   })) as RouteRecordRaw[];
 }
@@ -112,7 +113,8 @@ export function getFallbackPath(hasPermission: HasPermission) {
 }
 
 export function getPageTitle(path: string) {
-  return appPages.find((page) => page.path === path)?.title;
+  const page = appPages.find((item) => item.path === path);
+  return page ? t(page.titleKey) : undefined;
 }
 
 export function getVisibleMenuItems(hasPermission: HasPermission) {
@@ -122,7 +124,7 @@ export function getVisibleMenuItems(hasPermission: HasPermission) {
   for (const group of menuGroups) {
     groupMap.set(group.key, {
       key: group.key,
-      label: group.label,
+      label: t(group.labelKey),
       icon: group.icon,
       order: group.order,
       children: []
@@ -188,7 +190,7 @@ function canAccessPage(page: AppPage, hasPermission: HasPermission) {
 function pageToMenuItem(page: AppPage, menu: NonNullable<AppPage["menu"]>): AppMenuItem & { order: number } {
   return {
     path: page.path,
-    label: page.title,
+    label: t(page.titleKey),
     permission: page.permission,
     icon: menu.icon,
     order: menu.order

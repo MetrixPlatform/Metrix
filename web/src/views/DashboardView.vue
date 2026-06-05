@@ -11,10 +11,10 @@
     </section>
     <aside class="dashboard-announcements work-card">
       <div class="dashboard-announcement-head">
-        <strong>公告</strong>
+        <strong>{{ t("dashboard.announcements") }}</strong>
         <n-badge :value="unreadCount" :show-zero="false" />
       </div>
-      <n-empty v-if="sidebarAnnouncements.length === 0" description="暂无公告" />
+      <n-empty v-if="sidebarAnnouncements.length === 0" :description="t('dashboard.emptyAnnouncements')" />
       <div v-else class="announcement-timeline">
         <button
           v-for="item in sidebarAnnouncements"
@@ -30,16 +30,16 @@
             <span class="announcement-timeline-content">{{ item.content }}</span>
             <span class="announcement-timeline-meta">
               {{ formatTime(item.created_at) }}
-              <status-tag :status="item.is_read ? 'read' : 'unread'" :labels="{ read: '已读', unread: '未读' }" />
+              <status-tag :status="item.is_read ? 'read' : 'unread'" :labels="readLabels" />
             </span>
           </span>
         </button>
       </div>
     </aside>
-    <n-modal v-model:show="showDetailModal" preset="card" class="modal-card announcement-popup-modal" :title="selectedAnnouncement?.title || '公告'">
+    <n-modal v-model:show="showDetailModal" preset="card" class="modal-card announcement-popup-modal" :title="selectedAnnouncement?.title || t('dashboard.announcements')">
       <div class="announcement-popup-content">{{ selectedAnnouncement?.content }}</div>
       <div class="form-actions">
-        <n-button type="primary" @click="showDetailModal = false">关闭</n-button>
+        <n-button type="primary" @click="showDetailModal = false">{{ t("common.close") }}</n-button>
       </div>
     </n-modal>
   </div>
@@ -52,6 +52,7 @@ import { NBadge, NButton, NEmpty, NModal } from "naive-ui";
 import type { AnnouncementFeedItem } from "../api/types";
 import StatusTag from "../components/StatusTag.vue";
 import { APP_NAME } from "../config/app";
+import { formatDateTime, t } from "../i18n";
 import { announcementStore } from "../stores/announcements";
 
 interface Particle {
@@ -85,6 +86,7 @@ const shrinkDuration = 850;
 const fontFamily = "Segoe UI, Microsoft YaHei, Arial, sans-serif";
 const sidebarAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_sidebar));
 const unreadCount = computed(() => sidebarAnnouncements.value.filter((item) => !item.is_read).length);
+const readLabels = computed(() => ({ read: t("status.read"), unread: t("status.unread") }));
 
 onMounted(() => {
   const canvas = canvasRef.value;
@@ -290,6 +292,6 @@ async function openAnnouncement(item: AnnouncementFeedItem) {
 }
 
 function formatTime(value: string) {
-  return new Date(value).toLocaleString();
+  return formatDateTime(value);
 }
 </script>

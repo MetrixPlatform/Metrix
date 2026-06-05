@@ -31,6 +31,7 @@
           <strong>{{ currentTitle }}</strong>
         </div>
         <div class="header-actions">
+          <LanguageSwitcher />
           <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
             <template #icon><n-icon :component="themeIcon" /></template>
           </n-button>
@@ -59,13 +60,13 @@
       v-model:show="showAnnouncementModal"
       preset="card"
       class="modal-card announcement-popup-modal"
-      :title="popupAnnouncement?.title || '公告'"
+      :title="popupAnnouncement?.title || t('dashboard.announcements')"
       :closable="false"
       :mask-closable="false"
     >
       <div class="announcement-popup-content">{{ popupAnnouncement?.content }}</div>
       <div class="form-actions">
-        <n-button type="primary" @click="acknowledgePopup">我知道了</n-button>
+        <n-button type="primary" @click="acknowledgePopup">{{ t("common.ok") }}</n-button>
       </div>
     </n-modal>
   </n-layout>
@@ -85,6 +86,7 @@ import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
 import { APP_NAME, appKey } from "../config/app";
+import { t } from "../i18n";
 import {
   getPageTitle,
   getVisibleMenuItems,
@@ -100,6 +102,7 @@ import { authStore } from "../stores/auth";
 import AnnouncementTicker from "./AnnouncementTicker.vue";
 import BrandMark from "./BrandMark.vue";
 import CopyrightNotice from "./CopyrightNotice.vue";
+import LanguageSwitcher from "./LanguageSwitcher.vue";
 
 const SIDEBAR_KEY = appKey("sidebar.collapsed");
 
@@ -114,14 +117,14 @@ const expandedKeys = ref<string[]>([]);
 const showAnnouncementModal = ref(false);
 const currentTitle = computed(() => getPageTitle(route.path) || APP_NAME);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
-const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));
+const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const tickerAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_ticker && !item.is_read));
 const popupAnnouncement = computed(() => announcementStore.items.find((item) => item.show_popup && !item.is_read) || null);
 
-const userOptions = [
-  { label: "个人信息", key: "profile", icon: renderIcon(PersonSettings20Regular) },
-  { label: "退出登录", key: "logout", icon: renderIcon(PersonCircle) }
-];
+const userOptions = computed(() => [
+  { label: t("route.profile"), key: "profile", icon: renderIcon(PersonSettings20Regular) },
+  { label: t("auth.logout"), key: "logout", icon: renderIcon(PersonCircle) }
+]);
 
 onMounted(async () => {
   await loadAnnouncements();

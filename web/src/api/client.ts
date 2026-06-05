@@ -1,42 +1,43 @@
 import { authStore } from "../stores/auth";
 import { appKey } from "../config/app";
+import { t, type I18nKey } from "../i18n";
 
 const API_PREFIX = "/api";
 export const AUTH_EXPIRED_EVENT = appKey("auth-expired");
-const FIELD_LABELS: Record<string, string> = {
-  username: "账号",
-  password: "密码",
-  old_password: "旧密码",
-  new_password: "新密码",
-  full_name: "姓名",
-  phone: "手机号码",
-  email: "邮箱",
-  company: "公司",
-  department: "部门",
-  admin_username: "管理员账号",
-  admin_password: "管理员密码",
-  admin_full_name: "姓名",
-  admin_phone: "手机号码",
-  admin_email: "邮箱",
-  admin_company: "公司",
-  admin_department: "部门",
-  database_type: "数据库类型",
-  sqlite_path: "SQLite 数据库文件",
-  "mysql.host": "MySQL 地址",
-  "mysql.port": "端口",
-  "mysql.database": "数据库名",
-  "mysql.username": "用户名",
-  "mysql.password": "密码",
-  code: "角色编码",
-  name: "角色名称",
-  description: "说明",
-  reason: "驳回原因",
-  role_ids: "角色",
-  permission_ids: "权限",
-  title: "标题",
-  content: "内容",
-  target_type: "推送范围",
-  target_value: "推送目标"
+const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
+  username: "field.username",
+  password: "field.password",
+  old_password: "field.oldPassword",
+  new_password: "field.newPassword",
+  full_name: "field.fullName",
+  phone: "field.phone",
+  email: "field.email",
+  company: "field.company",
+  department: "field.department",
+  admin_username: "field.adminUsername",
+  admin_password: "field.adminPassword",
+  admin_full_name: "field.adminFullName",
+  admin_phone: "field.adminPhone",
+  admin_email: "field.adminEmail",
+  admin_company: "field.adminCompany",
+  admin_department: "field.adminDepartment",
+  database_type: "field.databaseType",
+  sqlite_path: "field.sqlitePath",
+  "mysql.host": "field.mysqlHost",
+  "mysql.port": "field.mysqlPort",
+  "mysql.database": "field.mysqlDatabase",
+  "mysql.username": "field.mysqlUsername",
+  "mysql.password": "field.mysqlPassword",
+  code: "field.roleCode",
+  name: "field.roleName",
+  description: "field.description",
+  reason: "field.reason",
+  role_ids: "field.roles",
+  permission_ids: "field.roles",
+  title: "field.title",
+  content: "field.content",
+  target_type: "field.targetType",
+  target_value: "field.targetValue"
 };
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -93,50 +94,51 @@ function errorMessage(data: Record<string, unknown> | null): string {
   }
   if (Array.isArray(detail)) {
     const messages = detail.map(formatValidationError).filter(Boolean);
-    return messages.length > 0 ? messages.join("；") : "请求参数不正确";
+    return messages.length > 0 ? messages.join(t("common.messageSeparator")) : t("api.invalidParams");
   }
   if (typeof message === "string") {
     return message;
   }
-  return "请求失败";
+  return t("api.requestFailed");
 }
 
 function formatValidationError(error: unknown): string {
   if (!isRecord(error)) {
-    return "请求参数不正确";
+    return t("api.invalidParams");
   }
   const label = fieldLabel(error.loc);
   const type = typeof error.type === "string" ? error.type : "";
   const ctx = isRecord(error.ctx) ? error.ctx : {};
   if (type === "missing" || type === "string_too_short") {
     const min = typeof ctx.min_length === "number" ? ctx.min_length : null;
-    return min && min > 1 ? `${label}至少 ${min} 个字符` : `请输入${label}`;
+    return min && min > 1 ? t("validation.minLength", { label, min }) : t("validation.required", { label });
   }
   if (type === "string_too_long") {
     const max = typeof ctx.max_length === "number" ? ctx.max_length : null;
-    return max ? `${label}不能超过 ${max} 个字符` : `${label}过长`;
+    return max ? t("validation.maxLength", { label, max }) : t("validation.tooLong", { label });
   }
   if (type === "greater_than_equal") {
-    return typeof ctx.ge === "number" ? `${label}不能小于 ${ctx.ge}` : `${label}过小`;
+    return typeof ctx.ge === "number" ? t("validation.minValue", { label, min: ctx.ge }) : t("validation.tooSmall", { label });
   }
   if (type === "less_than_equal") {
-    return typeof ctx.le === "number" ? `${label}不能大于 ${ctx.le}` : `${label}过大`;
+    return typeof ctx.le === "number" ? t("validation.maxValue", { label, max: ctx.le }) : t("validation.tooLarge", { label });
   }
   if (type === "int_parsing" || type === "int_type") {
-    return `${label}必须是整数`;
+    return t("validation.integer", { label });
   }
-  return `${label}格式不正确`;
+  return t("validation.invalidFormat", { label });
 }
 
 function fieldLabel(loc: unknown): string {
   if (!Array.isArray(loc)) {
-    return "请求参数";
+    return t("api.requestParam");
   }
   const parts = loc.filter((item) => typeof item === "string" || typeof item === "number").map(String);
   const keyParts = parts.filter((item) => !["body", "query", "path"].includes(item));
   const key = keyParts.join(".");
   const last = keyParts[keyParts.length - 1];
-  return FIELD_LABELS[key] || FIELD_LABELS[last] || key || "请求参数";
+  const labelKey = FIELD_LABEL_KEYS[key] || FIELD_LABEL_KEYS[last];
+  return labelKey ? t(labelKey) : key || t("api.requestParam");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

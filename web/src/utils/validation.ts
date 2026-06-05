@@ -1,11 +1,13 @@
 import type { FormInst, FormItemRule } from "naive-ui";
 
+import { t } from "../i18n";
+
 const textTrigger = ["input", "blur"];
 
 export function requiredRule(label: string): FormItemRule {
   return {
     required: true,
-    message: `请输入${label}`,
+    message: t("validation.required", { label }),
     trigger: textTrigger
   };
 }
@@ -14,7 +16,7 @@ export function numberRequiredRule(label: string): FormItemRule {
   return {
     type: "number",
     required: true,
-    message: `请输入${label}`,
+    message: t("validation.required", { label }),
     trigger: ["input", "blur", "change"]
   };
 }
@@ -22,7 +24,7 @@ export function numberRequiredRule(label: string): FormItemRule {
 export function minLengthRule(label: string, min: number): FormItemRule {
   return {
     min,
-    message: `${label}至少 ${min} 个字符`,
+    message: t("validation.minLength", { label, min }),
     trigger: textTrigger
   };
 }
@@ -30,7 +32,7 @@ export function minLengthRule(label: string, min: number): FormItemRule {
 export function maxLengthRule(label: string, max: number): FormItemRule {
   return {
     max,
-    message: `${label}不能超过 ${max} 个字符`,
+    message: t("validation.maxLength", { label, max }),
     trigger: textTrigger
   };
 }
@@ -38,7 +40,7 @@ export function maxLengthRule(label: string, max: number): FormItemRule {
 export function phoneRule(): FormItemRule {
   return {
     validator: (_rule, value: string) => /^1[3-9]\d{9}$/.test(value),
-    message: "手机号码格式不正确",
+    message: t("validation.phone"),
     trigger: textTrigger
   };
 }
@@ -46,7 +48,7 @@ export function phoneRule(): FormItemRule {
 export function emailRule(): FormItemRule {
   return {
     validator: (_rule, value: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
-    message: "邮箱格式不正确",
+    message: t("validation.email"),
     trigger: textTrigger
   };
 }
