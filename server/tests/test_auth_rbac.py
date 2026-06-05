@@ -149,11 +149,14 @@ def test_app_config_defaults_and_env_override(monkeypatch):
 
 def test_permission_specs_generate_codes_and_route_read_mapping():
     from app.core.permissions import (
+        AUDIT_LOG_MANAGE_OTHERS,
+        AUDIT_LOG_READ,
         ANNOUNCEMENT_MANAGE_OTHERS,
         ANNOUNCEMENT_READ,
         DEPRECATED_PERMISSION_CODES,
         PERMISSION_SEEDS,
         ROLE_READ,
+        ROUTE_AUDIT_LOGS,
         ROUTE_ANNOUNCEMENTS,
         ROUTE_PERMISSIONS,
         ROUTE_READ_PERMISSIONS,
@@ -172,12 +175,15 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert seeds_by_code[ROUTE_USERS].type == "route"
     assert seeds_by_code[USER_READ].type == "action"
     assert ANNOUNCEMENT_MANAGE_OTHERS in seeds_by_code
+    assert AUDIT_LOG_MANAGE_OTHERS in seeds_by_code
+    assert seeds_by_code[AUDIT_LOG_READ].resource == "audit_log"
     assert "action:announcement:operate" in DEPRECATED_PERMISSION_CODES
     assert "action:announcement:operate" not in seeds_by_code
     assert ROUTE_READ_PERMISSIONS == {
         ROUTE_USERS: USER_READ,
         ROUTE_PERMISSIONS: ROLE_READ,
         ROUTE_ANNOUNCEMENTS: ANNOUNCEMENT_READ,
+        ROUTE_AUDIT_LOGS: AUDIT_LOG_READ,
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
 
@@ -710,6 +716,86 @@ def test_announcement_manage_others_permission_controls_cross_owner_actions(tmp_
     allowed_batch_delete = client.post("/api/announcements/batch-delete", json={"ids": [batch_target["id"]]}, headers=other_headers)
     assert allowed_batch_delete.status_code == 200
     assert allowed_batch_delete.json() == {"code": "announcement.batchDeleted", "message": "Announcements deleted", "params": {"count": 1}}
+
+
+def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
+    assert "route:audit_logs" in permission_ids_by_code
+    assert "action:audit_log:read" in permission_ids_by_code
+    assert "action:audit_log:manage_others" in permission_ids_by_code
+
+    role = client.post(
+        "/api/roles",
+        json={"code": "audit_reader", "name": "日志查看", "description": ""},
+        headers=admin_headers,
+    )
+    assert role.status_code == 200
+    role_id = role.json()["id"]
+    assign = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={"permission_ids": [permission_ids_by_code["route:audit_logs"]]},
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+
+    user = client.post(
+        "/api/users",
+        json={
+            "username": "audit_reader",
+            "password": "Audit123",
+            "full_name": "日志查看",
+            "phone": "13800000008",
+            "email": "audit-reader@example.com",
+            "company": "",
+            "department": "",
+            "role_ids": [role_id],
+        },
+        headers=admin_headers,
+    )
+    assert user.status_code == 200
+    reader_headers = login(client, "audit_reader", "Audit123")
+
+    me = client.get("/api/auth/me", headers=reader_headers).json()
+    assert "route:audit_logs" in me["permissions"]
+    assert "action:audit_log:read" in me["permissions"]
+
+    self_logs = client.get("/api/audit-logs", headers=reader_headers)
+    assert self_logs.status_code == 200
+    assert self_logs.json()["total"] >= 1
+    assert {item["actor_username"] for item in page_items(self_logs)} == {"audit_reader"}
+
+    forbidden_all = client.get("/api/audit-logs", params={"actor_scope": "all"}, headers=reader_headers)
+    assert forbidden_all.status_code == 403
+    assert forbidden_all.json()["detail"]["code"] == "error.auditLogManageOthersDenied"
+
+    assign_all = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={
+            "permission_ids": [
+                permission_ids_by_code["route:audit_logs"],
+                permission_ids_by_code["action:audit_log:manage_others"],
+            ]
+        },
+        headers=admin_headers,
+    )
+    assert assign_all.status_code == 200
+
+    all_logs = client.get(
+        "/api/audit-logs",
+        params={"actor_scope": "all", "keyword": payload["admin_username"], "page_size": 500},
+        headers=reader_headers,
+    )
+    assert all_logs.status_code == 200
+    assert payload["admin_username"] in {item["actor_username"] for item in page_items(all_logs)}
+
+    login_logs = client.get("/api/audit-logs", params={"action": "auth.login"}, headers=reader_headers)
+    assert login_logs.status_code == 200
+    assert all(item["action"] == "auth.login" for item in page_items(login_logs))
 
 
 def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):

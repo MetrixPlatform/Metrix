@@ -364,3 +364,9 @@
 - 用户管理和公告管理的操作列设置为右侧固定列，用户无需拖动到底也可以打开行操作或执行编辑、删除。
 - 公告管理在有选择列时会把选择列宽度计入 `scroll-x`，保证选择列、数据列和固定操作列宽度一致。
 - `docs/development_page_guide.md` 新增表格横向滚动规则：列宽集中维护、`scroll-x` 使用列宽总和、操作列优先固定到右侧，新增列后必须同步宽度常量。
+## 2026-06-06：新增操作日志页面和日志范围权限
+- 后端新增 `/api/audit-logs` 查询接口，复用现有 `audit_logs` 表，支持关键字、操作类型、目标类型、操作账号范围、创建时间范围、创建时间排序和后端分页，响应继续使用 `items`、`total`、`page`、`page_size`。
+- 新增权限 `route:audit_logs`、`action:audit_log:read` 和 `action:audit_log:manage_others`；授予日志路由权限后默认扩展日志查询权限，未授予 `manage_others` 时后端强制只能查看本人日志。
+- 前端新增 `AuditLogView` 并通过 `page-registry.ts` 收纳到“系统管理”二级菜单；页面使用 `work-card table-page-card`、`page-data-table`、后端分页、顶部关键字/时间范围和表头筛选。
+- 多语言补充操作日志菜单、字段、权限、常见审计动作和目标类型的中英文文案；权限管理内置权限映射同步支持操作日志分组。
+- `docs/development_page_guide.md` 新增操作日志开发规则：关键写操作继续通过 `record_audit(...)` 记录，日志查看所有账号必须走 `action:audit_log:manage_others` 范围提升权限。

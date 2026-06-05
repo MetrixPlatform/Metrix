@@ -996,6 +996,23 @@ a {
   margin-left: auto;
 }
 
+.audit-log-toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.audit-log-filter-row {
+  display: grid;
+  flex: 1 1 620px;
+  grid-template-columns:
+    minmax(220px, 1fr)
+    minmax(280px, 360px)
+    auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
 .filter-keyword,
 .filter-select,
 .filter-date-range {

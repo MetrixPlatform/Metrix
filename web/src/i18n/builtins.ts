@@ -28,6 +28,7 @@ const permissionNameKeys: Record<string, I18nKey> = {
   "route:users": "permission.route:users",
   "route:permissions": "permission.route:permissions",
   "route:announcements": "permission.route:announcements",
+  "route:audit_logs": "permission.route:audit_logs",
   "action:user:create": "permission.action:user:create",
   "action:user:read": "permission.action:user:read",
   "action:user:update": "permission.action:user:update",
@@ -42,14 +43,17 @@ const permissionNameKeys: Record<string, I18nKey> = {
   "action:announcement:read": "permission.action:announcement:read",
   "action:announcement:update": "permission.action:announcement:update",
   "action:announcement:delete": "permission.action:announcement:delete",
-  "action:announcement:manage_others": "permission.action:announcement:manage_others"
+  "action:announcement:manage_others": "permission.action:announcement:manage_others",
+  "action:audit_log:read": "permission.action:audit_log:read",
+  "action:audit_log:manage_others": "permission.action:audit_log:manage_others"
 };
 
 const permissionGroupKeys: Record<string, I18nKey> = {
   页面: "permission.group.page",
   用户: "permission.group.user",
   角色: "permission.group.role",
-  公告: "permission.group.announcement"
+  公告: "permission.group.announcement",
+  操作日志: "permission.group.auditLog"
 };
 
 export function roleName(role: RoleLike) {

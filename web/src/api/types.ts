@@ -99,3 +99,14 @@ export interface PublicAnnouncementItem {
   content: string;
   created_at: string;
 }
+
+export interface AuditLogItem {
+  id: number;
+  actor_user_id: number | null;
+  actor_username: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  detail: string;
+  created_at: string;
+}

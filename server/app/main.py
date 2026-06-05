@@ -4,7 +4,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from swagger_ui_bundle import swagger_ui_path
 
-from app.api import announcements, auth, dashboard, health, install, roles, users
+from app.api import announcements, audit, auth, dashboard, health, install, roles, users
 from app.core.config import get_settings
 
 
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(dashboard.router)
     app.include_router(announcements.router)
+    app.include_router(audit.router)
     app.include_router(users.router)
     app.include_router(roles.router)
     app.mount("/static/swagger-ui", StaticFiles(directory=swagger_ui_path), name="swagger-ui")

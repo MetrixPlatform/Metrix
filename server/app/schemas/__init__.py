@@ -8,6 +8,7 @@ from app.schemas.announcement import (
     PublicAnnouncementItem,
 )
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, ProfileUpdateRequest, RegisterRequest
+from app.schemas.audit import AuditLogItem, AuditLogListResponse
 from app.schemas.common import MessageResponse
 from app.schemas.dashboard import DashboardSummary
 from app.schemas.install import InstallRequest, InstallStatusResponse, MysqlInstallConfig
@@ -32,6 +33,8 @@ __all__ = [
     "AnnouncementItem",
     "AnnouncementListResponse",
     "AnnouncementPayload",
+    "AuditLogItem",
+    "AuditLogListResponse",
     "ChangePasswordRequest",
     "DashboardSummary",
     "InstallRequest",

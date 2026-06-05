@@ -1,5 +1,6 @@
 import {
   Board20Regular,
+  ClipboardClock20Regular,
   KeyMultiple20Regular,
   MegaphoneLoud20Regular,
   People20Regular,
@@ -83,6 +84,15 @@ const appPages: AppPage[] = [
     permission: "route:announcements",
     fallbackOrder: 40,
     menu: { group: "system", icon: MegaphoneLoud20Regular, order: 30 }
+  },
+  {
+    key: "auditLogs",
+    path: "/audit-logs",
+    titleKey: "route.auditLogs",
+    component: () => import("../views/AuditLogView.vue"),
+    permission: "route:audit_logs",
+    fallbackOrder: 50,
+    menu: { group: "system", icon: ClipboardClock20Regular, order: 40 }
   },
   {
     key: "profile",

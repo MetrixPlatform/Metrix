@@ -13,6 +13,7 @@ ROUTE_DASHBOARD = route_code("dashboard")
 ROUTE_USERS = route_code("users")
 ROUTE_PERMISSIONS = route_code("permissions")
 ROUTE_ANNOUNCEMENTS = route_code("announcements")
+ROUTE_AUDIT_LOGS = route_code("audit_logs")
 
 USER_CREATE = action_code("user", "create")
 USER_READ = action_code("user", "read")
@@ -31,6 +32,9 @@ ANNOUNCEMENT_READ = action_code("announcement", "read")
 ANNOUNCEMENT_UPDATE = action_code("announcement", "update")
 ANNOUNCEMENT_DELETE = action_code("announcement", "delete")
 ANNOUNCEMENT_MANAGE_OTHERS = action_code("announcement", "manage_others")
+
+AUDIT_LOG_READ = action_code("audit_log", "read")
+AUDIT_LOG_MANAGE_OTHERS = action_code("audit_log", "manage_others")
 
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
@@ -97,6 +101,7 @@ PAGE_PERMISSION_SPECS = (
     PagePermissionSpec(ROUTE_USERS, "用户管理", "user", "访问用户管理", 20, USER_READ),
     PagePermissionSpec(ROUTE_PERMISSIONS, "权限管理", "role", "访问权限管理", 30, ROLE_READ),
     PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "公告管理", "announcement", "访问公告管理", 40, ANNOUNCEMENT_READ),
+    PagePermissionSpec(ROUTE_AUDIT_LOGS, "操作日志", "audit_log", "访问操作日志", 50, AUDIT_LOG_READ),
 )
 
 RESOURCE_PERMISSION_SPECS = (
@@ -134,6 +139,15 @@ RESOURCE_PERMISSION_SPECS = (
             ResourceActionSpec("update", "修改公告", "修改公告", 30),
             ResourceActionSpec("delete", "删除公告", "删除公告", 40),
             ResourceActionSpec("manage_others", "操作他人公告", "编辑、删除、发布或停用他人创建的公告", 50),
+        ),
+    ),
+    ResourcePermissionSpec(
+        "audit_log",
+        "操作日志",
+        400,
+        (
+            ResourceActionSpec("read", "查询操作日志", "查询操作日志", 20),
+            ResourceActionSpec("manage_others", "查看所有日志", "查看所有账号产生的操作日志", 50),
         ),
     ),
 )
