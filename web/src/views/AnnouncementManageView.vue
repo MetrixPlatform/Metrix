@@ -1,10 +1,24 @@
 <template>
   <section class="work-card table-page-card announcement-manage-card">
-    <div class="toolbar">
-      <strong>公告管理</strong>
-      <permission-button permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
+    <div class="toolbar announcement-toolbar">
+      <div class="announcement-filter-row">
+        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索标题、内容" clearable />
+        <n-select v-model:value="filters.target_type" class="filter-select" :options="targetTypeOptions" clearable placeholder="推送范围" />
+        <n-select v-model:value="filters.display_mode" class="filter-select" :options="displayModeOptions" clearable placeholder="展示方式" />
+        <n-select v-model:value="filters.is_active" class="filter-select" :options="statusOptions" clearable placeholder="状态" />
+        <n-date-picker
+          v-model:value="filters.time_range"
+          class="filter-date-range"
+          type="datetimerange"
+          clearable
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+        />
+        <n-button @click="loadAnnouncements">查询</n-button>
+      </div>
+      <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
     </div>
-    <n-data-table class="page-data-table" flex-height :columns="columns" :data="announcements" :loading="loading" :row-key="(row) => row.id" :scroll-x="980" />
+    <n-data-table class="page-data-table" flex-height :columns="columns" :data="announcements" :loading="loading" :row-key="(row) => row.id" :scroll-x="1160" />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? '编辑公告' : '新增公告'">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="96">
@@ -63,6 +77,7 @@ import {
   NCheckbox,
   NCheckboxGroup,
   NDataTable,
+  NDatePicker,
   NForm,
   NFormItem,
   NIcon,
@@ -93,6 +108,19 @@ const editing = ref<AnnouncementItem | null>(null);
 const formRef = ref<FormInst | null>(null);
 const targetCompany = ref("");
 const targetDepartment = ref("");
+const filters = reactive<{
+  keyword: string;
+  target_type: AnnouncementTargetType | null;
+  display_mode: "popup" | "ticker" | "sidebar" | null;
+  is_active: string | null;
+  time_range: [number, number] | null;
+}>({
+  keyword: "",
+  target_type: null,
+  display_mode: null,
+  is_active: null,
+  time_range: null
+});
 const form = reactive<AnnouncementPayload & { display_modes: string[] }>({
   title: "",
   content: "",
@@ -122,12 +150,22 @@ const targetTypeOptions = [
   { label: "指定公司-部门/职位", value: "company_department" },
   { label: "指定账号", value: "user" }
 ];
+const displayModeOptions = [
+  { label: "弹窗", value: "popup" },
+  { label: "滚动条", value: "ticker" },
+  { label: "首页侧栏", value: "sidebar" }
+];
+const statusOptions = [
+  { label: "启用", value: "true" },
+  { label: "禁用", value: "false" }
+];
 
 const columns: DataTableColumns<AnnouncementItem> = [
   { title: "标题", key: "title", width: 180 },
   { title: "推送范围", key: "target_type", width: 180, render: (row) => targetLabel(row) },
   { title: "展示方式", key: "display", width: 150, render: (row) => displayLabel(row) },
   { title: "状态", key: "is_active", width: 90, render: (row) => h(StatusTag, { status: row.is_active }) },
+  { title: "操作账号", key: "created_by_username", width: 120, render: (row) => row.created_by_username || "-" },
   { title: "创建时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
   {
     title: "操作",
@@ -164,7 +202,14 @@ onMounted(async () => {
 async function loadAnnouncements() {
   loading.value = true;
   try {
-    announcements.value = await listAnnouncements();
+    announcements.value = await listAnnouncements({
+      keyword: filters.keyword,
+      target_type: filters.target_type || "",
+      display_mode: filters.display_mode || "",
+      is_active: filters.is_active ? filters.is_active === "true" : null,
+      start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
+      end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : ""
+    });
   } catch (error) {
     showError(message, error);
   } finally {

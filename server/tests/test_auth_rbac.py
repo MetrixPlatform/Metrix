@@ -428,6 +428,7 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
         headers=admin_headers,
     )
     assert public.status_code == 200
+    assert public.json()["created_by_username"] == payload["admin_username"]
 
     targeted = client.post(
         "/api/announcements",
@@ -460,6 +461,19 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
         headers=admin_headers,
     )
     assert authenticated.status_code == 200
+
+    listed = client.get("/api/announcements", headers=admin_headers)
+    assert listed.status_code == 200
+    assert all(item["created_by_username"] == payload["admin_username"] for item in listed.json())
+
+    all_target = client.get("/api/announcements", params={"target_type": "all"}, headers=admin_headers)
+    assert [item["title"] for item in all_target.json()] == ["平台维护"]
+
+    popup_items = client.get("/api/announcements", params={"display_mode": "popup"}, headers=admin_headers)
+    assert [item["title"] for item in popup_items.json()] == ["部门通知"]
+
+    keyword_items = client.get("/api/announcements", params={"keyword": "登录用户"}, headers=admin_headers)
+    assert [item["title"] for item in keyword_items.json()] == ["登录用户公告"]
 
     public_items = client.get("/api/announcements/public").json()
     assert [item["title"] for item in public_items] == ["平台维护"]

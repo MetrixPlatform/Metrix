@@ -9,7 +9,7 @@
       </div>
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
-    <n-data-table class="page-data-table" flex-height :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="930" />
+    <n-data-table class="page-data-table" flex-height :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1100" />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
@@ -185,6 +185,7 @@ const columns: DataTableColumns<UserListItem> = [
   { title: "审核", key: "approval_status", width: 100, render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels }) },
   { title: "状态", key: "is_active", width: 90, render: (row) => h(StatusTag, { status: row.is_active }) },
   { title: "角色", key: "roles", width: 160, render: (row) => row.roles.map((role) => role.name).join("、") || "-" },
+  { title: "注册时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
   {
     title: "操作",
     key: "actions",
@@ -451,5 +452,9 @@ function deleteDisabledReason(user: UserListItem) {
   if (isLastActiveAdmin(user)) return "不能操作最后一个管理员";
   if (user.is_builtin) return "内置用户不能删除";
   return "";
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleString();
 }
 </script>

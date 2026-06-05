@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -36,10 +38,16 @@ def mark_announcement_read(
 
 @router.get("", response_model=list[AnnouncementItem])
 def list_announcements(
+    keyword: str = "",
+    target_type: str = "",
+    display_mode: str = "",
+    is_active: bool | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_permission(ANNOUNCEMENT_READ)),
-) -> list[Announcement]:
-    return AnnouncementService(db).list_announcements()
+) -> list[AnnouncementItem]:
+    return AnnouncementService(db).list_announcements(keyword, target_type, display_mode, is_active, start_time, end_time)
 
 
 @router.post("", response_model=AnnouncementItem)
@@ -47,7 +55,7 @@ def create_announcement(
     payload: AnnouncementPayload,
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(ANNOUNCEMENT_CREATE)),
-) -> Announcement:
+) -> AnnouncementItem:
     return AnnouncementService(db).create(actor, payload)
 
 
@@ -57,7 +65,7 @@ def update_announcement(
     payload: AnnouncementPayload,
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(ANNOUNCEMENT_UPDATE)),
-) -> Announcement:
+) -> AnnouncementItem:
     return AnnouncementService(db).update(actor, announcement_id, payload)
 
 

@@ -921,7 +921,8 @@ a {
   flex-wrap: nowrap;
 }
 
-.user-create-button {
+.user-create-button,
+.announcement-create-button {
   flex: 0 0 auto;
 }
 
@@ -934,8 +935,29 @@ a {
   min-width: 0;
 }
 
+.announcement-toolbar {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.announcement-filter-row {
+  display: grid;
+  flex: 1;
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(120px, 150px)
+    minmax(120px, 150px)
+    minmax(100px, 120px)
+    minmax(260px, 320px)
+    auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
 .filter-keyword,
-.filter-select {
+.filter-select,
+.filter-date-range {
   width: 100%;
 }
 
@@ -1094,11 +1116,13 @@ a {
     padding: 0;
   }
   .profile-grid,
-  .user-filter-row {
+  .user-filter-row,
+  .announcement-filter-row {
     grid-template-columns: 1fr;
   }
 
-  .user-toolbar {
+  .user-toolbar,
+  .announcement-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
   }
@@ -1137,16 +1161,19 @@ a {
     grid-template-rows: minmax(180px, 0.38fr) minmax(0, 1fr);
   }
 
-  .user-toolbar {
+  .user-toolbar,
+  .announcement-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
   }
 
-  .user-filter-row {
+  .user-filter-row,
+  .announcement-filter-row {
     flex-basis: 100%;
   }
 
-  .user-create-button {
+  .user-create-button,
+  .announcement-create-button {
     margin-left: auto;
   }
 

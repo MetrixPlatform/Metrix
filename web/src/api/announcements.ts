@@ -12,6 +12,15 @@ export interface AnnouncementPayload {
   is_active: boolean;
 }
 
+export interface AnnouncementFilters {
+  keyword?: string;
+  target_type?: AnnouncementTargetType | "";
+  display_mode?: "popup" | "ticker" | "sidebar" | "";
+  is_active?: boolean | null;
+  start_time?: string;
+  end_time?: string;
+}
+
 export function listPublicAnnouncements() {
   return request<PublicAnnouncementItem[]>("/announcements/public");
 }
@@ -24,8 +33,14 @@ export function markAnnouncementRead(announcementId: number) {
   return post<AnnouncementFeedItem>(`/announcements/${announcementId}/read`);
 }
 
-export function listAnnouncements() {
-  return request<AnnouncementItem[]>("/announcements");
+export function listAnnouncements(filters: AnnouncementFilters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+  return request<AnnouncementItem[]>(`/announcements${params.size ? `?${params}` : ""}`);
 }
 
 export function createAnnouncement(payload: AnnouncementPayload) {

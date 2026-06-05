@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import not_found
 from app.models import Announcement, User
 from app.repositories.announcements import AnnouncementRepository
-from app.schemas.announcement import AnnouncementFeedItem, AnnouncementPayload
+from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementPayload
 from app.services.audit import record_audit
 from app.services.permissions import has_permission
 
@@ -16,8 +18,17 @@ class AnnouncementService:
     def public_ticker(self) -> list[Announcement]:
         return self.announcements.public_ticker()
 
-    def list_announcements(self) -> list[Announcement]:
-        return self.announcements.list()
+    def list_announcements(
+        self,
+        keyword: str = "",
+        target_type: str = "",
+        display_mode: str = "",
+        is_active: bool | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> list[AnnouncementItem]:
+        announcements = self.announcements.list(keyword, target_type, display_mode, is_active, start_time, end_time)
+        return self._with_creator_usernames(announcements)
 
     def list_for_user(self, user: User) -> list[AnnouncementFeedItem]:
         reads = self.announcements.read_map(user.id)
@@ -33,7 +44,7 @@ class AnnouncementService:
             )
         return items
 
-    def create(self, actor: User, payload: AnnouncementPayload) -> Announcement:
+    def create(self, actor: User, payload: AnnouncementPayload) -> AnnouncementItem:
         announcement = self.announcements.create(
             Announcement(
                 title=payload.title,
@@ -49,9 +60,9 @@ class AnnouncementService:
         )
         record_audit(self.db, actor.id, "announcement.create", "announcement", str(announcement.id), announcement.title)
         self.db.commit()
-        return announcement
+        return self._with_creator_username(announcement, actor.username)
 
-    def update(self, actor: User, announcement_id: int, payload: AnnouncementPayload) -> Announcement:
+    def update(self, actor: User, announcement_id: int, payload: AnnouncementPayload) -> AnnouncementItem:
         announcement = self._get(announcement_id)
         announcement.title = payload.title
         announcement.content = payload.content
@@ -63,7 +74,8 @@ class AnnouncementService:
         announcement.is_active = payload.is_active
         record_audit(self.db, actor.id, "announcement.update", "announcement", str(announcement.id), announcement.title)
         self.db.commit()
-        return announcement
+        creator_name = actor.username if announcement.created_by == actor.id else self._creator_username(announcement)
+        return self._with_creator_username(announcement, creator_name)
 
     def delete(self, actor: User, announcement_id: int) -> None:
         announcement = self._get(announcement_id)
@@ -110,3 +122,19 @@ class AnnouncementService:
     def _matches_company_department(self, target: str, user: User) -> bool:
         company, _, department = target.partition("|")
         return company == user.company and department == user.department
+
+    def _with_creator_usernames(self, announcements: list[Announcement]) -> list[AnnouncementItem]:
+        user_ids = {announcement.created_by for announcement in announcements if announcement.created_by is not None}
+        usernames = self.announcements.creator_usernames(user_ids)
+        return [
+            self._with_creator_username(announcement, usernames.get(announcement.created_by, ""))
+            for announcement in announcements
+        ]
+
+    def _with_creator_username(self, announcement: Announcement, username: str) -> AnnouncementItem:
+        return AnnouncementItem.model_validate(announcement).model_copy(update={"created_by_username": username})
+
+    def _creator_username(self, announcement: Announcement) -> str:
+        if announcement.created_by is None:
+            return ""
+        return self.announcements.creator_usernames({announcement.created_by}).get(announcement.created_by, "")

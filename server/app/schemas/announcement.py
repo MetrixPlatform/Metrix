@@ -36,6 +36,7 @@ class AnnouncementPayload(BaseModel):
 class AnnouncementItem(AnnouncementPayload):
     id: int
     created_by: int | None
+    created_by_username: str = ""
     created_at: datetime
     updated_at: datetime
 

@@ -68,6 +68,7 @@ export interface AnnouncementItem {
   show_sidebar: boolean;
   is_active: boolean;
   created_by: number | null;
+  created_by_username: string;
   created_at: string;
   updated_at: string;
 }
