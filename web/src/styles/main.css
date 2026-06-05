@@ -609,7 +609,7 @@ a {
   height: calc(100vh - 100px);
   min-height: 0;
   overflow: auto;
-  padding: 22px;
+  padding: 0;
 }
 
 .app-content.with-announcement {
@@ -809,7 +809,7 @@ a {
 .work-card {
   padding: 18px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--panel-bg);
   overflow-x: auto;
 }
@@ -1091,7 +1091,7 @@ a {
   }
 
   .app-content {
-    padding: 14px;
+    padding: 0;
   }
   .profile-grid,
   .user-filter-row {

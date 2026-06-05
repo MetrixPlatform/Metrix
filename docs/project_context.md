@@ -298,3 +298,8 @@
 - 新增 `NotFoundView` 作为 404 兜底页面，未知路由进入无卡片居中 404 视觉，并在 5 秒倒计时后自动返回主页；主页后续仍由现有权限守卫决定实际可访问页面。
 - 登录页将“忘记密码请联系管理员”改为“忘记密码”文字按钮，点击后弹窗提示“请联系管理员修改密码。”。
 - 验证：前端 `npm run build` 通过，`npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过；后端测试 14 passed；`git diff --check` 通过；调试残留扫描无命中。
+## 2026-06-05：调整主框架内容贴边布局
+- 主框架 `.app-content` 去掉桌面和移动端内边距，让页面最外层工作区边框贴合侧边栏右边、顶部标题栏底边和底部页脚边界。
+- `.work-card` 外层圆角改为 0，避免贴边布局下角落产生突兀留白；页面内部仍保留原有 18px 内容内边距。
+- 当前改动只涉及 Web 全局样式，不使用浏览器自动化验证，由用户自行在浏览器确认实际视觉效果。
+- 验证：前端 `npm run build` 通过，`npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过；`git diff --check` 通过；调试残留扫描无命中。
