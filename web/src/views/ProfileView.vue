@@ -55,7 +55,7 @@ import { computed, reactive, ref } from "vue";
 import { changePassword, updateProfile } from "../api/auth";
 import { t } from "../i18n";
 import { authStore } from "../stores/auth";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -95,10 +95,10 @@ async function saveProfile() {
 async function savePassword() {
   if (!(await validateForm(passwordFormRef.value))) return;
   try {
-    await changePassword(password);
+    const result = await changePassword(password);
     password.old_password = "";
     password.new_password = "";
-    message.success(t("profile.passwordChanged"));
+    message.success(messageText(result, "profile.passwordChanged"));
   } catch (error) {
     showError(message, error);
   }

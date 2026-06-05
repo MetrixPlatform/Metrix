@@ -94,7 +94,7 @@ def test_sqlite_database_test_endpoint(tmp_path, monkeypatch):
     response = client.post("/api/install/test-database", json={"database_type": "sqlite", "sqlite_path": str(db_path)})
 
     assert response.status_code == 200
-    assert response.json() == {"message": "数据库连接正常"}
+    assert response.json() == {"code": "install.connectionOk", "message": "Database connection is healthy", "params": {}}
     assert db_path.exists()
 
 
@@ -681,7 +681,7 @@ def test_announcement_manage_others_permission_controls_cross_owner_actions(tmp_
     }
     forbidden_update = client.put(f"/api/announcements/{owner_announcement['id']}", json=update_payload, headers=other_headers)
     assert forbidden_update.status_code == 403
-    assert forbidden_update.json()["detail"] == "无权限操作他人公告"
+    assert forbidden_update.json()["detail"]["code"] == "error.announcementManageOthersDenied"
     assert client.delete(f"/api/announcements/{owner_announcement['id']}", headers=other_headers).status_code == 403
     assert client.post("/api/announcements/batch-delete", json={"ids": [owner_announcement["id"]]}, headers=other_headers).status_code == 403
 
@@ -709,7 +709,7 @@ def test_announcement_manage_others_permission_controls_cross_owner_actions(tmp_
     batch_target = create_announcement(client, owner_headers, "跨人批量删除").json()
     allowed_batch_delete = client.post("/api/announcements/batch-delete", json={"ids": [batch_target["id"]]}, headers=other_headers)
     assert allowed_batch_delete.status_code == 200
-    assert allowed_batch_delete.json() == {"message": "已删除 1 条公告"}
+    assert allowed_batch_delete.json() == {"code": "announcement.batchDeleted", "message": "Announcements deleted", "params": {"count": 1}}
 
 
 def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
@@ -799,7 +799,7 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
         batch_delete_ids.append(item.json()["id"])
     batch_delete = client.post("/api/announcements/batch-delete", json={"ids": batch_delete_ids}, headers=admin_headers)
     assert batch_delete.status_code == 200
-    assert batch_delete.json() == {"message": "已删除 2 条公告"}
+    assert batch_delete.json() == {"code": "announcement.batchDeleted", "message": "Announcements deleted", "params": {"count": 2}}
     remaining_titles = {item["title"] for item in page_items(client.get("/api/announcements", headers=admin_headers))}
     assert "待批量删除一" not in remaining_titles
     assert "待批量删除二" not in remaining_titles

@@ -57,6 +57,12 @@ export interface InstallStatus {
   database_type: string | null;
 }
 
+export interface ServerMessage {
+  code: string;
+  message?: string;
+  params?: Record<string, string | number | boolean | null>;
+}
+
 export interface PageResult<T> {
   items: T[];
   total: number;

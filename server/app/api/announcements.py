@@ -15,7 +15,7 @@ from app.schemas.announcement import (
     AnnouncementPayload,
     PublicAnnouncementItem,
 )
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, message_response
 from app.services.announcements import AnnouncementService
 
 router = APIRouter(prefix="/api/announcements", tags=["announcements"])
@@ -89,7 +89,7 @@ def batch_delete_announcements(
     actor: User = Depends(require_permission(ANNOUNCEMENT_DELETE)),
 ) -> MessageResponse:
     deleted_count = AnnouncementService(db).batch_delete(actor, payload.ids)
-    return MessageResponse(message=f"已删除 {deleted_count} 条公告")
+    return message_response("announcement.batchDeleted", "Announcements deleted", count=deleted_count)
 
 
 @router.put("/{announcement_id}", response_model=AnnouncementItem)
@@ -109,4 +109,4 @@ def delete_announcement(
     actor: User = Depends(require_permission(ANNOUNCEMENT_DELETE)),
 ) -> MessageResponse:
     AnnouncementService(db).delete(actor, announcement_id)
-    return MessageResponse(message="公告已删除")
+    return message_response("announcement.deleted", "Announcement deleted")

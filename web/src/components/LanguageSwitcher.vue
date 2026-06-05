@@ -1,15 +1,16 @@
 <template>
   <n-dropdown trigger="click" :options="options" @select="setLocale">
-    <n-button quaternary :title="t('common.language')">
-      <template #icon><n-icon :component="LocalLanguage20Regular" /></template>
-      {{ currentLabel }}
+    <n-button class="language-switcher-button" quaternary circle :title="t('common.language')">
+      <span class="language-switcher-icon" aria-hidden="true">
+        <span class="language-switcher-zh">文</span>
+        <span class="language-switcher-en">A</span>
+      </span>
     </n-button>
   </n-dropdown>
 </template>
 
 <script setup lang="ts">
-import { LocalLanguage20Regular } from "@vicons/fluent";
-import { NButton, NDropdown, NIcon } from "naive-ui";
+import { NButton, NDropdown } from "naive-ui";
 import { computed } from "vue";
 
 import { appStore } from "../stores/app";
@@ -21,7 +22,6 @@ const options = computed(() =>
     key: option.value
   }))
 );
-const currentLabel = computed(() => localeOptions.find((option) => option.value === appStore.locale)?.shortLabel || "ZH");
 
 function setLocale(value: string | number) {
   appStore.setLocale(value as Locale);

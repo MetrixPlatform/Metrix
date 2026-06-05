@@ -1,5 +1,5 @@
 import { post, request } from "./client";
-import type { InstallStatus } from "./types";
+import type { InstallStatus, ServerMessage } from "./types";
 
 export interface InstallPayload {
   database_type: "sqlite" | "mysql";
@@ -37,9 +37,9 @@ export function getInstallStatus() {
 }
 
 export function testInstallDatabase(payload: InstallDatabasePayload) {
-  return post<{ message: string }>("/install/test-database", payload);
+  return post<ServerMessage>("/install/test-database", payload);
 }
 
 export function installSystem(payload: InstallPayload) {
-  return post<{ message: string }>("/install", payload);
+  return post<ServerMessage>("/install", payload);
 }

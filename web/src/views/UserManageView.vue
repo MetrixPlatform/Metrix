@@ -141,7 +141,7 @@ import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { roleName } from "../i18n/builtins";
 import { authStore } from "../stores/auth";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -518,9 +518,9 @@ async function savePassword() {
   if (!passwordTarget.value) return;
   if (!(await validateForm(passwordFormRef.value))) return;
   try {
-    await resetPassword(passwordTarget.value.id, passwordForm.password);
+    const result = await resetPassword(passwordTarget.value.id, passwordForm.password);
     showPasswordModal.value = false;
-    message.success(t("user.passwordReset"));
+    message.success(messageText(result, "user.passwordReset"));
   } catch (error) {
     showError(message, error);
   }
@@ -539,9 +539,9 @@ function confirmDelete(user: UserListItem) {
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
-        await deleteUser(user.id);
+        const result = await deleteUser(user.id);
         await loadUsers();
-        message.success(t("user.deleted"));
+        message.success(messageText(result, "user.deleted"));
       } catch (error) {
         showError(message, error);
       }

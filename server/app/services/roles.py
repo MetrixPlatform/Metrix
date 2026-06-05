@@ -22,12 +22,12 @@ class RoleService:
     def get_role(self, role_id: int) -> Role:
         role = self.roles.get(role_id)
         if not role:
-            raise not_found("角色不存在")
+            raise not_found("error.roleNotFound", "Role not found")
         return role
 
     def create_role(self, actor_id: int, payload: RoleCreateRequest) -> Role:
         if self.roles.get_by_code(payload.code):
-            raise bad_request("角色编码已存在")
+            raise bad_request("error.roleCodeExists", "Role code already exists")
         role = self.roles.create(Role(code=payload.code, name=payload.name, description=payload.description))
         record_audit(self.db, actor_id, "role.create", "role", str(role.id), role.code)
         self.db.commit()
@@ -44,7 +44,7 @@ class RoleService:
     def delete_role(self, actor_id: int, role_id: int) -> None:
         role = self.get_role(role_id)
         if role.is_builtin:
-            raise forbidden("内置角色不能删除")
+            raise forbidden("error.builtinRoleCannotDelete", "Built-in roles cannot be deleted")
         record_audit(self.db, actor_id, "role.delete", "role", str(role.id), role.code)
         self.roles.delete(role)
         self.db.commit()

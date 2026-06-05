@@ -7,7 +7,7 @@ from app.core.deps import require_any_permission, require_permission
 from app.core.permissions import USER_CREATE, USER_DELETE, USER_OPERATE, USER_READ, USER_UPDATE
 from app.db.session import get_db
 from app.models import Role, User
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, message_response
 from app.schemas.user import (
     AssignRolesRequest,
     RejectUserRequest,
@@ -91,7 +91,7 @@ def delete_user(
     actor: User = Depends(require_permission(USER_DELETE)),
 ) -> MessageResponse:
     UserService(db).delete_user(actor, user_id)
-    return MessageResponse(message="用户已删除")
+    return message_response("user.deleted", "User deleted")
 
 
 @router.post("/{user_id}/enable", response_model=UserListItem)
@@ -120,7 +120,7 @@ def reset_password(
     actor: User = Depends(require_permission(USER_OPERATE)),
 ) -> MessageResponse:
     UserService(db).reset_password(actor, user_id, payload)
-    return MessageResponse(message="密码已重置")
+    return message_response("user.passwordReset", "Password reset")
 
 
 @router.put("/{user_id}/roles", response_model=UserListItem)

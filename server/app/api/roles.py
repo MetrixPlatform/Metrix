@@ -5,7 +5,7 @@ from app.core.deps import require_permission
 from app.core.permissions import ROLE_CREATE, ROLE_DELETE, ROLE_OPERATE, ROLE_READ, ROLE_UPDATE
 from app.db.session import get_db
 from app.models import Permission, Role, User
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, message_response
 from app.schemas.role import AssignPermissionsRequest, PermissionItem, RoleCreateRequest, RoleItem, RoleUpdateRequest
 from app.services.roles import RoleService
 
@@ -46,7 +46,7 @@ def delete_role(
     actor: User = Depends(require_permission(ROLE_DELETE)),
 ) -> MessageResponse:
     RoleService(db).delete_role(actor.id, role_id)
-    return MessageResponse(message="角色已删除")
+    return message_response("permission.roleDeleted", "Role deleted")
 
 
 @router.get("/permissions", response_model=list[PermissionItem])

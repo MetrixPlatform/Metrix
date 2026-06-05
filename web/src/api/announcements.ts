@@ -1,5 +1,5 @@
 import { del, post, put, request } from "./client";
-import type { AnnouncementFeedItem, AnnouncementItem, AnnouncementTargetType, PageResult, PublicAnnouncementItem } from "./types";
+import type { AnnouncementFeedItem, AnnouncementItem, AnnouncementTargetType, PageResult, PublicAnnouncementItem, ServerMessage } from "./types";
 
 export interface AnnouncementPayload {
   title: string;
@@ -56,9 +56,9 @@ export function updateAnnouncement(announcementId: number, payload: Announcement
 }
 
 export function deleteAnnouncement(announcementId: number) {
-  return del<{ message: string }>(`/announcements/${announcementId}`);
+  return del<ServerMessage>(`/announcements/${announcementId}`);
 }
 
 export function batchDeleteAnnouncements(ids: number[]) {
-  return post<{ message: string }>("/announcements/batch-delete", { ids });
+  return post<ServerMessage>("/announcements/batch-delete", { ids });
 }

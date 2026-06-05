@@ -1,5 +1,5 @@
 import { del, post, put, request } from "./client";
-import type { PermissionItem, RoleItem } from "./types";
+import type { PermissionItem, RoleItem, ServerMessage } from "./types";
 
 export function listRoles() {
   return request<RoleItem[]>("/roles");
@@ -14,7 +14,7 @@ export function updateRole(roleId: number, payload: { name: string; description:
 }
 
 export function deleteRole(roleId: number) {
-  return del<{ message: string }>(`/roles/${roleId}`);
+  return del<ServerMessage>(`/roles/${roleId}`);
 }
 
 export function listPermissions() {

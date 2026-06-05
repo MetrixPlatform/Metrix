@@ -1,6 +1,6 @@
 import { authStore } from "../stores/auth";
 import { appKey } from "../config/app";
-import { t, type I18nKey } from "../i18n";
+import { hasI18nKey, t, translateMessage, type I18nKey, type TranslateParams } from "../i18n";
 
 const API_PREFIX = "/api";
 export const AUTH_EXPIRED_EVENT = appKey("auth-expired");
@@ -89,12 +89,18 @@ async function parseJson(response: Response): Promise<Record<string, unknown> | 
 function errorMessage(data: Record<string, unknown> | null): string {
   const detail = data?.detail;
   const message = data?.message;
+  if (isServerMessage(detail)) {
+    return translateServerMessage(detail);
+  }
   if (typeof detail === "string") {
     return detail;
   }
   if (Array.isArray(detail)) {
     const messages = detail.map(formatValidationError).filter(Boolean);
     return messages.length > 0 ? messages.join(t("common.messageSeparator")) : t("api.invalidParams");
+  }
+  if (isServerMessage(data)) {
+    return translateServerMessage(data);
   }
   if (typeof message === "string") {
     return message;
@@ -109,6 +115,9 @@ function formatValidationError(error: unknown): string {
   const label = fieldLabel(error.loc);
   const type = typeof error.type === "string" ? error.type : "";
   const ctx = isRecord(error.ctx) ? error.ctx : {};
+  if (hasI18nKey(type)) {
+    return t(type, { ...toTranslateParams(ctx), label });
+  }
   if (type === "missing" || type === "string_too_short") {
     const min = typeof ctx.min_length === "number" ? ctx.min_length : null;
     return min && min > 1 ? t("validation.minLength", { label, min }) : t("validation.required", { label });
@@ -129,6 +138,10 @@ function formatValidationError(error: unknown): string {
   return t("validation.invalidFormat", { label });
 }
 
+function translateServerMessage(payload: { code: string; message?: string; params?: Record<string, unknown> }) {
+  return translateMessage(payload.code, toTranslateParams(payload.params), payload.message || "");
+}
+
 function fieldLabel(loc: unknown): string {
   if (!Array.isArray(loc)) {
     return t("api.requestParam");
@@ -143,4 +156,20 @@ function fieldLabel(loc: unknown): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isServerMessage(value: unknown): value is { code: string; message?: string; params?: Record<string, unknown> } {
+  return isRecord(value) && typeof value.code === "string";
+}
+
+function toTranslateParams(value: unknown): TranslateParams {
+  if (!isRecord(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string | number | boolean | null] => {
+      const item = entry[1];
+      return item === null || ["string", "number", "boolean"].includes(typeof item);
+    })
+  );
 }

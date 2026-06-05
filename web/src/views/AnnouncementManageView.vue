@@ -127,7 +127,7 @@ import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -513,9 +513,9 @@ function removeAnnouncement(row: AnnouncementItem) {
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
-        await deleteAnnouncement(row.id);
+        const result = await deleteAnnouncement(row.id);
         await loadAnnouncements();
-        message.success(t("announcement.deleted"));
+        message.success(messageText(result, "announcement.deleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -533,10 +533,10 @@ function removeSelectedAnnouncements() {
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
-        await batchDeleteAnnouncements(ids);
+        const result = await batchDeleteAnnouncements(ids);
         checkedRowKeys.value = [];
         await loadAnnouncements();
-        message.success(t("announcement.deleted"));
+        message.success(messageText(result, "announcement.batchDeleted"));
       } catch (error) {
         showError(message, error);
       }

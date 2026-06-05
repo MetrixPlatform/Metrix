@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.core.install import is_installed
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, message_response
 from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, InstallStatusResponse
 from app.services.install import install_system, installed_database_type, test_database_connection
 
@@ -16,10 +16,10 @@ def get_install_status() -> InstallStatusResponse:
 @router.post("", response_model=MessageResponse)
 def install(payload: InstallRequest) -> MessageResponse:
     install_system(payload)
-    return MessageResponse(message="系统初始化完成")
+    return message_response("install.finished", "Initialization completed")
 
 
 @router.post("/test-database", response_model=MessageResponse)
 def test_database(payload: InstallDatabaseTestRequest) -> MessageResponse:
     test_database_connection(payload)
-    return MessageResponse(message="数据库连接正常")
+    return message_response("install.connectionOk", "Database connection is healthy")

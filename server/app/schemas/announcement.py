@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 ANNOUNCEMENT_TARGET_TYPES = {"all", "authenticated", "permission", "company", "company_department", "user"}
 
@@ -19,15 +20,15 @@ class AnnouncementPayload(BaseModel):
     @classmethod
     def validate_target_type(cls, value: str) -> str:
         if value not in ANNOUNCEMENT_TARGET_TYPES:
-            raise ValueError("公告目标类型不正确")
+            raise PydanticCustomError("validation.announcementTargetType", "Invalid announcement target type")
         return value
 
     @model_validator(mode="after")
     def validate_payload(self):
         if self.target_type not in {"all", "authenticated"} and not self.target_value.strip():
-            raise ValueError("请填写定向目标")
+            raise PydanticCustomError("validation.announcementTargetRequired", "Announcement target is required")
         if not any([self.show_popup, self.show_ticker, self.show_sidebar]):
-            raise ValueError("请至少选择一种展示方式")
+            raise PydanticCustomError("validation.displayModeRequired", "Select at least one display mode")
         if self.target_type in {"all", "authenticated"}:
             self.target_value = ""
         return self

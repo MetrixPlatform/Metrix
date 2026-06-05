@@ -22,14 +22,14 @@ def test_database_connection(payload: InstallDatabaseTestRequest) -> None:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except SQLAlchemyError as exc:
-        raise bad_request("数据库连接失败，请检查连接配置") from exc
+        raise bad_request("error.databaseConnectionFailed", "Database connection failed") from exc
     finally:
         engine.dispose()
 
 
 def install_system(payload: InstallRequest) -> None:
     if is_installed():
-        raise bad_request("系统已初始化")
+        raise bad_request("error.installed", "System is already initialized")
     database_url = _database_url(payload)
     if payload.database_type == "mysql":
         _create_mysql_database(payload)
@@ -57,7 +57,7 @@ def _database_url(payload: InstallRequest) -> str:
     if payload.database_type == "sqlite":
         return _sqlite_url(payload.sqlite_path)
     if payload.mysql is None:
-        raise bad_request("请填写 MySQL 连接信息")
+        raise bad_request("error.mysqlConfigRequired", "MySQL connection config is required")
     _guard_mysql_database(payload.mysql.database)
     password = quote_plus(payload.mysql.password)
     username = quote_plus(payload.mysql.username)
@@ -71,7 +71,7 @@ def _test_database_url(payload: InstallDatabaseTestRequest) -> str:
     if payload.database_type == "sqlite":
         return _sqlite_url(payload.sqlite_path)
     if payload.mysql is None:
-        raise bad_request("请填写 MySQL 连接信息")
+        raise bad_request("error.mysqlConfigRequired", "MySQL connection config is required")
     _guard_mysql_database(payload.mysql.database)
     return _mysql_server_url(payload.mysql)
 
@@ -86,7 +86,7 @@ def _sqlite_url(sqlite_path: str) -> str:
 
 def _create_mysql_database(payload: InstallRequest) -> None:
     if payload.mysql is None:
-        raise bad_request("请填写 MySQL 连接信息")
+        raise bad_request("error.mysqlConfigRequired", "MySQL connection config is required")
     mysql = payload.mysql
     _guard_mysql_database(mysql.database)
     engine = create_engine_for_url(_mysql_server_url(mysql))
@@ -105,4 +105,4 @@ def _mysql_server_url(mysql: MysqlInstallConfig) -> str:
 
 def _guard_mysql_database(database: str) -> None:
     if not MYSQL_DATABASE_RE.fullmatch(database):
-        raise bad_request("MySQL 数据库名只能包含字母、数字和下划线")
+        raise bad_request("error.mysqlDatabaseNameInvalid", "MySQL database name can only contain letters, numbers, and underscores")

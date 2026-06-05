@@ -123,7 +123,7 @@ class AnnouncementService:
     def mark_read(self, user: User, announcement_id: int) -> AnnouncementFeedItem:
         announcement = self._get(announcement_id)
         if not announcement.is_active or not self._matches_user(announcement, user):
-            raise not_found("公告不存在")
+            raise not_found("error.announcementNotFound", "Announcement not found")
         read = self.announcements.mark_read(announcement.id, user.id)
         self.db.commit()
         return AnnouncementFeedItem.model_validate(announcement).model_copy(update={"is_read": True, "read_at": read.read_at})
@@ -131,7 +131,7 @@ class AnnouncementService:
     def _get(self, announcement_id: int) -> Announcement:
         announcement = self.announcements.get(announcement_id)
         if announcement is None:
-            raise not_found("公告不存在")
+            raise not_found("error.announcementNotFound", "Announcement not found")
         return announcement
 
     def _ensure_can_manage(self, actor: User, announcement: Announcement) -> None:
@@ -139,7 +139,7 @@ class AnnouncementService:
             return
         if has_permission(actor, ANNOUNCEMENT_MANAGE_OTHERS):
             return
-        raise forbidden("无权限操作他人公告")
+        raise forbidden("error.announcementManageOthersDenied", "You cannot manage announcements created by others")
 
     def _matches_user(self, announcement: Announcement, user: User) -> bool:
         target_type = announcement.target_type

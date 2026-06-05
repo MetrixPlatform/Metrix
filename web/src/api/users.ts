@@ -1,5 +1,5 @@
 import { del, post, put, request } from "./client";
-import type { PageResult, RoleBrief, UserListItem } from "./types";
+import type { PageResult, RoleBrief, ServerMessage, UserListItem } from "./types";
 
 export interface UserPayload {
   username?: string;
@@ -46,7 +46,7 @@ export function updateUser(userId: number, payload: UserPayload) {
 }
 
 export function deleteUser(userId: number) {
-  return del<{ message: string }>(`/users/${userId}`);
+  return del<ServerMessage>(`/users/${userId}`);
 }
 
 export function enableUser(userId: number) {
@@ -58,7 +58,7 @@ export function disableUser(userId: number) {
 }
 
 export function resetPassword(userId: number, password: string) {
-  return post<{ message: string }>(`/users/${userId}/reset-password`, { password });
+  return post<ServerMessage>(`/users/${userId}/reset-password`, { password });
 }
 
 export function assignRoles(userId: number, roleIds: number[]) {

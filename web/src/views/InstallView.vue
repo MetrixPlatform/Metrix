@@ -104,7 +104,7 @@ import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import { APP_NAME, DEFAULT_DATABASE_NAME, DEFAULT_SQLITE_PATH } from "../config/app";
 import { t } from "../i18n";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, numberRequiredRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
@@ -155,8 +155,8 @@ const rules = computed<FormRules>(() => ({
 async function testConnection() {
   testing.value = true;
   try {
-    await testInstallDatabase(databasePayload());
-    message.success(t("install.connectionOk"));
+    const result = await testInstallDatabase(databasePayload());
+    message.success(messageText(result, "install.connectionOk"));
   } catch (error) {
     showError(message, error);
   } finally {
@@ -168,8 +168,8 @@ async function submit() {
   if (!(await validateForm(formRef.value))) return;
   loading.value = true;
   try {
-    await installSystem(form);
-    message.success(t("install.finished"));
+    const result = await installSystem(form);
+    message.success(messageText(result, "install.finished"));
     await router.push("/login");
   } catch (error) {
     showError(message, error);

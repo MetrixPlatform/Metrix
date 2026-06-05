@@ -103,9 +103,10 @@ import { assignPermissions, createRole, deleteRole, listPermissions, listRoles, 
 import type { PermissionItem, RoleItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
+import { isActivePermissionCode } from "../config/permissions";
 import { t } from "../i18n";
 import { permissionGroupName, permissionName, roleDescription, roleName } from "../i18n/builtins";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -128,6 +129,7 @@ const roleTypeLabels = computed(() => ({ builtin: t("common.builtin"), custom: t
 const groupedPermissions = computed(() => {
   const groups = new Map<string, PermissionItem[]>();
   permissions.value
+    .filter((permission) => isActivePermissionCode(permission.code))
     .filter((permission) => permission.type === "route" || (permission.type === "action" && !permission.code.endsWith(":read")))
     .forEach((permission) => {
       const group = permission.group_name || "";
@@ -141,7 +143,7 @@ const groupedPermissions = computed(() => {
 });
 
 watch(selectedRole, (role) => {
-  checkedPermissionIds.value = role?.permissions.map((permission) => permission.id) || [];
+  checkedPermissionIds.value = role?.permissions.filter((permission) => isActivePermissionCode(permission.code)).map((permission) => permission.id) || [];
 });
 
 onMounted(async () => {
@@ -150,6 +152,11 @@ onMounted(async () => {
 
 async function loadData() {
   [roles.value, permissions.value] = await Promise.all([listRoles(), listPermissions()]);
+  permissions.value = permissions.value.filter((permission) => isActivePermissionCode(permission.code));
+  roles.value = roles.value.map((role) => ({
+    ...role,
+    permissions: role.permissions.filter((permission) => isActivePermissionCode(permission.code))
+  }));
   if (!selectedRole.value && roles.value.length > 0) {
     selectedRole.value = roles.value[0];
   } else if (selectedRole.value) {
@@ -200,10 +207,10 @@ function removeRole() {
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
       try {
-        await deleteRole(role.id);
+        const result = await deleteRole(role.id);
         selectedRole.value = null;
         await loadData();
-        message.success(t("permission.roleDeleted"));
+        message.success(messageText(result, "permission.roleDeleted"));
       } catch (error) {
         showError(message, error);
       }
@@ -214,7 +221,8 @@ function removeRole() {
 async function savePermissions() {
   if (!selectedRole.value) return;
   try {
-    await assignPermissions(selectedRole.value.id, checkedPermissionIds.value);
+    const activePermissionIds = new Set(permissions.value.map((permission) => permission.id));
+    await assignPermissions(selectedRole.value.id, checkedPermissionIds.value.filter((id) => activePermissionIds.has(id)));
     await loadData();
     message.success(t("permission.saved"));
   } catch (error) {

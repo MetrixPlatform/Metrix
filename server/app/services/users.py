@@ -49,12 +49,12 @@ class UserService:
     def get_user(self, user_id: int) -> User:
         user = self.users.get(user_id)
         if not user:
-            raise not_found("用户不存在")
+            raise not_found("error.userNotFound", "User not found")
         return user
 
     def create_user(self, actor: User, payload: UserCreateRequest) -> User:
         if self.users.get_by_username(payload.username):
-            raise bad_request("账号已存在")
+            raise bad_request("error.usernameExists", "Username already exists")
         user = User(
             username=payload.username,
             full_name=payload.full_name,
@@ -87,7 +87,7 @@ class UserService:
         user = self.get_user(user_id)
         self._guard_last_admin(user)
         if user.is_builtin:
-            raise forbidden("内置用户不能删除")
+            raise forbidden("error.builtinUserCannotDelete", "Built-in users cannot be deleted")
         record_audit(self.db, actor.id, "user.delete", "user", str(user.id), user.username)
         self.users.delete(user)
         self.db.commit()
@@ -95,7 +95,7 @@ class UserService:
     def approve_user(self, actor: User, user_id: int, role_ids: list[int] | None = None) -> User:
         user = self.get_user(user_id)
         if user.approval_status != "pending":
-            raise bad_request("只能审核待审核用户")
+            raise bad_request("error.onlyPendingUserCanApprove", "Only pending users can be approved")
         user.roles = self._roles_or_default(role_ids)
         user.approval_status = "approved"
         user.approved_by = actor.id
@@ -107,7 +107,7 @@ class UserService:
     def reject_user(self, actor: User, user_id: int, payload: RejectUserRequest) -> User:
         user = self.get_user(user_id)
         if user.approval_status != "pending":
-            raise bad_request("只能驳回待审核用户")
+            raise bad_request("error.onlyPendingUserCanReject", "Only pending users can be rejected")
         user.approval_status = "rejected"
         user.rejected_reason = payload.reason
         record_audit(self.db, actor.id, "user.reject", "user", str(user.id), user.username)
@@ -147,7 +147,7 @@ class UserService:
 
     def _guard_last_admin(self, user: User) -> None:
         if any(role.code == ADMIN_ROLE for role in user.roles) and self.users.count_admins() <= 1:
-            raise forbidden("不能操作最后一个管理员")
+            raise forbidden("error.lastAdminRequired", "The last administrator cannot be changed")
 
     def _roles_or_default(self, role_ids: list[int] | None) -> list[Role]:
         roles = self.roles.by_ids(role_ids or [])
@@ -160,10 +160,10 @@ class UserService:
         if not any(role.code == ADMIN_ROLE for role in target.roles) or self.users.count_admins() > 1:
             return
         if not any(role.code == ADMIN_ROLE for role in roles):
-            raise forbidden("不能移除最后一个管理员的管理员角色")
+            raise forbidden("error.lastAdminRoleRequired", "The last administrator role cannot be removed")
 
     def _guard_self_admin_role(self, actor: User, target: User, roles: list[Role]) -> None:
         if actor.id != target.id:
             return
         if not any(role.code == ADMIN_ROLE for role in roles):
-            raise forbidden("不能移除自己的管理员角色")
+            raise forbidden("error.selfAdminRoleRequired", "You cannot remove your own administrator role")

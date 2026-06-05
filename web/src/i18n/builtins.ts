@@ -1,4 +1,5 @@
 import { t, type I18nKey } from ".";
+import { isActivePermissionCode } from "../config/permissions";
 
 interface RoleLike {
   code: string;
@@ -60,6 +61,9 @@ export function roleDescription(role: RoleLike) {
 }
 
 export function permissionName(permission: PermissionLike) {
+  if (!isActivePermissionCode(permission.code)) {
+    return "";
+  }
   return permissionNameKeys[permission.code] ? t(permissionNameKeys[permission.code]) : permission.name;
 }
 

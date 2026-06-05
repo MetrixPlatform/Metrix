@@ -70,7 +70,7 @@ import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import { t } from "../i18n";
-import { showError } from "../utils/message";
+import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
@@ -101,7 +101,7 @@ async function submit() {
   if (!(await validateForm(formRef.value))) return;
   loading.value = true;
   try {
-    await register({
+    const result = await register({
       username: form.username,
       password: form.password,
       phone: form.phone,
@@ -110,7 +110,7 @@ async function submit() {
       department: form.department,
       full_name: form.full_name
     });
-    message.success(t("auth.registerSubmitted"));
+    message.success(messageText(result, "auth.registerSubmitted"));
     await router.push("/login");
   } catch (error) {
     showError(message, error);

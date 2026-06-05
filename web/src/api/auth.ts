@@ -1,5 +1,5 @@
 import { post, put, request } from "./client";
-import type { LoginResponse, UserProfile } from "./types";
+import type { LoginResponse, ServerMessage, UserProfile } from "./types";
 
 export function login(payload: { username: string; password: string }) {
   return post<LoginResponse>("/auth/login", payload);
@@ -14,7 +14,7 @@ export function register(payload: {
   department: string;
   full_name: string;
 }) {
-  return post<{ message: string }>("/auth/register", payload);
+  return post<ServerMessage>("/auth/register", payload);
 }
 
 export function getMe() {
@@ -22,7 +22,7 @@ export function getMe() {
 }
 
 export function logout() {
-  return post<{ message: string }>("/auth/logout");
+  return post<ServerMessage>("/auth/logout");
 }
 
 export function updateProfile(payload: { full_name: string; phone: string; email: string; company: string; department: string }) {
@@ -30,5 +30,5 @@ export function updateProfile(payload: { full_name: string; phone: string; email
 }
 
 export function changePassword(payload: { old_password: string; new_password: string }) {
-  return post<{ message: string }>("/auth/change-password", payload);
+  return post<ServerMessage>("/auth/change-password", payload);
 }

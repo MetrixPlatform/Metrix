@@ -1,7 +1,8 @@
 export const locales = ["zh-CN", "en-US"] as const;
 
 export type Locale = (typeof locales)[number];
-export type TranslateParams = Record<string, string | number>;
+export type TranslateParam = string | number | boolean | null | undefined;
+export type TranslateParams = Record<string, TranslateParam>;
 
 export const DEFAULT_LOCALE: Locale = "zh-CN";
 
@@ -99,8 +100,39 @@ export const messages = {
     "api.invalidParams": "请求参数不正确",
     "api.requestParam": "请求参数",
     "message.operationFailed": "操作失败",
+    "error.forbidden": "无权限执行该操作",
+    "error.notFound": "资源不存在",
+    "error.serviceUnavailable": "服务暂不可用",
+    "error.authRequired": "请先登录",
+    "error.authExpired": "登录已失效",
+    "error.accountUnavailable": "账号不可用",
+    "error.notInstalled": "系统未初始化",
+    "error.usernameExists": "账号已存在",
+    "error.invalidCredentials": "账号或密码错误",
+    "error.accountPending": "账号尚未审核通过",
+    "error.accountDisabled": "账号已禁用",
+    "error.oldPasswordIncorrect": "旧密码不正确",
+    "error.userNotFound": "用户不存在",
+    "error.onlyPendingUserCanApprove": "只能审核待审核用户",
+    "error.onlyPendingUserCanReject": "只能驳回待审核用户",
+    "error.builtinUserCannotDelete": "内置用户不能删除",
+    "error.lastAdminRequired": "不能操作最后一个管理员",
+    "error.lastAdminRoleRequired": "不能移除最后一个管理员的管理员角色",
+    "error.selfAdminRoleRequired": "不能移除自己的管理员角色",
+    "error.roleNotFound": "角色不存在",
+    "error.roleCodeExists": "角色编码已存在",
+    "error.builtinRoleCannotDelete": "内置角色不能删除",
+    "error.databaseConnectionFailed": "数据库连接失败，请检查连接配置",
+    "error.installed": "系统已初始化",
+    "error.mysqlConfigRequired": "请填写 MySQL 连接信息",
+    "error.mysqlDatabaseNameInvalid": "MySQL 数据库名只能包含字母、数字和下划线",
+    "error.announcementNotFound": "公告不存在",
+    "error.announcementManageOthersDenied": "无权限操作他人公告",
+    "validation.announcementTargetType": "公告目标类型不正确",
+    "validation.announcementTargetRequired": "请填写定向目标",
     "auth.login": "登录",
     "auth.logout": "退出登录",
+    "auth.loggedOut": "{username} 已退出",
     "auth.registerAccount": "注册账号",
     "auth.submitRegister": "提交注册",
     "auth.backToLogin": "返回登录",
@@ -213,6 +245,7 @@ export const messages = {
     "announcement.deleteTitle": "删除公告",
     "announcement.deleteConfirm": "确认删除公告 {title}？",
     "announcement.deleted": "公告已删除",
+    "announcement.batchDeleted": "已删除 {count} 条公告",
     "announcement.batchDeleteTitle": "批量删除公告",
     "announcement.batchDeleteConfirm": "确认删除选中的 {count} 条公告？",
     "announcement.closeTicker": "关闭公告",
@@ -317,8 +350,39 @@ export const messages = {
     "api.invalidParams": "Invalid request parameters",
     "api.requestParam": "Request parameter",
     "message.operationFailed": "Operation failed",
+    "error.forbidden": "Permission denied",
+    "error.notFound": "Resource not found",
+    "error.serviceUnavailable": "Service unavailable",
+    "error.authRequired": "Please log in first",
+    "error.authExpired": "Session expired",
+    "error.accountUnavailable": "Account unavailable",
+    "error.notInstalled": "System is not initialized",
+    "error.usernameExists": "Username already exists",
+    "error.invalidCredentials": "Invalid username or password",
+    "error.accountPending": "Account approval is pending",
+    "error.accountDisabled": "Account is disabled",
+    "error.oldPasswordIncorrect": "Old password is incorrect",
+    "error.userNotFound": "User not found",
+    "error.onlyPendingUserCanApprove": "Only pending users can be approved",
+    "error.onlyPendingUserCanReject": "Only pending users can be rejected",
+    "error.builtinUserCannotDelete": "Built-in users cannot be deleted",
+    "error.lastAdminRequired": "The last administrator cannot be changed",
+    "error.lastAdminRoleRequired": "The last administrator role cannot be removed",
+    "error.selfAdminRoleRequired": "You cannot remove your own administrator role",
+    "error.roleNotFound": "Role not found",
+    "error.roleCodeExists": "Role code already exists",
+    "error.builtinRoleCannotDelete": "Built-in roles cannot be deleted",
+    "error.databaseConnectionFailed": "Database connection failed. Check the connection config",
+    "error.installed": "System is already initialized",
+    "error.mysqlConfigRequired": "MySQL connection config is required",
+    "error.mysqlDatabaseNameInvalid": "MySQL database name can only contain letters, numbers, and underscores",
+    "error.announcementNotFound": "Announcement not found",
+    "error.announcementManageOthersDenied": "You cannot manage announcements created by others",
+    "validation.announcementTargetType": "Invalid announcement target type",
+    "validation.announcementTargetRequired": "Enter a targeted push target",
     "auth.login": "Log in",
     "auth.logout": "Log out",
+    "auth.loggedOut": "{username} logged out",
     "auth.registerAccount": "Register",
     "auth.submitRegister": "Submit registration",
     "auth.backToLogin": "Back to login",
@@ -431,6 +495,7 @@ export const messages = {
     "announcement.deleteTitle": "Delete announcement",
     "announcement.deleteConfirm": "Delete announcement {title}?",
     "announcement.deleted": "Announcement deleted",
+    "announcement.batchDeleted": "{count} announcements deleted",
     "announcement.batchDeleteTitle": "Batch delete announcements",
     "announcement.batchDeleteConfirm": "Delete the selected {count} announcements?",
     "announcement.closeTicker": "Close announcement",
@@ -450,9 +515,6 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && locales.includes(value as Locale);
 }
 
-export function translate(locale: Locale, key: I18nKey, params: TranslateParams = {}) {
-  const dictionary = messages[locale] as Record<I18nKey, string>;
-  const fallback = messages[DEFAULT_LOCALE] as Record<I18nKey, string>;
-  const template = dictionary[key] || fallback[key] || key;
-  return template.replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? ""));
+export function hasMessageKey(locale: Locale, key: string) {
+  return Object.hasOwn(messages[locale], key) || Object.hasOwn(messages[DEFAULT_LOCALE], key);
 }

@@ -1,11 +1,11 @@
 from collections.abc import Generator
 from pathlib import Path
 
-from fastapi import HTTPException, status
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.exceptions import service_unavailable
 from app.core.install import is_installed, load_install_config
 from app.db.init import sync_database
 
@@ -29,7 +29,7 @@ def create_engine_for_url(database_url: str) -> Engine:
 def get_engine() -> Engine:
     global _engine, _engine_url
     if not is_installed():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="系统未初始化")
+        raise service_unavailable("error.notInstalled", "System is not initialized")
     database_url = load_install_config().database_url
     if _engine is None or _engine_url != database_url:
         _engine = create_engine_for_url(database_url)

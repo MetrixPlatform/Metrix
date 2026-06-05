@@ -17,7 +17,7 @@ class AuthService:
 
     def register(self, payload: RegisterRequest) -> User:
         if self.users.get_by_username(payload.username):
-            raise bad_request("账号已存在")
+            raise bad_request("error.usernameExists", "Username already exists")
         user = User(
             username=payload.username,
             full_name=payload.full_name,
@@ -40,11 +40,11 @@ class AuthService:
         if not user or not verify_password(payload.password, user.password_hash):
             record_audit(self.db, None, "auth.login_failed", "user", "", payload.username)
             self.db.commit()
-            raise bad_request("账号或密码错误")
+            raise bad_request("error.invalidCredentials", "Invalid username or password")
         if user.approval_status != "approved":
-            raise bad_request("账号尚未审核通过")
+            raise bad_request("error.accountPending", "Account approval is pending")
         if not user.is_active:
-            raise bad_request("账号已禁用")
+            raise bad_request("error.accountDisabled", "Account is disabled")
         user.last_login_at = utc_now()
         token = create_access_token(str(user.id))
         permissions = sorted(get_user_permission_codes(user))
@@ -64,7 +64,7 @@ class AuthService:
 
     def change_password(self, user: User, payload: ChangePasswordRequest) -> None:
         if not verify_password(payload.old_password, user.password_hash):
-            raise bad_request("旧密码不正确")
+            raise bad_request("error.oldPasswordIncorrect", "Old password is incorrect")
         user.password_hash = hash_password(payload.new_password)
         record_audit(self.db, user.id, "auth.change_password", "user", str(user.id), user.username)
         self.db.commit()
