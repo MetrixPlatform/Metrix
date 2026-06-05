@@ -21,7 +21,11 @@ class AnnouncementRepository:
         is_active: bool | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> list[Announcement]:
+        created_by_user_id: int | None = None,
+        created_at_order: str = "descend",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[Announcement], int]:
         query = self.db.query(Announcement)
         if keyword:
             pattern = f"%{keyword}%"
@@ -40,7 +44,15 @@ class AnnouncementRepository:
             query = query.filter(Announcement.created_at >= start_time)
         if end_time is not None:
             query = query.filter(Announcement.created_at <= end_time)
-        return query.order_by(Announcement.created_at.desc(), Announcement.id.desc()).all()
+        if created_by_user_id is not None:
+            query = query.filter(Announcement.created_by == created_by_user_id)
+        total = query.count()
+        if created_at_order == "ascend":
+            query = query.order_by(Announcement.created_at.asc(), Announcement.id.asc())
+        else:
+            query = query.order_by(Announcement.created_at.desc(), Announcement.id.desc())
+        offset = (page - 1) * page_size
+        return query.offset(offset).limit(page_size).all(), total
 
     def active(self) -> list[Announcement]:
         return (

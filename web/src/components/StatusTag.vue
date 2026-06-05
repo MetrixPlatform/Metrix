@@ -22,7 +22,7 @@ const label = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (props.status === true || props.status === "approved") {
+  if (props.status === true || props.status === "approved" || props.status === "read") {
     return "success";
   }
   if (props.status === false || props.status === "rejected") {

@@ -1,10 +1,12 @@
 import { del, post, put, request } from "./client";
-import type { RoleBrief, UserListItem } from "./types";
+import type { PageResult, RoleBrief, UserListItem } from "./types";
 
 export interface UserPayload {
   username?: string;
   password?: string;
   full_name: string;
+  phone: string;
+  email: string;
   company: string;
   department: string;
   role_ids?: number[];
@@ -14,6 +16,11 @@ export interface UserFilters {
   keyword?: string;
   approval_status?: string;
   is_active?: boolean | null;
+  start_time?: string;
+  end_time?: string;
+  sort_order?: "ascend" | "descend";
+  page?: number;
+  page_size?: number;
 }
 
 export function listUsers(filters: UserFilters = {}) {
@@ -23,7 +30,7 @@ export function listUsers(filters: UserFilters = {}) {
       params.set(key, String(value));
     }
   });
-  return request<UserListItem[]>(`/users${params.size ? `?${params}` : ""}`);
+  return request<PageResult<UserListItem>>(`/users${params.size ? `?${params}` : ""}`);
 }
 
 export function listUserRoleOptions() {

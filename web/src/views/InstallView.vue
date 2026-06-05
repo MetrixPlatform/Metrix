@@ -61,6 +61,14 @@
               <n-form-item label="姓名" path="admin_full_name">
                 <n-input v-model:value="form.admin_full_name" />
               </n-form-item>
+              <n-form-item label="手机号码" path="admin_phone">
+                <n-input v-model:value="form.admin_phone" />
+              </n-form-item>
+            </div>
+            <div class="install-field-row">
+              <n-form-item label="邮箱" path="admin_email">
+                <n-input v-model:value="form.admin_email" />
+              </n-form-item>
               <n-form-item label="公司" path="admin_company">
                 <n-input v-model:value="form.admin_company" />
               </n-form-item>
@@ -92,7 +100,7 @@ import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import { APP_NAME, DEFAULT_DATABASE_NAME, DEFAULT_SQLITE_PATH } from "../config/app";
 import { showError } from "../utils/message";
-import { maxLengthRule, minLengthRule, numberRequiredRule, requiredRule, validateForm } from "../utils/validation";
+import { emailRule, maxLengthRule, minLengthRule, numberRequiredRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
 const message = useMessage();
@@ -117,6 +125,8 @@ const form = reactive({
   admin_username: "",
   admin_password: "",
   admin_full_name: "",
+  admin_phone: "",
+  admin_email: "",
   admin_company: "",
   admin_department: ""
 });
@@ -131,6 +141,8 @@ const rules: FormRules = {
   admin_username: [requiredRule("管理员账号"), minLengthRule("管理员账号", 3), maxLengthRule("管理员账号", 64)],
   admin_password: [requiredRule("管理员密码"), minLengthRule("管理员密码", 6), maxLengthRule("管理员密码", 128)],
   admin_full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
+  admin_phone: [requiredRule("手机号码"), phoneRule()],
+  admin_email: [requiredRule("邮箱"), emailRule(), maxLengthRule("邮箱", 254)],
   admin_company: maxLengthRule("公司", 120),
   admin_department: maxLengthRule("部门", 120)
 };

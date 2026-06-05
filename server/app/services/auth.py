@@ -21,6 +21,8 @@ class AuthService:
         user = User(
             username=payload.username,
             full_name=payload.full_name,
+            phone=payload.phone,
+            email=payload.email,
             company=payload.company,
             department=payload.department,
             password_hash=hash_password(payload.password),
@@ -52,6 +54,8 @@ class AuthService:
 
     def update_profile(self, user: User, payload: ProfileUpdateRequest) -> User:
         user.full_name = payload.full_name
+        user.phone = payload.phone
+        user.email = payload.email
         user.company = payload.company
         user.department = payload.department
         record_audit(self.db, user.id, "auth.profile_update", "user", str(user.id), user.username)

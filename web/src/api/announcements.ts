@@ -1,5 +1,5 @@
 import { del, post, put, request } from "./client";
-import type { AnnouncementFeedItem, AnnouncementItem, AnnouncementTargetType, PublicAnnouncementItem } from "./types";
+import type { AnnouncementFeedItem, AnnouncementItem, AnnouncementTargetType, PageResult, PublicAnnouncementItem } from "./types";
 
 export interface AnnouncementPayload {
   title: string;
@@ -17,8 +17,12 @@ export interface AnnouncementFilters {
   target_type?: AnnouncementTargetType | "";
   display_mode?: "popup" | "ticker" | "sidebar" | "";
   is_active?: boolean | null;
+  created_by?: "all" | "me" | "";
+  sort_order?: "ascend" | "descend";
   start_time?: string;
   end_time?: string;
+  page?: number;
+  page_size?: number;
 }
 
 export function listPublicAnnouncements() {
@@ -40,7 +44,7 @@ export function listAnnouncements(filters: AnnouncementFilters = {}) {
       params.set(key, String(value));
     }
   });
-  return request<AnnouncementItem[]>(`/announcements${params.size ? `?${params}` : ""}`);
+  return request<PageResult<AnnouncementItem>>(`/announcements${params.size ? `?${params}` : ""}`);
 }
 
 export function createAnnouncement(payload: AnnouncementPayload) {

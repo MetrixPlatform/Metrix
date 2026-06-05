@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_permission
@@ -11,6 +11,7 @@ from app.schemas.announcement import (
     AnnouncementBatchDeleteRequest,
     AnnouncementFeedItem,
     AnnouncementItem,
+    AnnouncementListResponse,
     AnnouncementPayload,
     PublicAnnouncementItem,
 )
@@ -42,7 +43,7 @@ def mark_announcement_read(
     return AnnouncementService(db).mark_read(user, announcement_id)
 
 
-@router.get("", response_model=list[AnnouncementItem])
+@router.get("", response_model=AnnouncementListResponse)
 def list_announcements(
     keyword: str = "",
     target_type: str = "",
@@ -50,10 +51,26 @@ def list_announcements(
     is_active: bool | None = None,
     start_time: datetime | None = None,
     end_time: datetime | None = None,
+    created_by: str = "",
+    sort_order: str = "descend",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=500),
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission(ANNOUNCEMENT_READ)),
-) -> list[AnnouncementItem]:
-    return AnnouncementService(db).list_announcements(keyword, target_type, display_mode, is_active, start_time, end_time)
+    actor: User = Depends(require_permission(ANNOUNCEMENT_READ)),
+) -> AnnouncementListResponse:
+    return AnnouncementService(db).list_announcements(
+        actor,
+        keyword,
+        target_type,
+        display_mode,
+        is_active,
+        start_time,
+        end_time,
+        created_by,
+        sort_order,
+        page,
+        page_size,
+    )
 
 
 @router.post("", response_model=AnnouncementItem)

@@ -8,6 +8,8 @@ export interface UserProfile {
   id: number;
   username: string;
   full_name: string;
+  phone: string;
+  email: string;
   company: string;
   department: string;
   approval_status: string;
@@ -53,6 +55,13 @@ export interface LoginResponse {
 export interface InstallStatus {
   installed: boolean;
   database_type: string | null;
+}
+
+export interface PageResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export type AnnouncementTargetType = "all" | "authenticated" | "permission" | "company" | "company_department" | "user";

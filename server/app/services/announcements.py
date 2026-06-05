@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import not_found
 from app.models import Announcement, User
 from app.repositories.announcements import AnnouncementRepository
-from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementPayload
+from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementListResponse, AnnouncementPayload
 from app.services.audit import record_audit
 from app.services.permissions import has_permission
 
@@ -20,15 +20,38 @@ class AnnouncementService:
 
     def list_announcements(
         self,
+        actor: User,
         keyword: str = "",
         target_type: str = "",
         display_mode: str = "",
         is_active: bool | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> list[AnnouncementItem]:
-        announcements = self.announcements.list(keyword, target_type, display_mode, is_active, start_time, end_time)
-        return self._with_creator_usernames(announcements)
+        created_by: str = "",
+        sort_order: str = "descend",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> AnnouncementListResponse:
+        created_by_user_id = actor.id if created_by == "me" else None
+        created_at_order = "ascend" if sort_order == "ascend" else "descend"
+        announcements, total = self.announcements.list(
+            keyword,
+            target_type,
+            display_mode,
+            is_active,
+            start_time,
+            end_time,
+            created_by_user_id,
+            created_at_order,
+            page,
+            page_size,
+        )
+        return AnnouncementListResponse(
+            items=self._with_creator_usernames(announcements),
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
 
     def list_for_user(self, user: User) -> list[AnnouncementFeedItem]:
         reads = self.announcements.read_map(user.id)

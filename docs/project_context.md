@@ -322,3 +322,10 @@
 - `.announcement-toolbar` 改为可换行布局，公告操作按钮独立放在右侧操作区，窄屏下自然换行，避免和日期范围、查询按钮重叠。
 - `docs/development_page_guide.md` 新增表格筛选规则：枚举字段优先用表头筛选，顶部工具栏避免堆积下拉条件；批量操作放操作区并允许窄屏换行。
 - 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 14 passed，`git diff --check` 通过，调试残留扫描无命中。
+## 2026-06-05：支持列表后端分页和公告排序筛选
+- 用户管理和公告管理列表改为后端分页响应，统一返回 `items`、`total`、`page`、`page_size`；前端 `n-data-table` 使用 `remote` 分页，分页大小固定为 `20 / 50 / 100 / 500`，后端 `page_size` 上限同步为 500。
+- 公告管理新增“操作账号”表头筛选，支持查看全部发布人或仅查看当前登录账号发布的公告；“创建时间”列支持正序/倒序远程排序。
+- 用户管理保留关键字和注册时间范围查询，审核状态与启用状态使用表头筛选，注册时间支持远程正序/倒序排序；分页后移除基于当前页数据的最后管理员前端判断，最后管理员保护继续由后端强校验负责。
+- 用户信息扩展手机号和邮箱字段，安装管理员、注册、个人资料、用户新增/编辑均使用同一套前后端格式校验；开发库同步会自动补齐 `users.phone` 和 `users.email` 列。
+- `docs/development_page_guide.md` 新增表格分页规则：数据量可能增长的后台列表必须走后端分页，分页、表头筛选和排序统一映射接口参数。
+- 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 16 passed，`git diff --check` 通过，调试残留扫描无命中。

@@ -47,6 +47,13 @@ class AnnouncementItem(AnnouncementPayload):
     model_config = {"from_attributes": True}
 
 
+class AnnouncementListResponse(BaseModel):
+    items: list[AnnouncementItem]
+    total: int
+    page: int
+    page_size: int
+
+
 class AnnouncementFeedItem(AnnouncementItem):
     is_read: bool = False
     read_at: datetime | None = None

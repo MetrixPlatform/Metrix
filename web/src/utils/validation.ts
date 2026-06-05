@@ -35,6 +35,22 @@ export function maxLengthRule(label: string, max: number): FormItemRule {
   };
 }
 
+export function phoneRule(): FormItemRule {
+  return {
+    validator: (_rule, value: string) => /^1[3-9]\d{9}$/.test(value),
+    message: "手机号码格式不正确",
+    trigger: textTrigger
+  };
+}
+
+export function emailRule(): FormItemRule {
+  return {
+    validator: (_rule, value: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
+    message: "邮箱格式不正确",
+    trigger: textTrigger
+  };
+}
+
 export async function validateForm(form: FormInst | null): Promise<boolean> {
   try {
     await form?.validate();

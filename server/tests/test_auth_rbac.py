@@ -31,6 +31,8 @@ def install_sqlite(client: TestClient, tmp_path):
         "admin_username": "rootadmin",
         "admin_password": "RootPass123",
         "admin_full_name": "管理员",
+        "admin_phone": "13800000000",
+        "admin_email": "rootadmin@example.com",
         "admin_company": "平台公司",
         "admin_department": "平台",
     }
@@ -44,6 +46,29 @@ def login(client: TestClient, username: str, password: str) -> dict[str, str]:
     response = client.post("/api/auth/login", json={"username": username, "password": password})
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['token']}"}
+
+
+def page_items(response):
+    return response.json()["items"]
+
+
+def create_announcement(client: TestClient, headers: dict[str, str], title: str):
+    response = client.post(
+        "/api/announcements",
+        json={
+            "title": title,
+            "content": f"{title} 内容",
+            "target_type": "authenticated",
+            "target_value": "",
+            "show_popup": False,
+            "show_ticker": True,
+            "show_sidebar": True,
+            "is_active": True,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    return response
 
 
 def slugify(value: str) -> str:
@@ -92,7 +117,8 @@ def test_installed_database_auto_syncs_new_tables_and_permissions(tmp_path, monk
 
     announcements = client.get("/api/announcements", headers=headers)
     assert announcements.status_code == 200
-    assert announcements.json() == []
+    assert announcements.json()["items"] == []
+    assert announcements.json()["total"] == 0
 
     permissions = client.get("/api/permissions", headers=headers)
     assert "route:announcements" in {item["code"] for item in permissions.json()}
@@ -188,6 +214,8 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
         admin_username="mysqladmin",
         admin_password="MysqlPass123",
         admin_full_name="MySQL 管理员",
+        admin_phone="13800000001",
+        admin_email="mysqladmin@example.com",
         admin_company="",
         admin_department="",
     )
@@ -238,6 +266,8 @@ def test_mysql_database_creation_sql(monkeypatch):
         admin_username="mysqladmin",
         admin_password="MysqlPass123",
         admin_full_name="MySQL 管理员",
+        admin_phone="13800000001",
+        admin_email="mysqladmin@example.com",
         admin_company="",
         admin_department="",
     )
@@ -314,6 +344,8 @@ def test_register_approve_and_user_login(tmp_path, monkeypatch):
         json={
             "username": "user01",
             "password": "UserPass123",
+            "phone": "13800000002",
+            "email": "user01@example.com",
             "company": "公司",
             "department": "部门",
             "full_name": "用户",
@@ -324,7 +356,7 @@ def test_register_approve_and_user_login(tmp_path, monkeypatch):
 
     pending = client.get("/api/users", params={"approval_status": "pending"}, headers=admin_headers)
     assert pending.status_code == 200
-    user_id = pending.json()[0]["id"]
+    user_id = page_items(pending)[0]["id"]
     approve = client.post(f"/api/users/{user_id}/approve", json={"role_ids": []}, headers=admin_headers)
     assert approve.status_code == 200
 
@@ -340,7 +372,13 @@ def test_profile_and_password_change(tmp_path, monkeypatch):
 
     profile = client.put(
         "/api/auth/profile",
-        json={"full_name": "新管理员", "company": "新公司", "department": "新部门"},
+        json={
+            "full_name": "新管理员",
+            "phone": "13800000003",
+            "email": "newadmin@example.com",
+            "company": "新公司",
+            "department": "新部门",
+        },
         headers=headers,
     )
     assert profile.status_code == 200
@@ -388,6 +426,8 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
             "username": "reader",
             "password": "Reader123",
             "full_name": "查询员",
+            "phone": "13800000004",
+            "email": "reader@example.com",
             "company": "",
             "department": "",
             "role_ids": [role_id],
@@ -406,6 +446,121 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     assert role_options.json()[0].keys() == {"id", "code", "name"}
     assert client.get("/api/permissions", headers=reader_headers).status_code == 403
     assert client.post("/api/users", json={}, headers=reader_headers).status_code == 403
+
+
+def test_user_list_supports_pagination(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    for index in range(3):
+        response = client.post(
+            "/api/users",
+            json={
+                "username": f"page_user_{index}",
+                "password": "UserPass123",
+                "full_name": f"分页用户{index}",
+                "phone": f"1380000100{index}",
+                "email": f"page_user_{index}@example.com",
+                "company": "",
+                "department": "",
+                "role_ids": [],
+            },
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+
+    first_page = client.get("/api/users", params={"page": 1, "page_size": 2}, headers=admin_headers)
+    assert first_page.status_code == 200
+    assert len(page_items(first_page)) == 2
+    assert first_page.json()["total"] == 4
+    assert first_page.json()["page"] == 1
+    assert first_page.json()["page_size"] == 2
+
+    second_page = client.get("/api/users", params={"page": 2, "page_size": 2}, headers=admin_headers)
+    assert second_page.status_code == 200
+    assert len(page_items(second_page)) == 2
+
+    large_page = client.get("/api/users", params={"page_size": 500}, headers=admin_headers)
+    assert large_page.status_code == 200
+    assert large_page.json()["page_size"] == 500
+    assert large_page.json()["total"] == 4
+
+
+def test_announcement_list_supports_pagination_sort_and_creator_filter(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    create_announcement(client, admin_headers, "公告一")
+    create_announcement(client, admin_headers, "公告二")
+    create_announcement(client, admin_headers, "公告三")
+
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    announcement_permissions = [
+        item["id"]
+        for item in permissions
+        if item["code"] in {"action:announcement:create", "action:announcement:read"}
+    ]
+    role = client.post(
+        "/api/roles",
+        json={"code": "notice_editor", "name": "公告编辑", "description": ""},
+        headers=admin_headers,
+    )
+    assert role.status_code == 200
+    assign = client.put(
+        f"/api/roles/{role.json()['id']}/permissions",
+        json={"permission_ids": announcement_permissions},
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+    editor = client.post(
+        "/api/users",
+        json={
+            "username": "notice_editor",
+            "password": "Notice123",
+            "full_name": "公告编辑",
+            "phone": "13800000005",
+            "email": "notice-editor@example.com",
+            "company": "",
+            "department": "",
+            "role_ids": [role.json()["id"]],
+        },
+        headers=admin_headers,
+    )
+    assert editor.status_code == 200
+    editor_headers = login(client, "notice_editor", "Notice123")
+    create_announcement(client, editor_headers, "编辑公告")
+
+    ascending = client.get(
+        "/api/announcements",
+        params={"page": 1, "page_size": 2, "sort_order": "ascend"},
+        headers=admin_headers,
+    )
+    assert ascending.status_code == 200
+    assert [item["title"] for item in page_items(ascending)] == ["公告一", "公告二"]
+    assert ascending.json()["total"] == 4
+
+    descending = client.get(
+        "/api/announcements",
+        params={"page": 1, "page_size": 2, "sort_order": "descend"},
+        headers=admin_headers,
+    )
+    assert descending.status_code == 200
+    assert [item["title"] for item in page_items(descending)] == ["编辑公告", "公告三"]
+
+    admin_only = client.get("/api/announcements", params={"created_by": "me"}, headers=admin_headers)
+    assert admin_only.status_code == 200
+    assert {item["title"] for item in page_items(admin_only)} == {"公告一", "公告二", "公告三"}
+
+    editor_only = client.get("/api/announcements", params={"created_by": "me"}, headers=editor_headers)
+    assert editor_only.status_code == 200
+    assert [item["title"] for item in page_items(editor_only)] == ["编辑公告"]
+
+    all_creators = client.get("/api/announcements", params={"created_by": "all", "page_size": 500}, headers=admin_headers)
+    assert all_creators.status_code == 200
+    assert all_creators.json()["total"] == 4
+    assert all_creators.json()["page_size"] == 500
 
 
 def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
@@ -464,16 +619,16 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
 
     listed = client.get("/api/announcements", headers=admin_headers)
     assert listed.status_code == 200
-    assert all(item["created_by_username"] == payload["admin_username"] for item in listed.json())
+    assert all(item["created_by_username"] == payload["admin_username"] for item in page_items(listed))
 
     all_target = client.get("/api/announcements", params={"target_type": "all"}, headers=admin_headers)
-    assert [item["title"] for item in all_target.json()] == ["平台维护"]
+    assert [item["title"] for item in page_items(all_target)] == ["平台维护"]
 
     popup_items = client.get("/api/announcements", params={"display_mode": "popup"}, headers=admin_headers)
-    assert [item["title"] for item in popup_items.json()] == ["部门通知"]
+    assert [item["title"] for item in page_items(popup_items)] == ["部门通知"]
 
     keyword_items = client.get("/api/announcements", params={"keyword": "登录用户"}, headers=admin_headers)
-    assert [item["title"] for item in keyword_items.json()] == ["登录用户公告"]
+    assert [item["title"] for item in page_items(keyword_items)] == ["登录用户公告"]
 
     batch_delete_ids = []
     for title in ["待批量删除一", "待批量删除二"]:
@@ -496,7 +651,7 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
     batch_delete = client.post("/api/announcements/batch-delete", json={"ids": batch_delete_ids}, headers=admin_headers)
     assert batch_delete.status_code == 200
     assert batch_delete.json() == {"message": "已删除 2 条公告"}
-    remaining_titles = {item["title"] for item in client.get("/api/announcements", headers=admin_headers).json()}
+    remaining_titles = {item["title"] for item in page_items(client.get("/api/announcements", headers=admin_headers))}
     assert "待批量删除一" not in remaining_titles
     assert "待批量删除二" not in remaining_titles
 
@@ -508,6 +663,8 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
         json={
             "username": "notice_user",
             "password": "Notice123",
+            "phone": "13800000006",
+            "email": "notice-user@example.com",
             "company": "公司",
             "department": "部门",
             "full_name": "公告用户",
@@ -515,7 +672,7 @@ def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):
     )
     assert register_response.status_code == 200
     pending = client.get("/api/users", params={"approval_status": "pending"}, headers=admin_headers)
-    user_id = next(item["id"] for item in pending.json() if item["username"] == "notice_user")
+    user_id = next(item["id"] for item in page_items(pending) if item["username"] == "notice_user")
     assert client.post(f"/api/users/{user_id}/approve", json={"role_ids": []}, headers=admin_headers).status_code == 200
 
     user_headers = login(client, "notice_user", "Notice123")

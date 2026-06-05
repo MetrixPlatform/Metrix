@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import bad_request, forbidden, not_found
@@ -7,7 +9,7 @@ from app.core.time import utc_now
 from app.models import Role, User
 from app.repositories.roles import RoleRepository
 from app.repositories.users import UserRepository
-from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, UserCreateRequest, UserUpdateRequest
+from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, UserCreateRequest, UserListResponse, UserUpdateRequest
 from app.services.audit import record_audit
 
 
@@ -17,8 +19,29 @@ class UserService:
         self.users = UserRepository(db)
         self.roles = RoleRepository(db)
 
-    def list_users(self, keyword: str = "", approval_status: str = "", is_active: bool | None = None) -> list[User]:
-        return self.users.list(keyword, approval_status, is_active)
+    def list_users(
+        self,
+        keyword: str = "",
+        approval_status: str = "",
+        is_active: bool | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        sort_order: str = "descend",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> UserListResponse:
+        created_at_order = "ascend" if sort_order == "ascend" else "descend"
+        users, total = self.users.list(
+            keyword,
+            approval_status,
+            is_active,
+            start_time,
+            end_time,
+            created_at_order,
+            page,
+            page_size,
+        )
+        return UserListResponse(items=users, total=total, page=page, page_size=page_size)
 
     def list_role_options(self) -> list[Role]:
         return self.roles.list()
@@ -35,6 +58,8 @@ class UserService:
         user = User(
             username=payload.username,
             full_name=payload.full_name,
+            phone=payload.phone,
+            email=payload.email,
             company=payload.company,
             department=payload.department,
             password_hash=hash_password(payload.password),
@@ -50,6 +75,8 @@ class UserService:
     def update_user(self, actor: User, user_id: int, payload: UserUpdateRequest) -> User:
         user = self.get_user(user_id)
         user.full_name = payload.full_name
+        user.phone = payload.phone
+        user.email = payload.email
         user.company = payload.company
         user.department = payload.department
         record_audit(self.db, actor.id, "user.update", "user", str(user.id), user.username)

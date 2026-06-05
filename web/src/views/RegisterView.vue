@@ -26,14 +26,20 @@
           <n-form-item label="确认密码" path="confirm_password">
             <n-input v-model:value="form.confirm_password" type="password" show-password-on="click" />
           </n-form-item>
+          <n-form-item label="姓名" path="full_name">
+            <n-input v-model:value="form.full_name" />
+          </n-form-item>
+          <n-form-item label="手机号码" path="phone">
+            <n-input v-model:value="form.phone" />
+          </n-form-item>
+          <n-form-item label="邮箱" path="email">
+            <n-input v-model:value="form.email" />
+          </n-form-item>
           <n-form-item label="公司" path="company">
             <n-input v-model:value="form.company" />
           </n-form-item>
           <n-form-item label="部门" path="department">
             <n-input v-model:value="form.department" />
-          </n-form-item>
-          <n-form-item label="姓名" path="full_name">
-            <n-input v-model:value="form.full_name" />
           </n-form-item>
         </div>
         <div class="register-form-footer">
@@ -60,13 +66,13 @@ import { register } from "../api/auth";
 import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import { showError } from "../utils/message";
-import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
+import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
-const form = reactive({ username: "", password: "", confirm_password: "", company: "", department: "", full_name: "" });
+const form = reactive({ username: "", password: "", confirm_password: "", full_name: "", phone: "", email: "", company: "", department: "" });
 
 const rules: FormRules = {
   username: [requiredRule("账号"), minLengthRule("账号", 3), maxLengthRule("账号", 64)],
@@ -79,9 +85,11 @@ const rules: FormRules = {
       trigger: ["input", "blur"]
     }
   ],
-  company: [requiredRule("公司"), maxLengthRule("公司", 120)],
-  department: [requiredRule("部门"), maxLengthRule("部门", 120)],
-  full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)]
+  full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
+  phone: [requiredRule("手机号码"), phoneRule()],
+  email: [requiredRule("邮箱"), emailRule(), maxLengthRule("邮箱", 254)],
+  company: maxLengthRule("公司", 120),
+  department: maxLengthRule("部门", 120)
 };
 
 async function submit() {
@@ -91,6 +99,8 @@ async function submit() {
     await register({
       username: form.username,
       password: form.password,
+      phone: form.phone,
+      email: form.email,
       company: form.company,
       department: form.department,
       full_name: form.full_name

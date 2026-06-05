@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -6,21 +8,44 @@ from app.core.permissions import USER_CREATE, USER_DELETE, USER_OPERATE, USER_RE
 from app.db.session import get_db
 from app.models import Role, User
 from app.schemas.common import MessageResponse
-from app.schemas.user import AssignRolesRequest, RejectUserRequest, ResetPasswordRequest, RoleBrief, UserCreateRequest, UserListItem, UserUpdateRequest
+from app.schemas.user import (
+    AssignRolesRequest,
+    RejectUserRequest,
+    ResetPasswordRequest,
+    RoleBrief,
+    UserCreateRequest,
+    UserListItem,
+    UserListResponse,
+    UserUpdateRequest,
+)
 from app.services.users import UserService
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-@router.get("", response_model=list[UserListItem])
+@router.get("", response_model=UserListResponse)
 def list_users(
     keyword: str = "",
     approval_status: str = "",
     is_active: bool | None = Query(default=None),
+    start_time: datetime | None = Query(default=None),
+    end_time: datetime | None = Query(default=None),
+    sort_order: str = "descend",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=500),
     db: Session = Depends(get_db),
     _: User = Depends(require_permission(USER_READ)),
-) -> list[User]:
-    return UserService(db).list_users(keyword, approval_status, is_active)
+) -> UserListResponse:
+    return UserService(db).list_users(
+        keyword,
+        approval_status,
+        is_active,
+        start_time,
+        end_time,
+        sort_order,
+        page,
+        page_size,
+    )
 
 
 @router.get("/role-options", response_model=list[RoleBrief])

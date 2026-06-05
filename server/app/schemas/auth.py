@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.common import normalize_email, normalize_phone
 from app.schemas.user import UserProfile
 
 
@@ -11,9 +12,21 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     password: str = Field(min_length=6, max_length=128)
-    company: str = Field(min_length=1, max_length=120)
-    department: str = Field(min_length=1, max_length=120)
     full_name: str = Field(min_length=1, max_length=80)
+    phone: str = Field(min_length=1, max_length=20)
+    email: str = Field(min_length=1, max_length=254)
+    company: str = Field(default="", max_length=120)
+    department: str = Field(default="", max_length=120)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return normalize_phone(value)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return normalize_email(value)
 
 
 class ChangePasswordRequest(BaseModel):
@@ -22,9 +35,21 @@ class ChangePasswordRequest(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
-    company: str = Field(min_length=1, max_length=120)
-    department: str = Field(min_length=1, max_length=120)
     full_name: str = Field(min_length=1, max_length=80)
+    phone: str = Field(min_length=1, max_length=20)
+    email: str = Field(min_length=1, max_length=254)
+    company: str = Field(default="", max_length=120)
+    department: str = Field(default="", max_length=120)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        return normalize_phone(value)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return normalize_email(value)
 
 
 class LoginResponse(BaseModel):

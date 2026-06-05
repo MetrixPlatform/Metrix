@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.schemas.common import normalize_email, normalize_phone
 
 
 class InstallStatusResponse(BaseModel):
@@ -23,8 +25,20 @@ class InstallRequest(BaseModel):
     admin_username: str = Field(min_length=3, max_length=64)
     admin_password: str = Field(min_length=6, max_length=128)
     admin_full_name: str = Field(min_length=1, max_length=80)
+    admin_phone: str = Field(min_length=1, max_length=20)
+    admin_email: str = Field(min_length=1, max_length=254)
     admin_company: str = Field(default="", max_length=120)
     admin_department: str = Field(default="", max_length=120)
+
+    @field_validator("admin_phone")
+    @classmethod
+    def validate_admin_phone(cls, value: str) -> str:
+        return normalize_phone(value)
+
+    @field_validator("admin_email")
+    @classmethod
+    def validate_admin_email(cls, value: str) -> str:
+        return normalize_email(value)
 
 
 class InstallDatabaseTestRequest(BaseModel):

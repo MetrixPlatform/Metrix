@@ -2,14 +2,34 @@
   <section class="work-card table-page-card">
     <div class="toolbar user-toolbar">
       <div class="user-filter-row">
-        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索账号、姓名、公司、部门" clearable />
-        <n-select v-model:value="filters.approval_status" class="filter-select" :options="approvalOptions" clearable placeholder="审核状态" />
-        <n-select v-model:value="filters.is_active" class="filter-select" :options="activeOptions" clearable placeholder="启用状态" />
-        <n-button @click="loadUsers">查询</n-button>
+        <n-input v-model:value="filters.keyword" class="filter-keyword" placeholder="搜索账号、姓名、手机、邮箱、公司、部门" clearable />
+        <n-date-picker
+          v-model:value="filters.time_range"
+          class="filter-date-range"
+          type="datetimerange"
+          clearable
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+        />
+        <n-button @click="searchUsers">查询</n-button>
       </div>
       <permission-button class="user-create-button" permission="action:user:create" type="primary" @click="openCreate">新增用户</permission-button>
     </div>
-    <n-data-table class="page-data-table" flex-height :columns="columns" :data="users" :loading="loading" :row-key="(row) => row.id" :scroll-x="1100" />
+    <n-data-table
+      class="page-data-table"
+      flex-height
+      :columns="columns"
+      :data="users"
+      :loading="loading"
+      :pagination="pagination"
+      :row-key="(row) => row.id"
+      :scroll-x="1380"
+      remote
+      @update:filters="handleTableFilters"
+      @update:page="handlePageChange"
+      @update:page-size="handlePageSizeChange"
+      @update:sorter="handleSorter"
+    />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" title="审核通过">
       <n-checkbox-group v-model:value="roleIds">
         <n-space>
@@ -42,6 +62,12 @@
         </n-form-item>
         <n-form-item label="姓名" path="full_name">
           <n-input v-model:value="userForm.full_name" />
+        </n-form-item>
+        <n-form-item label="手机号码" path="phone">
+          <n-input v-model:value="userForm.phone" />
+        </n-form-item>
+        <n-form-item label="邮箱" path="email">
+          <n-input v-model:value="userForm.email" />
         </n-form-item>
         <n-form-item label="公司" path="company">
           <n-input v-model:value="userForm.company" />
@@ -95,18 +121,18 @@ import {
   NCheckbox,
   NCheckboxGroup,
   NDataTable,
+  NDatePicker,
   NDropdown,
   NForm,
   NFormItem,
   NIcon,
   NInput,
   NModal,
-  NSelect,
   NSpace,
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, DropdownOption, FormInst, FormRules } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableSortState, DropdownOption, FormInst, FormRules } from "naive-ui";
 
 import { approveUser, assignRoles, createUser, deleteUser, disableUser, enableUser, listUserRoleOptions, listUsers, rejectUser, resetPassword, updateUser } from "../api/users";
 import type { RoleBrief, UserListItem } from "../api/types";
@@ -114,7 +140,7 @@ import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";
-import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
+import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
 const dialog = useDialog();
@@ -136,15 +162,35 @@ const passwordTarget = ref<UserListItem | null>(null);
 const roleIds = ref<number[]>([]);
 const passwordForm = reactive({ password: "" });
 const rejectForm = reactive({ reason: "" });
-const filters = reactive<{ keyword: string; approval_status: string | null; is_active: string | null }>({
+type UserApprovalFilter = "pending" | "approved" | "rejected";
+type UserActiveFilter = "true" | "false";
+const filters = reactive<{
+  keyword: string;
+  approval_status: UserApprovalFilter | null;
+  is_active: UserActiveFilter | null;
+  sort_order: "ascend" | "descend";
+  time_range: [number, number] | null;
+}>({
   keyword: "",
   approval_status: null,
-  is_active: null
+  is_active: null,
+  sort_order: "descend",
+  time_range: null
+});
+const pagination = reactive({
+  page: 1,
+  pageSize: 20,
+  itemCount: 0,
+  pageSizes: [20, 50, 100, 500],
+  showSizePicker: true,
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount ?? 0} 条`
 });
 const userForm = reactive({
   username: "",
   password: "",
   full_name: "",
+  phone: "",
+  email: "",
   company: "",
   department: ""
 });
@@ -152,6 +198,8 @@ const userRules: FormRules = {
   username: [requiredRule("账号"), minLengthRule("账号", 3), maxLengthRule("账号", 64)],
   password: [requiredRule("密码"), minLengthRule("密码", 6), maxLengthRule("密码", 128)],
   full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
+  phone: [requiredRule("手机号码"), phoneRule()],
+  email: [requiredRule("邮箱"), emailRule(), maxLengthRule("邮箱", 254)],
   company: maxLengthRule("公司", 120),
   department: maxLengthRule("部门", 120)
 };
@@ -162,9 +210,6 @@ const rejectRules: FormRules = {
   reason: maxLengthRule("驳回原因", 500)
 };
 const adminRoleId = computed(() => roles.value.find((role) => role.code === "admin")?.id ?? null);
-const activeAdminCount = computed(
-  () => users.value.filter((user) => user.is_active && user.approval_status === "approved" && hasAdminRole(user)).length
-);
 const needsRoleOptions = computed(() => authStore.has("action:user:create") || authStore.has("action:user:operate"));
 
 const approvalOptions = [
@@ -177,15 +222,42 @@ const activeOptions = [
   { label: "禁用", value: "false" }
 ];
 
-const columns: DataTableColumns<UserListItem> = [
+const columns = computed<DataTableColumns<UserListItem>>(() => [
   { title: "账号", key: "username", width: 130 },
   { title: "姓名", key: "full_name", width: 120 },
+  { title: "手机号码", key: "phone", width: 130 },
+  { title: "邮箱", key: "email", width: 200 },
   { title: "公司", key: "company", width: 140 },
   { title: "部门", key: "department", width: 120 },
-  { title: "审核", key: "approval_status", width: 100, render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels }) },
-  { title: "状态", key: "is_active", width: 90, render: (row) => h(StatusTag, { status: row.is_active }) },
+  {
+    title: "审核",
+    key: "approval_status",
+    width: 100,
+    filter: (value, row) => row.approval_status === value,
+    filterMultiple: false,
+    filterOptionValue: filters.approval_status,
+    filterOptions: approvalOptions,
+    render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels })
+  },
+  {
+    title: "状态",
+    key: "is_active",
+    width: 90,
+    filter: (value, row) => row.is_active === (value === "true"),
+    filterMultiple: false,
+    filterOptionValue: filters.is_active,
+    filterOptions: activeOptions,
+    render: (row) => h(StatusTag, { status: row.is_active })
+  },
   { title: "角色", key: "roles", width: 160, render: (row) => row.roles.map((role) => role.name).join("、") || "-" },
-  { title: "注册时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
+  {
+    title: "注册时间",
+    key: "created_at",
+    width: 170,
+    sorter: true,
+    sortOrder: filters.sort_order,
+    render: (row) => formatTime(row.created_at)
+  },
   {
     title: "操作",
     key: "actions",
@@ -209,7 +281,7 @@ const columns: DataTableColumns<UserListItem> = [
       );
     }
   }
-];
+]);
 
 const approvalLabels = { pending: "待审核", approved: "已通过", rejected: "已驳回" };
 
@@ -220,16 +292,70 @@ onMounted(async () => {
 async function loadUsers() {
   loading.value = true;
   try {
-    users.value = await listUsers({
+    const result = await listUsers({
       keyword: filters.keyword,
       approval_status: filters.approval_status || undefined,
-      is_active: filters.is_active ? filters.is_active === "true" : null
+      is_active: filters.is_active ? filters.is_active === "true" : null,
+      sort_order: filters.sort_order,
+      start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
+      end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
+      page: pagination.page,
+      page_size: pagination.pageSize
     });
+    users.value = result.items;
+    pagination.itemCount = result.total;
+    pagination.page = result.page;
+    pagination.pageSize = result.page_size;
   } catch (error) {
     showError(message, error);
   } finally {
     loading.value = false;
   }
+}
+
+function searchUsers() {
+  pagination.page = 1;
+  void loadUsers();
+}
+
+function handlePageChange(page: number) {
+  pagination.page = page;
+  void loadUsers();
+}
+
+function handlePageSizeChange(pageSize: number) {
+  pagination.pageSize = pageSize;
+  pagination.page = 1;
+  void loadUsers();
+}
+
+function handleTableFilters(filterState: DataTableFilterState) {
+  const approvalStatus = singleFilterValue(filterState, "approval_status");
+  const activeStatus = singleFilterValue(filterState, "is_active");
+  filters.approval_status = isUserApprovalFilter(approvalStatus) ? approvalStatus : null;
+  filters.is_active = isUserActiveFilter(activeStatus) ? activeStatus : null;
+  pagination.page = 1;
+  void loadUsers();
+}
+
+function handleSorter(sortState: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(sortState) ? sortState[0] : sortState;
+  filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
+  pagination.page = 1;
+  void loadUsers();
+}
+
+function singleFilterValue(filterState: DataTableFilterState, key: string) {
+  const value = filterState[key];
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function isUserApprovalFilter(value: unknown): value is UserApprovalFilter {
+  return value === "pending" || value === "approved" || value === "rejected";
+}
+
+function isUserActiveFilter(value: unknown): value is UserActiveFilter {
+  return value === "true" || value === "false";
 }
 
 async function loadRoles() {
@@ -242,7 +368,7 @@ async function loadRoles() {
 
 function openCreate() {
   editingUser.value = null;
-  Object.assign(userForm, { username: "", password: "", full_name: "", company: "", department: "" });
+  Object.assign(userForm, { username: "", password: "", full_name: "", phone: "", email: "", company: "", department: "" });
   roleIds.value = [];
   showUserModal.value = true;
 }
@@ -253,6 +379,8 @@ function openEdit(user: UserListItem) {
     username: user.username,
     password: "",
     full_name: user.full_name,
+    phone: user.phone,
+    email: user.email,
     company: user.company,
     department: user.department
   });
@@ -322,7 +450,7 @@ function rowActionOptions(user: UserListItem): DropdownOption[] {
   }
   if (user.approval_status === "approved" && authStore.has("action:user:operate")) {
     options.push(
-      { label: user.is_active ? "禁用" : "启用", key: "toggle-active", disabled: user.is_active && isLastActiveAdmin(user) },
+      { label: user.is_active ? "禁用" : "启用", key: "toggle-active" },
       { label: "角色", key: "roles" },
       { label: "密码", key: "password" }
     );
@@ -347,7 +475,6 @@ function handleRowAction(user: UserListItem, key: string) {
 }
 
 async function toggleActive(user: UserListItem) {
-  if (user.is_active && guardLastAdmin(user)) return;
   try {
     if (user.is_active) {
       await disableUser(user.id);
@@ -424,23 +551,9 @@ function hasAdminRole(user: UserListItem) {
   return user.roles.some((role) => role.code === "admin");
 }
 
-function isLastActiveAdmin(user: UserListItem) {
-  return user.is_active && user.approval_status === "approved" && hasAdminRole(user) && activeAdminCount.value <= 1;
-}
-
-function guardLastAdmin(user: UserListItem) {
-  if (!isLastActiveAdmin(user)) return false;
-  message.error("不能操作最后一个管理员");
-  return true;
-}
-
 function guardRoleChange(user: UserListItem) {
   const removingAdminRole = hasAdminRole(user) && adminRoleId.value !== null && !roleIds.value.includes(adminRoleId.value);
   if (!removingAdminRole) return false;
-  if (isLastActiveAdmin(user)) {
-    message.error("不能移除最后一个管理员的管理员角色");
-    return true;
-  }
   if (authStore.user?.id === user.id) {
     message.error("不能移除自己的管理员角色");
     return true;
@@ -449,7 +562,6 @@ function guardRoleChange(user: UserListItem) {
 }
 
 function deleteDisabledReason(user: UserListItem) {
-  if (isLastActiveAdmin(user)) return "不能操作最后一个管理员";
   if (user.is_builtin) return "内置用户不能删除";
   return "";
 }

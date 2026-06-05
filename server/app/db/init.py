@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import inspect, text
 
 from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
 from app.core.security import hash_password
@@ -20,6 +21,8 @@ def seed_database(db: Session, payload: InstallRequest) -> None:
         admin = User(
             username=payload.admin_username,
             full_name=payload.admin_full_name,
+            phone=payload.admin_phone,
+            email=payload.admin_email,
             company=payload.admin_company,
             department=payload.admin_department,
             password_hash=hash_password(payload.admin_password),
@@ -37,6 +40,7 @@ def seed_database(db: Session, payload: InstallRequest) -> None:
 
 def sync_database(engine) -> None:
     create_tables(engine)
+    sync_columns(engine)
     session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with session_factory() as db:
         sync_seed_data(db)
@@ -51,6 +55,21 @@ def sync_seed_data(db: Session) -> tuple[dict[str, Permission], Role]:
     if not user_role.permissions:
         user_role.permissions = [permissions_by_code[ROUTE_DASHBOARD]]
     return permissions_by_code, admin_role
+
+
+def sync_columns(engine) -> None:
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    column_sql = {
+        "phone": "ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''",
+        "email": "ALTER TABLE users ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT ''",
+    }
+    with engine.begin() as conn:
+        for name, statement in column_sql.items():
+            if name not in existing_columns:
+                conn.execute(text(statement))
 
 
 def _sync_permission_seeds(db: Session) -> dict[str, Permission]:

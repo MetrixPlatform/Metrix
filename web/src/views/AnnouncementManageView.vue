@@ -11,7 +11,7 @@
           start-placeholder="开始时间"
           end-placeholder="结束时间"
         />
-        <n-button @click="loadAnnouncements">查询</n-button>
+        <n-button @click="searchAnnouncements">查询</n-button>
       </div>
       <div class="toolbar-group announcement-actions">
         <permission-button
@@ -33,9 +33,14 @@
       :columns="columns"
       :data="announcements"
       :loading="loading"
+      :pagination="pagination"
       :row-key="(row) => row.id"
       :scroll-x="1210"
+      remote
       @update:filters="handleTableFilters"
+      @update:page="handlePageChange"
+      @update:page-size="handlePageSizeChange"
+      @update:sorter="handleSorter"
     />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? '编辑公告' : '新增公告'">
@@ -107,7 +112,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, DataTableFilterState, DataTableRowKey, FormInst, FormRules } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableRowKey, DataTableSortState, FormInst, FormRules } from "naive-ui";
 
 import {
   batchDeleteAnnouncements,
@@ -136,18 +141,31 @@ const targetCompany = ref("");
 const targetDepartment = ref("");
 type AnnouncementDisplayMode = "popup" | "ticker" | "sidebar";
 type AnnouncementStatusFilter = "true" | "false";
+type AnnouncementCreatorFilter = "all" | "me";
 const filters = reactive<{
   keyword: string;
   target_type: AnnouncementTargetType | null;
   display_mode: AnnouncementDisplayMode | null;
   is_active: AnnouncementStatusFilter | null;
+  created_by: AnnouncementCreatorFilter | null;
+  sort_order: "ascend" | "descend";
   time_range: [number, number] | null;
 }>({
   keyword: "",
   target_type: null,
   display_mode: null,
   is_active: null,
+  created_by: null,
+  sort_order: "descend",
   time_range: null
+});
+const pagination = reactive({
+  page: 1,
+  pageSize: 20,
+  itemCount: 0,
+  pageSizes: [20, 50, 100, 500],
+  showSizePicker: true,
+  prefix: ({ itemCount }: { itemCount: number | undefined }) => `共 ${itemCount ?? 0} 条`
 });
 const form = reactive<AnnouncementPayload & { display_modes: string[] }>({
   title: "",
@@ -187,6 +205,10 @@ const statusOptions = [
   { label: "启用", value: "true" },
   { label: "禁用", value: "false" }
 ];
+const creatorOptions = [
+  { label: "全部人", value: "all" },
+  { label: "仅自己", value: "me" }
+];
 
 const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
   const dataColumns: DataTableColumns<AnnouncementItem> = [
@@ -221,8 +243,24 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
       filterOptions: statusOptions,
       render: (row) => h(StatusTag, { status: row.is_active })
     },
-    { title: "操作账号", key: "created_by_username", width: 120, render: (row) => row.created_by_username || "-" },
-    { title: "创建时间", key: "created_at", width: 170, render: (row) => formatTime(row.created_at) },
+    {
+      title: "操作账号",
+      key: "created_by",
+      width: 120,
+      filter: () => true,
+      filterMultiple: false,
+      filterOptionValue: filters.created_by,
+      filterOptions: creatorOptions,
+      render: (row) => row.created_by_username || "-"
+    },
+    {
+      title: "创建时间",
+      key: "created_at",
+      width: 170,
+      sorter: true,
+      sortOrder: filters.sort_order,
+      render: (row) => formatTime(row.created_at)
+    },
     {
       title: "操作",
       key: "actions",
@@ -260,14 +298,22 @@ onMounted(async () => {
 async function loadAnnouncements() {
   loading.value = true;
   try {
-    announcements.value = await listAnnouncements({
+    const result = await listAnnouncements({
       keyword: filters.keyword,
       target_type: filters.target_type || "",
       display_mode: filters.display_mode || "",
       is_active: filters.is_active ? filters.is_active === "true" : null,
+      created_by: filters.created_by || "",
+      sort_order: filters.sort_order,
       start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
-      end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : ""
+      end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
+      page: pagination.page,
+      page_size: pagination.pageSize
     });
+    announcements.value = result.items;
+    pagination.itemCount = result.total;
+    pagination.page = result.page;
+    pagination.pageSize = result.page_size;
     checkedRowKeys.value = checkedRowKeys.value.filter((key) => announcements.value.some((item) => item.id === key));
   } catch (error) {
     showError(message, error);
@@ -276,13 +322,39 @@ async function loadAnnouncements() {
   }
 }
 
+function searchAnnouncements() {
+  pagination.page = 1;
+  void loadAnnouncements();
+}
+
 function handleTableFilters(filterState: DataTableFilterState) {
   const targetType = singleFilterValue(filterState, "target_type");
   const displayMode = singleFilterValue(filterState, "display_mode");
   const activeStatus = singleFilterValue(filterState, "is_active");
+  const creator = singleFilterValue(filterState, "created_by");
   filters.target_type = isTargetType(targetType) ? targetType : null;
   filters.display_mode = isDisplayMode(displayMode) ? displayMode : null;
   filters.is_active = isStatusFilter(activeStatus) ? activeStatus : null;
+  filters.created_by = isCreatorFilter(creator) ? creator : null;
+  pagination.page = 1;
+  void loadAnnouncements();
+}
+
+function handleSorter(sortState: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(sortState) ? sortState[0] : sortState;
+  filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
+  pagination.page = 1;
+  void loadAnnouncements();
+}
+
+function handlePageChange(page: number) {
+  pagination.page = page;
+  void loadAnnouncements();
+}
+
+function handlePageSizeChange(pageSize: number) {
+  pagination.pageSize = pageSize;
+  pagination.page = 1;
   void loadAnnouncements();
 }
 
@@ -301,6 +373,10 @@ function isDisplayMode(value: unknown): value is AnnouncementDisplayMode {
 
 function isStatusFilter(value: unknown): value is AnnouncementStatusFilter {
   return value === "true" || value === "false";
+}
+
+function isCreatorFilter(value: unknown): value is AnnouncementCreatorFilter {
+  return value === "all" || value === "me";
 }
 
 function openCreate() {

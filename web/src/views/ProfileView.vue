@@ -11,6 +11,12 @@
         <n-form-item label="姓名" path="full_name">
           <n-input v-model:value="profile.full_name" />
         </n-form-item>
+        <n-form-item label="手机号码" path="phone">
+          <n-input v-model:value="profile.phone" />
+        </n-form-item>
+        <n-form-item label="邮箱" path="email">
+          <n-input v-model:value="profile.email" />
+        </n-form-item>
         <n-form-item label="公司" path="company">
           <n-input v-model:value="profile.company" />
         </n-form-item>
@@ -49,21 +55,25 @@ import { reactive, ref } from "vue";
 import { changePassword, updateProfile } from "../api/auth";
 import { authStore } from "../stores/auth";
 import { showError } from "../utils/message";
-import { maxLengthRule, minLengthRule, requiredRule, validateForm } from "../utils/validation";
+import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
 const profileFormRef = ref<FormInst | null>(null);
 const passwordFormRef = ref<FormInst | null>(null);
 const profile = reactive({
   full_name: authStore.user?.full_name || "",
+  phone: authStore.user?.phone || "",
+  email: authStore.user?.email || "",
   company: authStore.user?.company || "",
   department: authStore.user?.department || ""
 });
 const password = reactive({ old_password: "", new_password: "" });
 const profileRules: FormRules = {
   full_name: [requiredRule("姓名"), maxLengthRule("姓名", 80)],
-  company: [requiredRule("公司"), maxLengthRule("公司", 120)],
-  department: [requiredRule("部门"), maxLengthRule("部门", 120)]
+  phone: [requiredRule("手机号码"), phoneRule()],
+  email: [requiredRule("邮箱"), emailRule(), maxLengthRule("邮箱", 254)],
+  company: maxLengthRule("公司", 120),
+  department: maxLengthRule("部门", 120)
 };
 const passwordRules: FormRules = {
   old_password: [requiredRule("旧密码"), maxLengthRule("旧密码", 128)],

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -20,7 +22,12 @@ class UserRepository:
         keyword: str = "",
         approval_status: str = "",
         is_active: bool | None = None,
-    ) -> list[User]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        created_at_order: str = "descend",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[User], int]:
         query = self.db.query(User)
         if keyword:
             pattern = f"%{keyword}%"
@@ -28,6 +35,8 @@ class UserRepository:
                 or_(
                     User.username.ilike(pattern),
                     User.full_name.ilike(pattern),
+                    User.phone.ilike(pattern),
+                    User.email.ilike(pattern),
                     User.company.ilike(pattern),
                     User.department.ilike(pattern),
                 )
@@ -36,7 +45,17 @@ class UserRepository:
             query = query.filter(User.approval_status == approval_status)
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
-        return query.order_by(User.created_at.desc()).all()
+        if start_time:
+            query = query.filter(User.created_at >= start_time)
+        if end_time:
+            query = query.filter(User.created_at <= end_time)
+        total = query.count()
+        if created_at_order == "ascend":
+            query = query.order_by(User.created_at.asc(), User.id.asc())
+        else:
+            query = query.order_by(User.created_at.desc(), User.id.desc())
+        offset = (page - 1) * page_size
+        return query.offset(offset).limit(page_size).all(), total
 
     def create(self, user: User) -> User:
         self.db.add(user)

@@ -8,6 +8,8 @@ export function login(payload: { username: string; password: string }) {
 export function register(payload: {
   username: string;
   password: string;
+  phone: string;
+  email: string;
   company: string;
   department: string;
   full_name: string;
@@ -23,7 +25,7 @@ export function logout() {
   return post<{ message: string }>("/auth/logout");
 }
 
-export function updateProfile(payload: { company: string; department: string; full_name: string }) {
+export function updateProfile(payload: { full_name: string; phone: string; email: string; company: string; department: string }) {
   return put<UserProfile>("/auth/profile", payload);
 }
 

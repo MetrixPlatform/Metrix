@@ -14,6 +14,8 @@ export interface InstallPayload {
   admin_username: string;
   admin_password: string;
   admin_full_name: string;
+  admin_phone: string;
+  admin_email: string;
   admin_company: string;
   admin_department: string;
 }
