@@ -2,7 +2,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import not_found
+from app.core.exceptions import forbidden, not_found
+from app.core.permissions import ANNOUNCEMENT_MANAGE_OTHERS
 from app.models import Announcement, User
 from app.repositories.announcements import AnnouncementRepository
 from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementListResponse, AnnouncementPayload
@@ -87,6 +88,7 @@ class AnnouncementService:
 
     def update(self, actor: User, announcement_id: int, payload: AnnouncementPayload) -> AnnouncementItem:
         announcement = self._get(announcement_id)
+        self._ensure_can_manage(actor, announcement)
         announcement.title = payload.title
         announcement.content = payload.content
         announcement.target_type = payload.target_type
@@ -102,6 +104,7 @@ class AnnouncementService:
 
     def delete(self, actor: User, announcement_id: int) -> None:
         announcement = self._get(announcement_id)
+        self._ensure_can_manage(actor, announcement)
         record_audit(self.db, actor.id, "announcement.delete", "announcement", str(announcement.id), announcement.title)
         self.announcements.delete(announcement)
         self.db.commit()
@@ -110,6 +113,7 @@ class AnnouncementService:
         deleted_count = 0
         for announcement_id in dict.fromkeys(announcement_ids):
             announcement = self._get(announcement_id)
+            self._ensure_can_manage(actor, announcement)
             record_audit(self.db, actor.id, "announcement.delete", "announcement", str(announcement.id), announcement.title)
             self.announcements.delete(announcement)
             deleted_count += 1
@@ -129,6 +133,13 @@ class AnnouncementService:
         if announcement is None:
             raise not_found("公告不存在")
         return announcement
+
+    def _ensure_can_manage(self, actor: User, announcement: Announcement) -> None:
+        if announcement.created_by == actor.id:
+            return
+        if has_permission(actor, ANNOUNCEMENT_MANAGE_OTHERS):
+            return
+        raise forbidden("无权限操作他人公告")
 
     def _matches_user(self, announcement: Announcement, user: User) -> bool:
         target_type = announcement.target_type

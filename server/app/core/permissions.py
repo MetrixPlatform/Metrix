@@ -30,12 +30,12 @@ ANNOUNCEMENT_CREATE = action_code("announcement", "create")
 ANNOUNCEMENT_READ = action_code("announcement", "read")
 ANNOUNCEMENT_UPDATE = action_code("announcement", "update")
 ANNOUNCEMENT_DELETE = action_code("announcement", "delete")
-ANNOUNCEMENT_OPERATE = action_code("announcement", "operate")
+ANNOUNCEMENT_MANAGE_OTHERS = action_code("announcement", "manage_others")
 
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
 
-DEPRECATED_PERMISSION_CODES = {"route:approvals"}
+DEPRECATED_PERMISSION_CODES = {"route:approvals", "action:announcement:operate"}
 
 
 @dataclass(frozen=True)
@@ -133,7 +133,7 @@ RESOURCE_PERMISSION_SPECS = (
             ResourceActionSpec("read", "查询公告", "查询公告", 20),
             ResourceActionSpec("update", "修改公告", "修改公告", 30),
             ResourceActionSpec("delete", "删除公告", "删除公告", 40),
-            ResourceActionSpec("operate", "操作公告", "发布、停用公告", 50),
+            ResourceActionSpec("manage_others", "操作他人公告", "编辑、删除、发布或停用他人创建的公告", 50),
         ),
     ),
 )

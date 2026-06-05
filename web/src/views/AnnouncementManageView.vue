@@ -18,10 +18,10 @@
           class="announcement-batch-delete-button"
           permission="action:announcement:delete"
           type="error"
-          :disabled="checkedRowKeys.length === 0"
+          :disabled="selectedDeletableIds.length === 0"
           @click="removeSelectedAnnouncements"
         >
-          批量删除{{ checkedRowKeys.length ? ` (${checkedRowKeys.length})` : "" }}
+          批量删除{{ selectedDeletableIds.length ? ` (${selectedDeletableIds.length})` : "" }}
         </permission-button>
         <permission-button class="announcement-create-button" permission="action:announcement:create" type="primary" @click="openCreate">新增公告</permission-button>
       </div>
@@ -209,6 +209,17 @@ const creatorOptions = [
   { label: "全部人", value: "all" },
   { label: "仅自己", value: "me" }
 ];
+const ANNOUNCEMENT_UPDATE = "action:announcement:update";
+const ANNOUNCEMENT_DELETE = "action:announcement:delete";
+const ANNOUNCEMENT_MANAGE_OTHERS = "action:announcement:manage_others";
+
+const selectedDeletableIds = computed(() =>
+  checkedRowKeys.value.filter((id): id is number => {
+    if (typeof id !== "number") return false;
+    const row = announcements.value.find((item) => item.id === id);
+    return Boolean(row && canDeleteAnnouncement(row));
+  })
+);
 
 const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
   const dataColumns: DataTableColumns<AnnouncementItem> = [
@@ -270,14 +281,14 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
           "div",
           { class: "table-action-group" },
           [
-            authStore.has("action:announcement:update")
+            canUpdateAnnouncement(row)
               ? h(
                   NButton,
                   { size: "small", quaternary: true, circle: true, title: "编辑", onClick: () => openEdit(row) },
                   { icon: () => h(NIcon, { component: Edit20Regular }) }
                 )
               : null,
-            authStore.has("action:announcement:delete")
+            canDeleteAnnouncement(row)
               ? h(
                   NButton,
                   { size: "small", quaternary: true, circle: true, title: "删除", type: "error", onClick: () => removeAnnouncement(row) },
@@ -288,7 +299,9 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
         )
     }
   ];
-  return authStore.has("action:announcement:delete") ? [{ type: "selection", width: 48 }, ...dataColumns] : dataColumns;
+  return authStore.has(ANNOUNCEMENT_DELETE)
+    ? [{ type: "selection", width: 48, disabled: (row) => !canDeleteAnnouncement(row) }, ...dataColumns]
+    : dataColumns;
 });
 
 onMounted(async () => {
@@ -314,7 +327,10 @@ async function loadAnnouncements() {
     pagination.itemCount = result.total;
     pagination.page = result.page;
     pagination.pageSize = result.page_size;
-    checkedRowKeys.value = checkedRowKeys.value.filter((key) => announcements.value.some((item) => item.id === key));
+    checkedRowKeys.value = checkedRowKeys.value.filter((key) => {
+      const row = announcements.value.find((item) => item.id === key);
+      return Boolean(row && canDeleteAnnouncement(row));
+    });
   } catch (error) {
     showError(message, error);
   } finally {
@@ -377,6 +393,18 @@ function isStatusFilter(value: unknown): value is AnnouncementStatusFilter {
 
 function isCreatorFilter(value: unknown): value is AnnouncementCreatorFilter {
   return value === "all" || value === "me";
+}
+
+function canManageAnnouncement(row: AnnouncementItem) {
+  return row.created_by === authStore.user?.id || authStore.has(ANNOUNCEMENT_MANAGE_OTHERS);
+}
+
+function canUpdateAnnouncement(row: AnnouncementItem) {
+  return authStore.has(ANNOUNCEMENT_UPDATE) && canManageAnnouncement(row);
+}
+
+function canDeleteAnnouncement(row: AnnouncementItem) {
+  return authStore.has(ANNOUNCEMENT_DELETE) && canManageAnnouncement(row);
 }
 
 function openCreate() {
@@ -490,7 +518,7 @@ function removeAnnouncement(row: AnnouncementItem) {
 }
 
 function removeSelectedAnnouncements() {
-  const ids = checkedRowKeys.value.filter((id): id is number => typeof id === "number");
+  const ids = selectedDeletableIds.value;
   if (ids.length === 0) return;
   dialog.warning({
     title: "批量删除公告",

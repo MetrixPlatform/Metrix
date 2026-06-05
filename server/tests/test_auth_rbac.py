@@ -149,7 +149,9 @@ def test_app_config_defaults_and_env_override(monkeypatch):
 
 def test_permission_specs_generate_codes_and_route_read_mapping():
     from app.core.permissions import (
+        ANNOUNCEMENT_MANAGE_OTHERS,
         ANNOUNCEMENT_READ,
+        DEPRECATED_PERMISSION_CODES,
         PERMISSION_SEEDS,
         ROLE_READ,
         ROUTE_ANNOUNCEMENTS,
@@ -169,6 +171,9 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert action_code("task", "start") == "action:task:start"
     assert seeds_by_code[ROUTE_USERS].type == "route"
     assert seeds_by_code[USER_READ].type == "action"
+    assert ANNOUNCEMENT_MANAGE_OTHERS in seeds_by_code
+    assert "action:announcement:operate" in DEPRECATED_PERMISSION_CODES
+    assert "action:announcement:operate" not in seeds_by_code
     assert ROUTE_READ_PERMISSIONS == {
         ROUTE_USERS: USER_READ,
         ROUTE_PERMISSIONS: ROLE_READ,
@@ -610,6 +615,101 @@ def test_announcement_list_supports_pagination_sort_and_creator_filter(tmp_path,
     assert all_creators.status_code == 200
     assert all_creators.json()["total"] == 4
     assert all_creators.json()["page_size"] == 500
+
+
+def test_announcement_manage_others_permission_controls_cross_owner_actions(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
+    base_codes = {
+        "action:announcement:create",
+        "action:announcement:read",
+        "action:announcement:update",
+        "action:announcement:delete",
+    }
+    assert "action:announcement:manage_others" in permission_ids_by_code
+    assert "action:announcement:operate" not in permission_ids_by_code
+
+    role = client.post(
+        "/api/roles",
+        json={"code": "notice_operator", "name": "公告操作员", "description": ""},
+        headers=admin_headers,
+    )
+    assert role.status_code == 200
+    role_id = role.json()["id"]
+    assign = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={"permission_ids": [permission_ids_by_code[code] for code in base_codes]},
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+
+    for username in ["notice_owner", "notice_other"]:
+        user = client.post(
+            "/api/users",
+            json={
+                "username": username,
+                "password": "Notice123",
+                "full_name": username,
+                "phone": "13800000007",
+                "email": f"{username}@example.com",
+                "company": "",
+                "department": "",
+                "role_ids": [role_id],
+            },
+            headers=admin_headers,
+        )
+        assert user.status_code == 200
+
+    owner_headers = login(client, "notice_owner", "Notice123")
+    other_headers = login(client, "notice_other", "Notice123")
+    owner_announcement = create_announcement(client, owner_headers, "本人公告").json()
+    other_announcement = create_announcement(client, other_headers, "他人自己的公告").json()
+
+    update_payload = {
+        "title": "跨人修改",
+        "content": "尝试修改他人公告",
+        "target_type": "authenticated",
+        "target_value": "",
+        "show_popup": False,
+        "show_ticker": True,
+        "show_sidebar": True,
+        "is_active": True,
+    }
+    forbidden_update = client.put(f"/api/announcements/{owner_announcement['id']}", json=update_payload, headers=other_headers)
+    assert forbidden_update.status_code == 403
+    assert forbidden_update.json()["detail"] == "无权限操作他人公告"
+    assert client.delete(f"/api/announcements/{owner_announcement['id']}", headers=other_headers).status_code == 403
+    assert client.post("/api/announcements/batch-delete", json={"ids": [owner_announcement["id"]]}, headers=other_headers).status_code == 403
+
+    own_update = client.put(f"/api/announcements/{other_announcement['id']}", json=update_payload, headers=other_headers)
+    assert own_update.status_code == 200
+    assert own_update.json()["title"] == "跨人修改"
+
+    assign_with_manage_others = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={
+            "permission_ids": [
+                permission_ids_by_code[code]
+                for code in {*base_codes, "action:announcement:manage_others"}
+            ]
+        },
+        headers=admin_headers,
+    )
+    assert assign_with_manage_others.status_code == 200
+
+    allowed_update = client.put(f"/api/announcements/{owner_announcement['id']}", json=update_payload, headers=other_headers)
+    assert allowed_update.status_code == 200
+    assert allowed_update.json()["title"] == "跨人修改"
+    assert client.delete(f"/api/announcements/{owner_announcement['id']}", headers=other_headers).status_code == 200
+
+    batch_target = create_announcement(client, owner_headers, "跨人批量删除").json()
+    allowed_batch_delete = client.post("/api/announcements/batch-delete", json={"ids": [batch_target["id"]]}, headers=other_headers)
+    assert allowed_batch_delete.status_code == 200
+    assert allowed_batch_delete.json() == {"message": "已删除 1 条公告"}
 
 
 def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):

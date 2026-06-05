@@ -125,7 +125,7 @@ const roleRules: FormRules = {
 const groupedPermissions = computed(() => {
   const groups = new Map<string, PermissionItem[]>();
   permissions.value
-    .filter((permission) => permission.type === "route" || permission.code.endsWith(":create") || permission.code.endsWith(":update") || permission.code.endsWith(":delete") || permission.code.endsWith(":operate"))
+    .filter((permission) => permission.type === "route" || (permission.type === "action" && !permission.code.endsWith(":read")))
     .forEach((permission) => {
       const group = permission.group_name || "其他";
       groups.set(group, [...(groups.get(group) || []), permission]);
