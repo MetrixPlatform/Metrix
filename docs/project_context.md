@@ -293,3 +293,8 @@
 - `.gitignore` 已覆盖 `web/dist/`、`runtime/`、`.pytest_cache/`、`__pycache__/`、本地缓存、日志、上传下载导出目录和敏感本地配置。
 - 清理最终验证生成的 `web/dist`、`server/.pytest_cache` 和源码目录 `__pycache__`，工作区不保留可再生产物。
 - 验证：前端 `npm run build` 通过，`npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过；后端测试 14 passed，`python -m compileall -q app tests` 通过；`git diff --check` 通过；调试残留扫描无命中。
+## 2026-06-05：完善登录失效、404 和忘记密码提示
+- 前端请求层在收到 401 响应时清理登录态并触发应用级登录失效事件，路由层监听后统一跳转 `/login`，避免 token 失效后页面停留在受保护视图。
+- 新增 `NotFoundView` 作为 404 兜底页面，未知路由进入无卡片居中 404 视觉，并在 5 秒倒计时后自动返回主页；主页后续仍由现有权限守卫决定实际可访问页面。
+- 登录页将“忘记密码请联系管理员”改为“忘记密码”文字按钮，点击后弹窗提示“请联系管理员修改密码。”。
+- 验证：前端 `npm run build` 通过，`npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过；后端测试 14 passed；`git diff --check` 通过；调试残留扫描无命中。

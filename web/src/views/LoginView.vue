@@ -24,10 +24,16 @@
         <n-button type="primary" block :loading="loading" @click="submit">登录</n-button>
         <div class="form-actions">
           <router-link class="muted-link" to="/register">注册账号</router-link>
-          <span>忘记密码请联系管理员</span>
+          <n-button text class="muted-link" @click="showForgotModal = true">忘记密码</n-button>
         </div>
       </n-form>
     </div>
+    <n-modal v-model:show="showForgotModal" preset="card" class="modal-card" title="忘记密码">
+      <div class="forgot-password-content">请联系管理员修改密码。</div>
+      <div class="form-actions">
+        <n-button type="primary" @click="showForgotModal = false">我知道了</n-button>
+      </div>
+    </n-modal>
     <footer class="auth-footer">
       <CopyrightNotice />
     </footer>
@@ -36,7 +42,7 @@
 
 <script setup lang="ts">
 import { WeatherMoon20Regular as WeatherMoon, WeatherSunny20Regular as WeatherSunny } from "@vicons/fluent";
-import { NButton, NForm, NFormItem, NIcon, NInput, useMessage } from "naive-ui";
+import { NButton, NForm, NFormItem, NIcon, NInput, NModal, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -56,6 +62,7 @@ const router = useRouter();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
+const showForgotModal = ref(false);
 const publicAnnouncements = ref<PublicAnnouncementItem[]>([]);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? "切换浅色主题" : "切换深色主题"));

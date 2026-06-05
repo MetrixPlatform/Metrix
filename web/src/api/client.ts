@@ -1,6 +1,8 @@
 import { authStore } from "../stores/auth";
+import { appKey } from "../config/app";
 
 const API_PREFIX = "/api";
+export const AUTH_EXPIRED_EVENT = appKey("auth-expired");
 const FIELD_LABELS: Record<string, string> = {
   username: "账号",
   password: "密码",
@@ -48,6 +50,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   if (!response.ok) {
     if (response.status === 401) {
       authStore.clear();
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
     }
     throw new Error(errorMessage(data));
   }

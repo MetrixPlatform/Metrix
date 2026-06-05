@@ -339,6 +339,11 @@ a {
   margin-top: 8px;
 }
 
+.forgot-password-content {
+  color: var(--text-color);
+  line-height: 1.7;
+}
+
 .modal-card {
   width: min(460px, calc(100vw - 32px));
   max-height: min(76vh, 640px);
@@ -353,6 +358,43 @@ a {
 .muted-link {
   color: var(--primary-color);
   cursor: pointer;
+}
+
+.not-found-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    var(--auth-bg-layer),
+    var(--app-bg);
+}
+
+.not-found-content {
+  width: min(520px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+}
+
+.not-found-content h1 {
+  margin: 0;
+  color: transparent;
+  font-size: clamp(92px, 18vw, 156px);
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, #4a90e2, #9013fe);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.not-found-content p {
+  margin: 0;
+  color: var(--muted-color);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .app-layout {

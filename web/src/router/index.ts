@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+import { AUTH_EXPIRED_EVENT } from "../api/client";
 import { getInstallStatus } from "../api/install";
 import { getMe } from "../api/auth";
 import { authStore } from "../stores/auth";
@@ -13,12 +14,20 @@ const routes = [
     path: "/",
     component: () => import("../components/AppShell.vue"),
     children: createAppPageRoutes()
-  }
+  },
+  { path: "/:pathMatch(.*)*", component: () => import("../views/NotFoundView.vue"), meta: { public: true } }
 ];
 
 export const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+window.addEventListener(AUTH_EXPIRED_EVENT, () => {
+  const current = router.currentRoute.value;
+  if (current.path !== "/login") {
+    void router.replace("/login");
+  }
 });
 
 router.beforeEach(async (to) => {
