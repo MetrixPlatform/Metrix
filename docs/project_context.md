@@ -329,6 +329,8 @@
 - 用户信息扩展手机号和邮箱字段，安装管理员、注册、个人资料、用户新增/编辑均使用同一套前后端格式校验；开发库同步会自动补齐 `users.phone` 和 `users.email` 列。
 - `docs/development_page_guide.md` 新增表格分页规则：数据量可能增长的后台列表必须走后端分页，分页、表头筛选和排序统一映射接口参数。
 - 验证：前端 `npm exec vue-tsc -- --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端测试 16 passed，`git diff --check` 通过，调试残留扫描无命中。
+## 2026-06-05：补充用户列表查询测试
+- 后端用户列表测试补充注册时间正序/倒序排序和时间范围筛选断言，覆盖用户管理表格远程排序、远程时间筛选的接口契约。
 ## 2026-06-05：补充本人和他人数据操作权限规则
 - 权限模型明确拆分为基础动作权限和范围提升权限：`create/read/update/delete/operate` 只表达能否执行动作，不直接代表可以操作他人数据。
 - 未授予范围提升权限时，`update`、`delete`、`operate` 默认只允许操作当前用户本人创建、上传、负责或归属的数据；操作他人数据需要额外拥有 `action:<resource>:manage_others`。

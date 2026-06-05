@@ -1,5 +1,6 @@
 import importlib
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 import re
 
@@ -470,6 +471,23 @@ def test_user_list_supports_pagination(tmp_path, monkeypatch):
         )
         assert response.status_code == 200
 
+    from app.core.install import load_install_config
+
+    created_times = {
+        payload["admin_username"]: datetime(2026, 1, 1),
+        "page_user_0": datetime(2026, 1, 2),
+        "page_user_1": datetime(2026, 1, 3),
+        "page_user_2": datetime(2026, 1, 4),
+    }
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        for username, created_at in created_times.items():
+            conn.execute(
+                text("UPDATE users SET created_at = :created_at WHERE username = :username"),
+                {"created_at": created_at, "username": username},
+            )
+    engine.dispose()
+
     first_page = client.get("/api/users", params={"page": 1, "page_size": 2}, headers=admin_headers)
     assert first_page.status_code == 200
     assert len(page_items(first_page)) == 2
@@ -485,6 +503,37 @@ def test_user_list_supports_pagination(tmp_path, monkeypatch):
     assert large_page.status_code == 200
     assert large_page.json()["page_size"] == 500
     assert large_page.json()["total"] == 4
+
+    ascending = client.get("/api/users", params={"page_size": 500, "sort_order": "ascend"}, headers=admin_headers)
+    assert ascending.status_code == 200
+    assert [item["username"] for item in page_items(ascending)] == [
+        payload["admin_username"],
+        "page_user_0",
+        "page_user_1",
+        "page_user_2",
+    ]
+
+    descending = client.get("/api/users", params={"page_size": 500, "sort_order": "descend"}, headers=admin_headers)
+    assert descending.status_code == 200
+    assert [item["username"] for item in page_items(descending)] == [
+        "page_user_2",
+        "page_user_1",
+        "page_user_0",
+        payload["admin_username"],
+    ]
+
+    by_time_range = client.get(
+        "/api/users",
+        params={
+            "page_size": 500,
+            "sort_order": "ascend",
+            "start_time": (created_times["page_user_1"] - timedelta(seconds=1)).isoformat(),
+            "end_time": (created_times["page_user_2"] + timedelta(seconds=1)).isoformat(),
+        },
+        headers=admin_headers,
+    )
+    assert by_time_range.status_code == 200
+    assert [item["username"] for item in page_items(by_time_range)] == ["page_user_1", "page_user_2"]
 
 
 def test_announcement_list_supports_pagination_sort_and_creator_filter(tmp_path, monkeypatch):
