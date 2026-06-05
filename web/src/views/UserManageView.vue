@@ -23,7 +23,7 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(row) => row.id"
-      :scroll-x="1380"
+      :scroll-x="tableScrollX"
       remote
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
@@ -223,18 +223,32 @@ const activeOptions = computed(() => [
   { label: t("common.enabled"), value: "true" },
   { label: t("common.disabled"), value: "false" }
 ]);
+const userColumnWidths = {
+  username: 130,
+  fullName: 120,
+  phone: 130,
+  email: 200,
+  company: 140,
+  department: 120,
+  approval: 100,
+  status: 90,
+  roles: 160,
+  createdAt: 170,
+  actions: 72
+};
+const tableScrollX = Object.values(userColumnWidths).reduce((total, width) => total + width, 0);
 
 const columns = computed<DataTableColumns<UserListItem>>(() => [
-  { title: t("field.username"), key: "username", width: 130 },
-  { title: t("field.fullName"), key: "full_name", width: 120 },
-  { title: t("field.phone"), key: "phone", width: 130 },
-  { title: t("field.email"), key: "email", width: 200 },
-  { title: t("field.company"), key: "company", width: 140 },
-  { title: t("field.department"), key: "department", width: 120 },
+  { title: t("field.username"), key: "username", width: userColumnWidths.username },
+  { title: t("field.fullName"), key: "full_name", width: userColumnWidths.fullName },
+  { title: t("field.phone"), key: "phone", width: userColumnWidths.phone },
+  { title: t("field.email"), key: "email", width: userColumnWidths.email },
+  { title: t("field.company"), key: "company", width: userColumnWidths.company },
+  { title: t("field.department"), key: "department", width: userColumnWidths.department },
   {
     title: t("field.approval"),
     key: "approval_status",
-    width: 100,
+    width: userColumnWidths.approval,
     filter: (value, row) => row.approval_status === value,
     filterMultiple: false,
     filterOptionValue: filters.approval_status,
@@ -244,18 +258,18 @@ const columns = computed<DataTableColumns<UserListItem>>(() => [
   {
     title: t("field.status"),
     key: "is_active",
-    width: 90,
+    width: userColumnWidths.status,
     filter: (value, row) => row.is_active === (value === "true"),
     filterMultiple: false,
     filterOptionValue: filters.is_active,
     filterOptions: activeOptions.value,
     render: (row) => h(StatusTag, { status: row.is_active })
   },
-  { title: t("field.roles"), key: "roles", width: 160, render: (row) => row.roles.map((role) => roleName(role)).join(t("common.listSeparator")) || t("common.none") },
+  { title: t("field.roles"), key: "roles", width: userColumnWidths.roles, render: (row) => row.roles.map((role) => roleName(role)).join(t("common.listSeparator")) || t("common.none") },
   {
     title: t("field.createdAt"),
     key: "created_at",
-    width: 170,
+    width: userColumnWidths.createdAt,
     sorter: true,
     sortOrder: filters.sort_order,
     render: (row) => formatTime(row.created_at)
@@ -263,7 +277,8 @@ const columns = computed<DataTableColumns<UserListItem>>(() => [
   {
     title: t("common.actions"),
     key: "actions",
-    width: 64,
+    width: userColumnWidths.actions,
+    fixed: "right",
     align: "center",
     render: (row) => {
       const options = rowActionOptions(row);

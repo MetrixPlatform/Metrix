@@ -359,3 +359,8 @@
 - 权限管理前端增加废弃权限过滤，避免开发库残留的 `route:approvals` 或 `action:announcement:operate` 再次出现在授权界面或保存请求中。
 - `docs/development_page_guide.md` 更新多语言规则，明确后端禁止返回中文业务 `detail/message`，新增文案必须维护语言包并使用前端插值。
 - 验证：前端 `npm exec vue-tsc -- --noEmit` 通过，前端 `npm run build` 通过，后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest` 通过 17 passed。
+## 2026-06-05：修复表格操作列横向滚动
+- 用户管理和公告管理表格不再手写固定 `scroll-x` 数值，改为按列宽常量求和，避免列增多后横向滚动范围不足。
+- 用户管理和公告管理的操作列设置为右侧固定列，用户无需拖动到底也可以打开行操作或执行编辑、删除。
+- 公告管理在有选择列时会把选择列宽度计入 `scroll-x`，保证选择列、数据列和固定操作列宽度一致。
+- `docs/development_page_guide.md` 新增表格横向滚动规则：列宽集中维护、`scroll-x` 使用列宽总和、操作列优先固定到右侧，新增列后必须同步宽度常量。

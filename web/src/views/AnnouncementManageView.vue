@@ -35,7 +35,7 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(row) => row.id"
-      :scroll-x="1210"
+      :scroll-x="tableScrollX"
       remote
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
@@ -210,9 +210,25 @@ const creatorOptions = computed(() => [
   { label: t("announcement.creatorAll"), value: "all" },
   { label: t("announcement.creatorMe"), value: "me" }
 ]);
+const announcementColumnWidths = {
+  selection: 48,
+  title: 180,
+  targetType: 180,
+  displayMode: 150,
+  status: 90,
+  creator: 120,
+  createdAt: 170,
+  actions: 130
+};
 const ANNOUNCEMENT_UPDATE = "action:announcement:update";
 const ANNOUNCEMENT_DELETE = "action:announcement:delete";
 const ANNOUNCEMENT_MANAGE_OTHERS = "action:announcement:manage_others";
+const dataTableScrollX = Object.entries(announcementColumnWidths)
+  .filter(([key]) => key !== "selection")
+  .reduce((total, [, width]) => total + width, 0);
+const tableScrollX = computed(() =>
+  authStore.has(ANNOUNCEMENT_DELETE) ? dataTableScrollX + announcementColumnWidths.selection : dataTableScrollX
+);
 
 const selectedDeletableIds = computed(() =>
   checkedRowKeys.value.filter((id): id is number => {
@@ -229,11 +245,11 @@ const batchDeleteText = computed(() =>
 
 const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
   const dataColumns: DataTableColumns<AnnouncementItem> = [
-    { title: t("field.title"), key: "title", width: 180 },
+    { title: t("field.title"), key: "title", width: announcementColumnWidths.title },
     {
       title: t("field.targetType"),
       key: "target_type",
-      width: 180,
+      width: announcementColumnWidths.targetType,
       filter: (value, row) => row.target_type === value,
       filterMultiple: false,
       filterOptionValue: filters.target_type,
@@ -243,7 +259,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     {
       title: t("field.displayModes"),
       key: "display_mode",
-      width: 150,
+      width: announcementColumnWidths.displayMode,
       filter: (value, row) => matchesDisplayMode(row, value),
       filterMultiple: false,
       filterOptionValue: filters.display_mode,
@@ -253,7 +269,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     {
       title: t("field.status"),
       key: "is_active",
-      width: 90,
+      width: announcementColumnWidths.status,
       filter: (value, row) => row.is_active === (value === "true"),
       filterMultiple: false,
       filterOptionValue: filters.is_active,
@@ -263,7 +279,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     {
       title: t("field.creator"),
       key: "created_by",
-      width: 120,
+      width: announcementColumnWidths.creator,
       filter: () => true,
       filterMultiple: false,
       filterOptionValue: filters.created_by,
@@ -273,7 +289,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     {
       title: t("field.createdAt"),
       key: "created_at",
-      width: 170,
+      width: announcementColumnWidths.createdAt,
       sorter: true,
       sortOrder: filters.sort_order,
       render: (row) => formatTime(row.created_at)
@@ -281,7 +297,8 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     {
       title: t("common.actions"),
       key: "actions",
-      width: 130,
+      width: announcementColumnWidths.actions,
+      fixed: "right",
       render: (row) =>
         h(
           "div",
@@ -306,7 +323,7 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
     }
   ];
   return authStore.has(ANNOUNCEMENT_DELETE)
-    ? [{ type: "selection", width: 48, disabled: (row) => !canDeleteAnnouncement(row) }, ...dataColumns]
+    ? [{ type: "selection", width: announcementColumnWidths.selection, disabled: (row) => !canDeleteAnnouncement(row) }, ...dataColumns]
     : dataColumns;
 });
 
