@@ -406,3 +406,9 @@
 - 最终轮重新检查前后端源码清单、配置文件、调试残留、废弃权限迁移逻辑、API 聚合导出、前端工具抽取、服务层和 repository；未发现新的可确认冗余代码、死代码或不兼容调用。
 - `.gitignore` 仍覆盖 `web/dist/`、`runtime/`、`.pytest_cache/`、`__pycache__/`、日志、上传下载导出目录、临时目录和本地敏感配置；最终清理后未保留构建产物或测试缓存。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 对当前 httpx 的第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；`git diff --check` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。
+## 2026-06-07：重新全量复查第一轮
+- 操作日志前端补齐系统设置相关审计动作：`settings.update`、`settings.backup` 纳入日志页动作筛选常量，并补充中英文展示文案；目标类型补齐 `system_settings`，避免系统设置更新和数据备份日志在 UI 中显示裸编码。
+- 后端测试在系统设置用例中增加审计日志断言，确认设置更新和备份会记录 `settings.update`、`settings.backup`，并可按 `system_settings` 目标类型筛选。
+- Browser 完整模拟测试覆盖登录、忘记密码、语言/主题切换、首页公告展示/已读、用户新增/编辑/筛选/重置密码/禁用启用/角色分配/删除、注册必填/关闭注册/审核通过/驳回、权限角色新增授权删除、公告新增编辑搜索批量删除单删、操作日志筛选、系统设置保存、个人资料和密码修改、404 返回；测试产生的临时用户、角色、公告和管理员资料改动均已恢复或清理。
+- in-app Browser 当前不支持 `download` 事件，下载功能验证采用 UI 按钮可见性加后端响应校验：操作日志导出返回 `text/csv; charset=utf-8` 且带 BOM 表头，数据备份返回 `application/zip`。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；调试残留扫描无代码命中；Browser 页面控制台无项目 error。

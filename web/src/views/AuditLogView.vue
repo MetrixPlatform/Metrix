@@ -111,9 +111,11 @@ const auditActionCodes = [
   "role.assign_permissions",
   "announcement.create",
   "announcement.update",
-  "announcement.delete"
+  "announcement.delete",
+  "settings.update",
+  "settings.backup"
 ];
-const auditTargetTypes = ["user", "role", "announcement"];
+const auditTargetTypes = ["user", "role", "announcement", "system_settings"];
 const canViewAllLogs = computed(() => authStore.has("action:audit_log:manage_others"));
 const actorScopeOptions = computed(() => [
   { label: t("auditLog.scopeSelf"), value: "self" },

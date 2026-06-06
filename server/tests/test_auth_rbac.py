@@ -933,6 +933,9 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     backup = client.post("/api/settings/backup", headers=admin_headers)
     assert backup.status_code == 200
     assert backup.headers["content-type"] == "application/zip"
+    settings_logs = client.get("/api/audit-logs", params={"actor_scope": "all", "target_type": "system_settings"}, headers=admin_headers)
+    assert settings_logs.status_code == 200
+    assert {"settings.update", "settings.backup"}.issubset({item["action"] for item in page_items(settings_logs)})
     import zipfile
     from io import BytesIO
 
