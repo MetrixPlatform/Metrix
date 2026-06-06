@@ -401,3 +401,8 @@
 - 第二轮重新扫描前后端源码、调试残留、废弃权限清理逻辑、表格筛选、下载逻辑、服务层和 repository；保留的 `void load...` 均为 Vue 事件/监听中显式触发异步刷新，废弃权限常量仍用于迁移清理和前端过滤，不作为死代码删除。
 - 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__`，未留下构建产物或测试缓存。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。
+## 2026-06-07：最终全量复查
+- 后端测试中直接向 SQLite 绑定 `datetime` 对象会触发 Python 3.12 默认 SQLite datetime adapter 废弃警告；新增测试辅助 `sqlite_datetime(...)`，测试写入原始 SQL 时间字段时统一使用 ISO 字符串，消除项目自身兼容性 warning。
+- 最终轮重新检查前后端源码清单、配置文件、调试残留、废弃权限迁移逻辑、API 聚合导出、前端工具抽取、服务层和 repository；未发现新的可确认冗余代码、死代码或不兼容调用。
+- `.gitignore` 仍覆盖 `web/dist/`、`runtime/`、`.pytest_cache/`、`__pycache__/`、日志、上传下载导出目录、临时目录和本地敏感配置；最终清理后未保留构建产物或测试缓存。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 对当前 httpx 的第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；`git diff --check` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。

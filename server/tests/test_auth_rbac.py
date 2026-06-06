@@ -76,6 +76,10 @@ def slugify(value: str) -> str:
     return re.sub(r"(^_+|_+$)", "", re.sub(r"[^a-z0-9_]+", "_", value.strip().lower())) or "app"
 
 
+def sqlite_datetime(value: datetime) -> str:
+    return value.isoformat(sep=" ")
+
+
 def test_install_status_and_sqlite_install(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     assert client.get("/api/install/status").json() == {"installed": False, "database_type": None}
@@ -503,7 +507,7 @@ def test_user_list_supports_pagination(tmp_path, monkeypatch):
         for username, created_at in created_times.items():
             conn.execute(
                 text("UPDATE users SET created_at = :created_at WHERE username = :username"),
-                {"created_at": created_at, "username": username},
+                {"created_at": sqlite_datetime(created_at), "username": username},
             )
     engine.dispose()
 
@@ -908,14 +912,14 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
                 "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, detail, created_at) "
                 "VALUES (:actor_id, 'test.old', 'system', '', 'old', :created_at)"
             ),
-            {"actor_id": actor_id, "created_at": old_time},
+            {"actor_id": actor_id, "created_at": sqlite_datetime(old_time)},
         )
         conn.execute(
             text(
                 "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, detail, created_at) "
                 "VALUES (:actor_id, 'test.latest', 'system', '', 'latest', :created_at)"
             ),
-            {"actor_id": actor_id, "created_at": latest_time},
+            {"actor_id": actor_id, "created_at": sqlite_datetime(latest_time)},
         )
     engine.dispose()
 
