@@ -1,6 +1,7 @@
 import { reactive } from "vue";
 
 import { appKey } from "../config/app";
+import { setI18nLocale } from "../i18n";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n/messages";
 import { settingsStore } from "./settings";
 
@@ -19,11 +20,13 @@ export const appStore = reactive({
     appStore.locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
     localStorage.setItem(LOCALE_KEY, appStore.locale);
     document.documentElement.lang = appStore.locale;
+    setI18nLocale(appStore.locale);
   }
 });
 
 applyTheme(appStore.dark);
 document.documentElement.lang = appStore.locale;
+setI18nLocale(appStore.locale);
 
 function applyTheme(dark: boolean) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";

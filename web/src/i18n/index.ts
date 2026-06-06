@@ -1,15 +1,17 @@
-import { computed, watch } from "vue";
+import { computed } from "vue";
 import { createI18n } from "vue-i18n";
 
-import { appStore } from "../stores/app";
+import { appKey } from "../config/app";
 import { DEFAULT_LOCALE, hasMessageKey, isLocale, locales, messages, type I18nKey, type Locale, type TranslateParams } from "./messages";
 
 export { DEFAULT_LOCALE, isLocale, locales };
 export type { I18nKey, Locale, TranslateParams };
 
+const LOCALE_KEY = appKey("locale");
+
 export const i18n = createI18n({
   legacy: false,
-  locale: appStore.locale,
+  locale: initialLocale(),
   fallbackLocale: DEFAULT_LOCALE,
   messages,
   missingWarn: false,
@@ -26,17 +28,12 @@ export function t(key: I18nKey | string, params: TranslateParams = {}) {
 }
 
 export function hasI18nKey(key: string) {
-  return hasMessageKey(appStore.locale, key);
+  return hasMessageKey(currentLocale(), key);
 }
 
 export function setI18nLocale(locale: Locale) {
   i18n.global.locale.value = locale;
 }
-
-watch(
-  () => appStore.locale,
-  (locale) => setI18nLocale(locale)
-);
 
 export function translateMessage(code: string, params: TranslateParams = {}, fallback = "") {
   if (code && hasI18nKey(code)) {
@@ -46,13 +43,23 @@ export function translateMessage(code: string, params: TranslateParams = {}, fal
 }
 
 export function formatDateTime(value: string | number | Date) {
-  return new Date(value).toLocaleString(appStore.locale);
+  return new Date(value).toLocaleString(currentLocale());
 }
 
 export function useI18n() {
   return {
-    locale: computed(() => appStore.locale),
+    locale: computed(() => currentLocale()),
     t,
     formatDateTime
   };
+}
+
+function initialLocale(): Locale {
+  const saved = localStorage.getItem(LOCALE_KEY);
+  return isLocale(saved) ? saved : DEFAULT_LOCALE;
+}
+
+function currentLocale(): Locale {
+  const locale = i18n.global.locale.value;
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
 }

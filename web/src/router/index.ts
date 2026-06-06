@@ -36,14 +36,14 @@ window.addEventListener(AUTH_EXPIRED_EVENT, () => {
 });
 
 router.beforeEach(async (to) => {
-  const status = await getInstallStatus();
-  if (!status.installed && to.path !== "/install") {
+  const status = await loadInstallStatus();
+  if (status && !status.installed && to.path !== "/install") {
     return "/install";
   }
-  if (status.installed && to.path === "/install") {
+  if (status?.installed && to.path === "/install") {
     return authStore.token ? "/" : "/login";
   }
-  if (status.installed && !settingsStore.loaded) {
+  if (status?.installed && !settingsStore.loaded) {
     try {
       const publicSettings = await settingsStore.loadPublic();
       if (!localStorage.getItem(LOCALE_KEY)) {
@@ -53,7 +53,7 @@ router.beforeEach(async (to) => {
       // Keep bundled defaults if public settings are temporarily unavailable.
     }
   }
-  if (status.installed && to.path === "/register" && !settingsStore.publicSettings.registration_enabled) {
+  if (status?.installed && to.path === "/register" && !settingsStore.publicSettings.registration_enabled) {
     return "/login";
   }
   if (to.meta.public) {
@@ -77,3 +77,11 @@ router.beforeEach(async (to) => {
   }
   return true;
 });
+
+async function loadInstallStatus() {
+  try {
+    return await getInstallStatus();
+  } catch {
+    return null;
+  }
+}

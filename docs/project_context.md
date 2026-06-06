@@ -384,3 +384,8 @@
 - 数据备份接口 `POST /api/settings/backup` 返回 ZIP，包含 `metadata.json` 和现有核心表 JSON 数据：用户、角色、权限、审计日志、公告、公告已读和系统配置，便于后续服务器迁移时使用。
 - 前端新增 `SystemSettingsView` 并接入“系统管理”菜单，页面复用贴边工作区和 i18n 文案；备份按钮会下载 `metrix-backup-YYYY-MM-DD.zip`，登录页在关闭注册时隐藏注册入口。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`git diff --check` 通过；调试残留扫描无命中。
+## 2026-06-07：修复前端白屏
+- 白屏根因是 `web/src/i18n/index.ts` 顶层导入 `appStore`，而 `appStore -> settingsStore -> api/client -> i18n` 形成循环初始化，浏览器报 `Cannot access 'appStore' before initialization`。
+- i18n 初始化改为只读取本地语言 key 和语言包，不再顶层依赖 `appStore`；`appStore.setLocale(...)` 主动调用 `setI18nLocale(...)` 同步 vue-i18n、localStorage 和 `document.documentElement.lang`。
+- 路由守卫对 `/api/install/status` 增加兜底：安装状态接口暂时失败时不再中断首屏导航，公开页仍可显示，受保护页继续按登录态回到登录页，避免接口异常导致空白页面。
+- 验证：默认 5173/8000 端口下用 Browser 打开 `http://127.0.0.1:5173/`，页面跳转到 `/login` 且 `#app` 正常渲染；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed。
