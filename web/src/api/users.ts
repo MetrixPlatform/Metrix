@@ -1,4 +1,4 @@
-import { del, post, put, request } from "./client";
+import { del, post, put, queryString, request } from "./client";
 import type { PageResult, RoleBrief, ServerMessage, UserListItem } from "./types";
 
 export interface UserPayload {
@@ -24,13 +24,7 @@ export interface UserFilters {
 }
 
 export function listUsers(filters: UserFilters = {}) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
-  });
-  return request<PageResult<UserListItem>>(`/users${params.size ? `?${params}` : ""}`);
+  return request<PageResult<UserListItem>>(`/users${queryString(filters)}`);
 }
 
 export function listUserRoleOptions() {

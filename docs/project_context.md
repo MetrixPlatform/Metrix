@@ -389,3 +389,9 @@
 - i18n 初始化改为只读取本地语言 key 和语言包，不再顶层依赖 `appStore`；`appStore.setLocale(...)` 主动调用 `setI18nLocale(...)` 同步 vue-i18n、localStorage 和 `document.documentElement.lang`。
 - 路由守卫对 `/api/install/status` 增加兜底：安装状态接口暂时失败时不再中断首屏导航，公开页仍可显示，受保护页继续按登录态回到登录页，避免接口异常导致空白页面。
 - 验证：默认 5173/8000 端口下用 Browser 打开 `http://127.0.0.1:5173/`，页面跳转到 `/login` 且 `#app` 正常渲染；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过，前端 `npm run build` 通过，后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed。
+## 2026-06-07：第一轮全量代码清理
+- 前端请求层新增 `queryString(...)` 小工具，用户列表、公告列表和操作日志列表/导出统一复用查询参数拼接逻辑，避免各 API 文件重复维护过滤空值和分页排除逻辑。
+- 操作日志 CSV 导出不再用 `void page`、`void page_size` 占位丢弃分页字段，改为通过 `queryString(filters, ["page", "page_size"])` 显式排除分页参数。
+- 后端系统设置服务删除 `_days_delta(...)` 一行包装，日志裁剪阈值直接使用 `timedelta(days=days)`；`server/app/db/init.py` 合并 SQLAlchemy ORM 导入。
+- 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__`；`.gitignore` 已覆盖前端构建产物、运行时数据、缓存、日志、临时目录和本地敏感配置。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。

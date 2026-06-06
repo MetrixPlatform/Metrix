@@ -86,6 +86,17 @@ export function del<T>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
 }
 
+export function queryString(filters: object = {}, ignoredKeys: string[] = []) {
+  const ignored = new Set(ignoredKeys);
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!ignored.has(key) && value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+  return params.size ? `?${params}` : "";
+}
+
 async function parseJson(response: Response): Promise<Record<string, unknown> | null> {
   const text = await response.text();
   if (!text) {

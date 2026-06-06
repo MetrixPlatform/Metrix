@@ -1,4 +1,4 @@
-import { download, request } from "./client";
+import { download, queryString, request } from "./client";
 import type { AuditLogItem, PageResult } from "./types";
 
 export interface AuditLogFilters {
@@ -18,18 +18,5 @@ export function listAuditLogs(filters: AuditLogFilters = {}) {
 }
 
 export function downloadAuditLogs(filters: AuditLogFilters = {}) {
-  const { page, page_size, ...exportFilters } = filters;
-  void page;
-  void page_size;
-  return download(`/audit-logs/export${queryString(exportFilters)}`);
-}
-
-function queryString(filters: AuditLogFilters = {}) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
-  });
-  return params.size ? `?${params}` : "";
+  return download(`/audit-logs/export${queryString(filters, ["page", "page_size"])}`);
 }

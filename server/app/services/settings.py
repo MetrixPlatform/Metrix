@@ -71,7 +71,7 @@ class SettingService:
             latest = self._latest_audit_time(actor_user_id)
             if latest is None:
                 continue
-            threshold = latest - _days_delta(days)
+            threshold = latest - timedelta(days=days)
             query = self.db.query(AuditLog).filter(AuditLog.created_at < threshold)
             if actor_user_id is None:
                 query = query.filter(AuditLog.actor_user_id.is_(None))
@@ -181,10 +181,6 @@ def _parse_retention_days(value: str | None, fallback: int) -> int:
 
 def _parse_locale(value: str | None, fallback: str):
     return value if value in {"zh-CN", "en-US"} else fallback
-
-
-def _days_delta(days: int):
-    return timedelta(days=days)
 
 
 def _json_value(value: object) -> object:

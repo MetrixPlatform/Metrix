@@ -1,6 +1,5 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import inspect, text
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
 from app.core.security import hash_password

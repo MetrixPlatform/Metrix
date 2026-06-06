@@ -1,4 +1,4 @@
-import { del, post, put, request } from "./client";
+import { del, post, put, queryString, request } from "./client";
 import type { AnnouncementFeedItem, AnnouncementItem, AnnouncementTargetType, PageResult, PublicAnnouncementItem, ServerMessage } from "./types";
 
 export interface AnnouncementPayload {
@@ -38,13 +38,7 @@ export function markAnnouncementRead(announcementId: number) {
 }
 
 export function listAnnouncements(filters: AnnouncementFilters = {}) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
-    }
-  });
-  return request<PageResult<AnnouncementItem>>(`/announcements${params.size ? `?${params}` : ""}`);
+  return request<PageResult<AnnouncementItem>>(`/announcements${queryString(filters)}`);
 }
 
 export function createAnnouncement(payload: AnnouncementPayload) {
