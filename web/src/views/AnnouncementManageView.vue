@@ -128,6 +128,7 @@ import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { messageText, showError } from "../utils/message";
+import { singleFilterValue } from "../utils/table";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -395,11 +396,6 @@ function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize;
   pagination.page = 1;
   void loadAnnouncements();
-}
-
-function singleFilterValue(filterState: DataTableFilterState, key: string) {
-  const value = filterState[key];
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
 function isTargetType(value: unknown): value is AnnouncementTargetType {

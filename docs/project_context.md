@@ -395,3 +395,9 @@
 - 后端系统设置服务删除 `_days_delta(...)` 一行包装，日志裁剪阈值直接使用 `timedelta(days=days)`；`server/app/db/init.py` 合并 SQLAlchemy ORM 导入。
 - 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__`；`.gitignore` 已覆盖前端构建产物、运行时数据、缓存、日志、临时目录和本地敏感配置。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。
+## 2026-06-07：第二轮全量代码清理
+- 新增 `web/src/utils/table.ts`，统一封装 Naive UI 表格单选筛选值读取逻辑；用户管理、公告管理和操作日志页面删除各自重复的 `singleFilterValue(...)` 实现。
+- 新增 `web/src/utils/download.ts`，统一封装浏览器 Blob 下载逻辑；操作日志 CSV 下载和系统设置数据备份下载复用同一入口。
+- 第二轮重新扫描前后端源码、调试残留、废弃权限清理逻辑、表格筛选、下载逻辑、服务层和 repository；保留的 `void load...` 均为 Vue 事件/监听中显式触发异步刷新，废弃权限常量仍用于迁移清理和前端过滤，不作为死代码删除。
+- 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__`，未留下构建产物或测试缓存。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；Browser 打开 `http://127.0.0.1:5173/` 自动进入 `/login`，`#app` 正常渲染且控制台无 error。

@@ -48,7 +48,9 @@ import { downloadAuditLogs, listAuditLogs, type AuditLogFilters } from "../api/a
 import type { AuditLogItem } from "../api/types";
 import { formatDateTime, hasI18nKey, t } from "../i18n";
 import { authStore } from "../stores/auth";
+import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
+import { singleFilterValue } from "../utils/table";
 
 type AuditActorScope = "self" | "all";
 
@@ -207,17 +209,6 @@ function buildFilters(withPagination: boolean): AuditLogFilters {
   };
 }
 
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
 function searchLogs() {
   pagination.page = 1;
   void loadLogs();
@@ -250,11 +241,6 @@ function handleSorter(sortState: DataTableSortState | DataTableSortState[] | nul
   filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadLogs();
-}
-
-function singleFilterValue(filterState: DataTableFilterState, key: string) {
-  const value = filterState[key];
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
 function isActorScope(value: unknown): value is AuditActorScope {

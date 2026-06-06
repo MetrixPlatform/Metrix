@@ -142,6 +142,7 @@ import { formatDateTime, t } from "../i18n";
 import { roleName } from "../i18n/builtins";
 import { authStore } from "../stores/auth";
 import { messageText, showError } from "../utils/message";
+import { singleFilterValue } from "../utils/table";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -360,11 +361,6 @@ function handleSorter(sortState: DataTableSortState | DataTableSortState[] | nul
   filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadUsers();
-}
-
-function singleFilterValue(filterState: DataTableFilterState, key: string) {
-  const value = filterState[key];
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
 function isUserApprovalFilter(value: unknown): value is UserApprovalFilter {

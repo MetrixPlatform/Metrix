@@ -56,6 +56,7 @@ import PermissionButton from "../components/PermissionButton.vue";
 import { localeOptions, t } from "../i18n";
 import { appStore } from "../stores/app";
 import { settingsStore } from "../stores/settings";
+import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -138,14 +139,4 @@ function assignSettings(settings: SystemSettings) {
   form.default_locale = settings.default_locale;
 }
 
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
 </script>
