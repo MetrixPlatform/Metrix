@@ -376,3 +376,11 @@
 - 导出接口继续复用日志范围权限：只有 `action:audit_log:read` 时只能导出本人日志，带 `actor_scope=all` 时必须拥有 `action:audit_log:manage_others`。
 - 前端操作日志页新增“下载 CSV”按钮，下载时携带当前筛选条件；请求层新增通用 `download(...)` 方法，保持 401 登录失效处理与普通 JSON 请求一致。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 18 passed；前端 `npm run build` 通过；`git diff --check` 通过。
+## 2026-06-06：新增系统设置页面
+- 后端新增 `system_settings` 表、设置 repository/service/schema/API，提供公开设置、管理员读取保存设置和一键备份接口；新增权限 `route:settings`、`action:setting:read/update/operate`，授予系统设置路由后默认扩展查询权限。
+- 系统设置支持运行时平台名称、是否开放注册、注册时手机号码/邮箱/公司/部门或职位是否必填、日志保留时长、默认语言和数据备份；公开设置会在登录、注册和路由守卫加载，用于控制注册入口、默认语言和运行时平台名展示。
+- 注册后端强制读取系统设置：关闭注册时拒绝注册；注册必填资料由系统设置逐项控制，手机号码和邮箱在非必填时允许为空但填写后仍校验格式。
+- 日志保留改为后台维护任务，不在每次写操作日志时清理；FastAPI lifespan 启动 24 小时循环任务，清理时按每个账号自己的最后一条日志时间向前保留配置天数，避免按系统当前时间删除日志。
+- 数据备份接口 `POST /api/settings/backup` 返回 ZIP，包含 `metadata.json` 和现有核心表 JSON 数据：用户、角色、权限、审计日志、公告、公告已读和系统配置，便于后续服务器迁移时使用。
+- 前端新增 `SystemSettingsView` 并接入“系统管理”菜单，页面复用贴边工作区和 i18n 文案；备份按钮会下载 `metrix-backup-YYYY-MM-DD.zip`，登录页在关闭注册时隐藏注册入口。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`git diff --check` 通过；调试残留扫描无命中。

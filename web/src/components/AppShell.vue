@@ -11,7 +11,7 @@
     >
       <div class="brand">
         <BrandMark />
-        <span class="brand-text">{{ APP_NAME }}</span>
+        <span class="brand-text">{{ appName }}</span>
       </div>
       <n-menu
         class="app-menu"
@@ -85,7 +85,7 @@ import { NButton, NDropdown, NIcon, NLayout, NLayoutContent, NLayoutFooter, NLay
 import type { MenuOption } from "naive-ui";
 
 import { logout } from "../api/auth";
-import { APP_NAME, appKey } from "../config/app";
+import { appKey } from "../config/app";
 import { t } from "../i18n";
 import {
   getPageTitle,
@@ -99,6 +99,7 @@ import {
 import { announcementStore } from "../stores/announcements";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import { settingsStore } from "../stores/settings";
 import AnnouncementTicker from "./AnnouncementTicker.vue";
 import BrandMark from "./BrandMark.vue";
 import CopyrightNotice from "./CopyrightNotice.vue";
@@ -115,7 +116,8 @@ const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value))
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);
 const showAnnouncementModal = ref(false);
-const currentTitle = computed(() => getPageTitle(route.path) || APP_NAME);
+const appName = computed(() => settingsStore.appName());
+const currentTitle = computed(() => getPageTitle(route.path) || appName.value);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const tickerAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_ticker && !item.is_read));

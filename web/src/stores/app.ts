@@ -2,6 +2,7 @@ import { reactive } from "vue";
 
 import { appKey } from "../config/app";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n/messages";
+import { settingsStore } from "./settings";
 
 const THEME_KEY = appKey("dark");
 const LOCALE_KEY = appKey("locale");
@@ -33,6 +34,5 @@ function initialLocale(): Locale {
   if (isLocale(saved)) {
     return saved;
   }
-  const browserLocale = navigator.language === "zh" || navigator.language.startsWith("zh-") ? "zh-CN" : DEFAULT_LOCALE;
-  return browserLocale;
+  return settingsStore.defaultLocale();
 }

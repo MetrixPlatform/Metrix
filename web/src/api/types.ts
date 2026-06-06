@@ -110,3 +110,21 @@ export interface AuditLogItem {
   detail: string;
   created_at: string;
 }
+
+export interface RegistrationRequiredFields {
+  phone: boolean;
+  email: boolean;
+  company: boolean;
+  department: boolean;
+}
+
+export interface PublicSettings {
+  app_name: string;
+  registration_enabled: boolean;
+  registration_required_fields: RegistrationRequiredFields;
+  default_locale: "zh-CN" | "en-US";
+}
+
+export interface SystemSettings extends PublicSettings {
+  log_retention_days: 7 | 30 | 90 | 180 | 365;
+}

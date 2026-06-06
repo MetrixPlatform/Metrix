@@ -1,11 +1,14 @@
 <template>
   <div class="brand-mark">
-    <img class="brand-logo" :src="logoUrl" :alt="APP_NAME" />
+    <img class="brand-logo" :src="logoUrl" :alt="appName" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { APP_NAME } from "../config/app";
+import { computed } from "vue";
+
+import { settingsStore } from "../stores/settings";
 
 const logoUrl = "/favicon.svg";
+const appName = computed(() => settingsStore.appName());
 </script>

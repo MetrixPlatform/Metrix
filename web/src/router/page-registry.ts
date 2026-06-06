@@ -4,6 +4,7 @@ import {
   KeyMultiple20Regular,
   MegaphoneLoud20Regular,
   People20Regular,
+  PeopleSettings20Regular,
   Settings20Regular
 } from "@vicons/fluent";
 import type { Component } from "vue";
@@ -93,6 +94,15 @@ const appPages: AppPage[] = [
     permission: "route:audit_logs",
     fallbackOrder: 50,
     menu: { group: "system", icon: ClipboardClock20Regular, order: 40 }
+  },
+  {
+    key: "settings",
+    path: "/settings",
+    titleKey: "route.settings",
+    component: () => import("../views/SystemSettingsView.vue"),
+    permission: "route:settings",
+    fallbackOrder: 60,
+    menu: { group: "system", icon: PeopleSettings20Regular, order: 50 }
   },
   {
     key: "profile",

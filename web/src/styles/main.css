@@ -1170,6 +1170,42 @@ a {
   font-weight: 700;
 }
 
+.settings-card {
+  padding: 18px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(280px, 420px);
+  gap: 18px;
+  min-height: 0;
+}
+
+.settings-section {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  background: var(--card-color);
+}
+
+.settings-section-title {
+  margin: 0 0 18px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.settings-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.settings-backup-panel {
+  display: flex;
+  align-items: center;
+  min-height: 84px;
+}
+
 @media (max-width: 760px) {
   .app-header {
     padding: 0 12px;
@@ -1222,6 +1258,10 @@ a {
   .permission-layout {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(180px, 0.38fr) minmax(0, 1fr);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
   }
 
   .user-toolbar,

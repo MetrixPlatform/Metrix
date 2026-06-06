@@ -13,6 +13,7 @@ from app.schemas.common import MessageResponse
 from app.schemas.dashboard import DashboardSummary
 from app.schemas.install import InstallRequest, InstallStatusResponse, MysqlInstallConfig
 from app.schemas.role import AssignPermissionsRequest, PermissionItem, RoleCreateRequest, RoleItem, RoleUpdateRequest
+from app.schemas.settings import PublicSettings, RegistrationRequiredFields, SystemSettings, SystemSettingsUpdate
 from app.schemas.user import (
     AssignRolesRequest,
     RejectUserRequest,
@@ -46,6 +47,8 @@ __all__ = [
     "PermissionItem",
     "ProfileUpdateRequest",
     "PublicAnnouncementItem",
+    "PublicSettings",
+    "RegistrationRequiredFields",
     "RegisterRequest",
     "RejectUserRequest",
     "ResetPasswordRequest",
@@ -53,6 +56,8 @@ __all__ = [
     "RoleCreateRequest",
     "RoleItem",
     "RoleUpdateRequest",
+    "SystemSettings",
+    "SystemSettingsUpdate",
     "UserCreateRequest",
     "UserListItem",
     "UserListResponse",

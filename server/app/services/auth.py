@@ -8,6 +8,7 @@ from app.repositories.users import UserRepository
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, ProfileUpdateRequest, RegisterRequest
 from app.services.audit import record_audit
 from app.services.permissions import get_user_permission_codes
+from app.services.settings import SettingService
 
 
 class AuthService:
@@ -16,6 +17,7 @@ class AuthService:
         self.users = UserRepository(db)
 
     def register(self, payload: RegisterRequest) -> User:
+        self._guard_registration(payload)
         if self.users.get_by_username(payload.username):
             raise bad_request("error.usernameExists", "Username already exists")
         user = User(
@@ -34,6 +36,24 @@ class AuthService:
         record_audit(self.db, None, "user.register", "user", str(user.id), user.username)
         self.db.commit()
         return user
+
+    def _guard_registration(self, payload: RegisterRequest) -> None:
+        settings = SettingService(self.db).public_settings()
+        if not settings.registration_enabled:
+            raise bad_request("error.registrationDisabled", "Registration is disabled")
+        required = settings.registration_required_fields
+        missing_fields = [
+            field
+            for field, required_flag in {
+                "phone": required.phone,
+                "email": required.email,
+                "company": required.company,
+                "department": required.department,
+            }.items()
+            if required_flag and not getattr(payload, field).strip()
+        ]
+        if missing_fields:
+            raise bad_request("error.registrationFieldRequired", "Required registration field is missing", field=missing_fields[0])
 
     def login(self, payload: LoginRequest) -> tuple[str, User, list[str]]:
         user = self.users.get_by_username(payload.username)

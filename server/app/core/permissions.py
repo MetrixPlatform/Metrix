@@ -14,6 +14,7 @@ ROUTE_USERS = route_code("users")
 ROUTE_PERMISSIONS = route_code("permissions")
 ROUTE_ANNOUNCEMENTS = route_code("announcements")
 ROUTE_AUDIT_LOGS = route_code("audit_logs")
+ROUTE_SETTINGS = route_code("settings")
 
 USER_CREATE = action_code("user", "create")
 USER_READ = action_code("user", "read")
@@ -35,6 +36,10 @@ ANNOUNCEMENT_MANAGE_OTHERS = action_code("announcement", "manage_others")
 
 AUDIT_LOG_READ = action_code("audit_log", "read")
 AUDIT_LOG_MANAGE_OTHERS = action_code("audit_log", "manage_others")
+
+SETTING_READ = action_code("setting", "read")
+SETTING_UPDATE = action_code("setting", "update")
+SETTING_OPERATE = action_code("setting", "operate")
 
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
@@ -102,6 +107,7 @@ PAGE_PERMISSION_SPECS = (
     PagePermissionSpec(ROUTE_PERMISSIONS, "权限管理", "role", "访问权限管理", 30, ROLE_READ),
     PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "公告管理", "announcement", "访问公告管理", 40, ANNOUNCEMENT_READ),
     PagePermissionSpec(ROUTE_AUDIT_LOGS, "操作日志", "audit_log", "访问操作日志", 50, AUDIT_LOG_READ),
+    PagePermissionSpec(ROUTE_SETTINGS, "系统设置", "setting", "访问系统设置", 60, SETTING_READ),
 )
 
 RESOURCE_PERMISSION_SPECS = (
@@ -148,6 +154,16 @@ RESOURCE_PERMISSION_SPECS = (
         (
             ResourceActionSpec("read", "查询操作日志", "查询操作日志", 20),
             ResourceActionSpec("manage_others", "查看所有日志", "查看所有账号产生的操作日志", 50),
+        ),
+    ),
+    ResourcePermissionSpec(
+        "setting",
+        "系统设置",
+        500,
+        (
+            ResourceActionSpec("read", "查询系统设置", "查询系统设置", 20),
+            ResourceActionSpec("update", "修改系统设置", "修改系统设置", 30),
+            ResourceActionSpec("operate", "操作系统设置", "执行数据备份等系统设置操作", 50),
         ),
     ),
 )

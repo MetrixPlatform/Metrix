@@ -39,7 +39,7 @@ export function maxLengthRule(label: string, max: number): FormItemRule {
 
 export function phoneRule(): FormItemRule {
   return {
-    validator: (_rule, value: string) => /^1[3-9]\d{9}$/.test(value),
+    validator: (_rule, value: string) => !value || /^1[3-9]\d{9}$/.test(value),
     message: t("validation.phone"),
     trigger: textTrigger
   };
@@ -47,7 +47,7 @@ export function phoneRule(): FormItemRule {
 
 export function emailRule(): FormItemRule {
   return {
-    validator: (_rule, value: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
+    validator: (_rule, value: string) => !value || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
     message: t("validation.email"),
     trigger: textTrigger
   };

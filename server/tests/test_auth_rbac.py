@@ -159,8 +159,12 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_AUDIT_LOGS,
         ROUTE_ANNOUNCEMENTS,
         ROUTE_PERMISSIONS,
+        ROUTE_SETTINGS,
         ROUTE_READ_PERMISSIONS,
         ROUTE_USERS,
+        SETTING_OPERATE,
+        SETTING_READ,
+        SETTING_UPDATE,
         USER_READ,
         action_code,
         expand_permissions,
@@ -177,6 +181,9 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert ANNOUNCEMENT_MANAGE_OTHERS in seeds_by_code
     assert AUDIT_LOG_MANAGE_OTHERS in seeds_by_code
     assert seeds_by_code[AUDIT_LOG_READ].resource == "audit_log"
+    assert seeds_by_code[SETTING_READ].resource == "setting"
+    assert SETTING_UPDATE in seeds_by_code
+    assert SETTING_OPERATE in seeds_by_code
     assert "action:announcement:operate" in DEPRECATED_PERMISSION_CODES
     assert "action:announcement:operate" not in seeds_by_code
     assert ROUTE_READ_PERMISSIONS == {
@@ -184,6 +191,7 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_PERMISSIONS: ROLE_READ,
         ROUTE_ANNOUNCEMENTS: ANNOUNCEMENT_READ,
         ROUTE_AUDIT_LOGS: AUDIT_LOG_READ,
+        ROUTE_SETTINGS: SETTING_READ,
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
 
@@ -811,6 +819,126 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     login_logs = client.get("/api/audit-logs", params={"action": "auth.login"}, headers=reader_headers)
     assert login_logs.status_code == 200
     assert all(item["action"] == "auth.login" for item in page_items(login_logs))
+
+
+def test_system_settings_control_registration_retention_and_backup(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    public_defaults = client.get("/api/settings/public")
+    assert public_defaults.status_code == 200
+    assert public_defaults.json()["app_name"] == "Metrix"
+
+    settings_payload = {
+        "app_name": "Data Portal",
+        "registration_enabled": False,
+        "registration_required_fields": {
+            "phone": False,
+            "email": False,
+            "company": True,
+            "department": True,
+        },
+        "log_retention_days": 7,
+        "default_locale": "en-US",
+    }
+    updated = client.put("/api/settings", json=settings_payload, headers=admin_headers)
+    assert updated.status_code == 200
+    assert updated.json()["app_name"] == "Data Portal"
+
+    public_updated = client.get("/api/settings/public").json()
+    assert public_updated["registration_enabled"] is False
+    assert public_updated["default_locale"] == "en-US"
+    disabled_register = client.post(
+        "/api/auth/register",
+        json={
+            "username": "closed_register",
+            "password": "UserPass123",
+            "phone": "",
+            "email": "",
+            "company": "公司",
+            "department": "岗位",
+            "full_name": "关闭注册",
+        },
+    )
+    assert disabled_register.status_code == 400
+    assert disabled_register.json()["detail"]["code"] == "error.registrationDisabled"
+
+    settings_payload["registration_enabled"] = True
+    assert client.put("/api/settings", json=settings_payload, headers=admin_headers).status_code == 200
+    missing_required = client.post(
+        "/api/auth/register",
+        json={
+            "username": "missing_company",
+            "password": "UserPass123",
+            "phone": "",
+            "email": "",
+            "company": "",
+            "department": "",
+            "full_name": "缺少公司",
+        },
+    )
+    assert missing_required.status_code == 400
+    assert missing_required.json()["detail"]["code"] == "error.registrationFieldRequired"
+
+    optional_contact = client.post(
+        "/api/auth/register",
+        json={
+            "username": "optional_contact",
+            "password": "UserPass123",
+            "phone": "",
+            "email": "",
+            "company": "公司",
+            "department": "岗位",
+            "full_name": "可选联系方式",
+        },
+    )
+    assert optional_contact.status_code == 200
+
+    from app.core.install import load_install_config
+    from app.services.maintenance import prune_audit_logs_once
+
+    engine = create_engine(load_install_config().database_url)
+    old_time = datetime(2026, 1, 1)
+    latest_time = datetime(2026, 1, 20)
+    with engine.begin() as conn:
+        actor_id = conn.execute(text("SELECT id FROM users WHERE username = 'optional_contact'")).scalar_one()
+        conn.execute(
+            text(
+                "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, detail, created_at) "
+                "VALUES (:actor_id, 'test.old', 'system', '', 'old', :created_at)"
+            ),
+            {"actor_id": actor_id, "created_at": old_time},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO audit_logs (actor_user_id, action, target_type, target_id, detail, created_at) "
+                "VALUES (:actor_id, 'test.latest', 'system', '', 'latest', :created_at)"
+            ),
+            {"actor_id": actor_id, "created_at": latest_time},
+        )
+    engine.dispose()
+
+    prune_audit_logs_once()
+    exported_logs = client.get("/api/audit-logs/export", params={"actor_scope": "all", "keyword": "test."}, headers=admin_headers)
+    assert "test.latest" in exported_logs.text
+    assert "test.old" not in exported_logs.text
+
+    settings_payload["app_name"] = "Data Portal 2"
+    assert client.put("/api/settings", json=settings_payload, headers=admin_headers).status_code == 200
+    backup = client.post("/api/settings/backup", headers=admin_headers)
+    assert backup.status_code == 200
+    assert backup.headers["content-type"] == "application/zip"
+    import zipfile
+    from io import BytesIO
+
+    with zipfile.ZipFile(BytesIO(backup.content)) as archive:
+        names = set(archive.namelist())
+        assert "metadata.json" in names
+        assert "tables/users.json" in names
+        assert "tables/system_settings.json" in names
+        settings_rows = json.loads(archive.read("tables/system_settings.json").decode("utf-8"))
+        assert any(row["key"] == "app_name" and row["value"] == "Data Portal 2" for row in settings_rows)
 
 
 def test_announcements_public_targeted_and_read_state(tmp_path, monkeypatch):

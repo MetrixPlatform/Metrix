@@ -8,7 +8,7 @@
     </div>
     <announcement-ticker v-if="publicAnnouncements.length > 0" class="auth-announcement-ticker" :items="publicAnnouncements" />
     <div class="auth-card login-card">
-      <h1 class="auth-wordmark">{{ APP_NAME }}</h1>
+      <h1 class="auth-wordmark">{{ appName }}</h1>
       <n-form
         ref="formRef"
         class="form-stack inline-form"
@@ -26,7 +26,7 @@
         </n-form-item>
         <n-button type="primary" block :loading="loading" @click="submit">{{ t("auth.login") }}</n-button>
         <div class="form-actions">
-          <router-link class="muted-link" to="/register">{{ t("auth.registerAccount") }}</router-link>
+          <router-link v-if="registrationEnabled" class="muted-link" to="/register">{{ t("auth.registerAccount") }}</router-link>
           <n-button text class="muted-link" @click="showForgotModal = true">{{ t("auth.forgotPassword") }}</n-button>
         </div>
       </n-form>
@@ -56,10 +56,10 @@ import type { PublicAnnouncementItem } from "../api/types";
 import AnnouncementTicker from "../components/AnnouncementTicker.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
-import { APP_NAME } from "../config/app";
 import { t } from "../i18n";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import { settingsStore } from "../stores/settings";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -69,6 +69,8 @@ const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
 const showForgotModal = ref(false);
 const publicAnnouncements = ref<PublicAnnouncementItem[]>([]);
+const appName = computed(() => settingsStore.appName());
+const registrationEnabled = computed(() => settingsStore.publicSettings.registration_enabled);
 const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
 const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const form = reactive({ username: "", password: "" });

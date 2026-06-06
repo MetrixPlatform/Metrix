@@ -3,8 +3,13 @@ import { createRouter, createWebHistory } from "vue-router";
 import { AUTH_EXPIRED_EVENT } from "../api/client";
 import { getInstallStatus } from "../api/install";
 import { getMe } from "../api/auth";
+import { appKey } from "../config/app";
+import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
+import { settingsStore } from "../stores/settings";
 import { createAppPageRoutes, getFallbackPath } from "./page-registry";
+
+const LOCALE_KEY = appKey("locale");
 
 const routes = [
   { path: "/install", component: () => import("../views/InstallView.vue"), meta: { public: true } },
@@ -37,6 +42,19 @@ router.beforeEach(async (to) => {
   }
   if (status.installed && to.path === "/install") {
     return authStore.token ? "/" : "/login";
+  }
+  if (status.installed && !settingsStore.loaded) {
+    try {
+      const publicSettings = await settingsStore.loadPublic();
+      if (!localStorage.getItem(LOCALE_KEY)) {
+        appStore.setLocale(publicSettings.default_locale);
+      }
+    } catch {
+      // Keep bundled defaults if public settings are temporarily unavailable.
+    }
+  }
+  if (status.installed && to.path === "/register" && !settingsStore.publicSettings.registration_enabled) {
+    return "/login";
   }
   if (to.meta.public) {
     return true;

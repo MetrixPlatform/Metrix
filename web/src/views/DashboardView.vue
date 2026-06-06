@@ -1,13 +1,13 @@
 <template>
   <div class="dashboard-shell">
-    <section class="dashboard-hero" :aria-label="APP_NAME">
+    <section class="dashboard-hero" :aria-label="appName">
       <canvas
         ref="canvasRef"
         class="dashboard-particles"
         :class="{ 'is-hidden': particlesHidden }"
         aria-hidden="true"
       />
-      <div v-show="showWordmark" class="dashboard-wordmark">{{ APP_NAME }}</div>
+      <div v-show="showWordmark" class="dashboard-wordmark">{{ appName }}</div>
     </section>
     <aside class="dashboard-announcements work-card">
       <div class="dashboard-announcement-head">
@@ -51,9 +51,9 @@ import { NBadge, NButton, NEmpty, NModal } from "naive-ui";
 
 import type { AnnouncementFeedItem } from "../api/types";
 import StatusTag from "../components/StatusTag.vue";
-import { APP_NAME } from "../config/app";
 import { formatDateTime, t } from "../i18n";
 import { announcementStore } from "../stores/announcements";
+import { settingsStore } from "../stores/settings";
 
 interface Particle {
   x: number;
@@ -84,6 +84,7 @@ const assembleDuration = 2300;
 const holdDuration = 650;
 const shrinkDuration = 850;
 const fontFamily = "Segoe UI, Microsoft YaHei, Arial, sans-serif";
+const appName = computed(() => settingsStore.appName());
 const sidebarAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_sidebar));
 const unreadCount = computed(() => sidebarAnnouncements.value.filter((item) => !item.is_read).length);
 const readLabels = computed(() => ({ read: t("status.read"), unread: t("status.unread") }));
@@ -147,7 +148,7 @@ function textTargets(width: number, height: number, cssWidth: number, cssHeight:
   context.font = `700 ${fontSize}px ${fontFamily}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(APP_NAME, width / 2, height / 2);
+  context.fillText(appName.value, width / 2, height / 2);
   const image = context.getImageData(0, 0, width, height).data;
   const step = Math.max(4, Math.round((cssWidth < 700 ? 4 : 5) * dpr));
   const points: Array<{ x: number; y: number }> = [];
@@ -175,7 +176,7 @@ function targetFontSize(
   while (cssSize > 56) {
     const physicalSize = cssSize * dpr;
     context.font = `700 ${physicalSize}px ${fontFamily}`;
-    const metrics = context.measureText(APP_NAME);
+    const metrics = context.measureText(appName.value);
     const textHeight =
       (metrics.actualBoundingBoxAscent || physicalSize * 0.72) +
       (metrics.actualBoundingBoxDescent || physicalSize * 0.18);

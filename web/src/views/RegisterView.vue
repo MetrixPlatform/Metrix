@@ -61,8 +61,8 @@
 
 <script setup lang="ts">
 import { NButton, NForm, NFormItem, NInput, useMessage } from "naive-ui";
-import type { FormInst, FormRules } from "naive-ui";
-import { computed, reactive, ref } from "vue";
+import type { FormInst, FormItemRule, FormRules } from "naive-ui";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { register } from "../api/auth";
@@ -70,6 +70,7 @@ import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import { t } from "../i18n";
+import { settingsStore } from "../stores/settings";
 import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
@@ -78,6 +79,7 @@ const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
 const form = reactive({ username: "", password: "", confirm_password: "", full_name: "", phone: "", email: "", company: "", department: "" });
+const requiredFields = computed(() => settingsStore.publicSettings.registration_required_fields);
 
 const rules = computed<FormRules>(() => ({
   username: [requiredRule(t("field.username")), minLengthRule(t("field.username"), 3), maxLengthRule(t("field.username"), 64)],
@@ -91,11 +93,17 @@ const rules = computed<FormRules>(() => ({
     }
   ],
   full_name: [requiredRule(t("field.fullName")), maxLengthRule(t("field.fullName"), 80)],
-  phone: [requiredRule(t("field.phone")), phoneRule()],
-  email: [requiredRule(t("field.email")), emailRule(), maxLengthRule(t("field.email"), 254)],
-  company: maxLengthRule(t("field.company"), 120),
-  department: maxLengthRule(t("field.department"), 120)
+  phone: fieldRules(t("field.phone"), requiredFields.value.phone, phoneRule()),
+  email: fieldRules(t("field.email"), requiredFields.value.email, emailRule(), maxLengthRule(t("field.email"), 254)),
+  company: fieldRules(t("field.company"), requiredFields.value.company, maxLengthRule(t("field.company"), 120)),
+  department: fieldRules(t("field.department"), requiredFields.value.department, maxLengthRule(t("field.department"), 120))
 }));
+
+onMounted(async () => {
+  if (!settingsStore.loaded) {
+    await settingsStore.loadPublic().catch(() => undefined);
+  }
+});
 
 async function submit() {
   if (!(await validateForm(formRef.value))) return;
@@ -117,5 +125,9 @@ async function submit() {
   } finally {
     loading.value = false;
   }
+}
+
+function fieldRules(label: string, required: boolean, ...rules: FormItemRule[]) {
+  return required ? [requiredRule(label), ...rules] : rules;
 }
 </script>
