@@ -370,3 +370,9 @@
 - 前端新增 `AuditLogView` 并通过 `page-registry.ts` 收纳到“系统管理”二级菜单；页面使用 `work-card table-page-card`、`page-data-table`、后端分页、顶部关键字/时间范围和表头筛选。
 - 多语言补充操作日志菜单、字段、权限、常见审计动作和目标类型的中英文文案；权限管理内置权限映射同步支持操作日志分组。
 - `docs/development_page_guide.md` 新增操作日志开发规则：关键写操作继续通过 `record_audit(...)` 记录，日志查看所有账号必须走 `action:audit_log:manage_others` 范围提升权限。
+## 2026-06-06：支持操作日志 CSV 下载
+- 后端新增 `GET /api/audit-logs/export`，返回 `text/csv` 附件 `audit-logs.csv`，CSV 使用 UTF-8 BOM 方便表格软件直接识别中文内容。
+- CSV 导出复用操作日志列表的关键字、操作类型、目标类型、账号范围、创建时间范围和排序条件，但不受当前页分页限制，导出当前筛选条件下的完整结果。
+- 导出接口继续复用日志范围权限：只有 `action:audit_log:read` 时只能导出本人日志，带 `actor_scope=all` 时必须拥有 `action:audit_log:manage_others`。
+- 前端操作日志页新增“下载 CSV”按钮，下载时携带当前筛选条件；请求层新增通用 `download(...)` 方法，保持 401 登录失效处理与普通 JSON 请求一致。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 18 passed；前端 `npm run build` 通过；`git diff --check` 通过。

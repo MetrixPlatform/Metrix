@@ -1,4 +1,6 @@
 from datetime import datetime
+import csv
+from io import StringIO
 
 from sqlalchemy.orm import Session
 
@@ -54,6 +56,30 @@ class AuditService:
         )
         return AuditLogListResponse(items=self._with_actor_usernames(logs), total=total, page=page, page_size=page_size)
 
+    def export_csv(
+        self,
+        actor: User,
+        actor_scope: str = "self",
+        keyword: str = "",
+        action: str = "",
+        target_type: str = "",
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        sort_order: str = "descend",
+    ) -> str:
+        actor_user_id = self._actor_user_id(actor, actor_scope)
+        created_at_order = "ascend" if sort_order == "ascend" else "descend"
+        logs = self.audit_logs.export(
+            actor_user_id,
+            keyword,
+            action,
+            target_type,
+            start_time,
+            end_time,
+            created_at_order,
+        )
+        return self._csv_text(self._with_actor_usernames(logs))
+
     def _actor_user_id(self, actor: User, actor_scope: str) -> int | None:
         if actor_scope == "all":
             if has_permission(actor, AUDIT_LOG_MANAGE_OTHERS):
@@ -68,3 +94,22 @@ class AuditService:
             AuditLogItem.model_validate(log).model_copy(update={"actor_username": usernames.get(log.actor_user_id, "")})
             for log in logs
         ]
+
+    def _csv_text(self, logs: list[AuditLogItem]) -> str:
+        output = StringIO()
+        output.write("\ufeff")
+        writer = csv.writer(output, lineterminator="\n")
+        writer.writerow(["id", "operator", "action", "target_type", "target_id", "detail", "created_at"])
+        for log in logs:
+            writer.writerow(
+                [
+                    log.id,
+                    log.actor_username or "system",
+                    log.action,
+                    log.target_type,
+                    log.target_id,
+                    log.detail,
+                    log.created_at.isoformat(sep=" "),
+                ]
+            )
+        return output.getvalue()

@@ -41,25 +41,37 @@ const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
 };
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await rawRequest(path, options);
+  const data = await parseJson(response);
+  if (!response.ok) {
+    handleUnauthorized(response);
+    throw new Error(errorMessage(data));
+  }
+  return data as T;
+}
+
+export async function download(path: string, options: RequestInit = {}): Promise<Blob> {
+  const response = await rawRequest(path, options);
+  if (!response.ok) {
+    handleUnauthorized(response);
+    throw new Error(errorMessage(await parseJson(response)));
+  }
+  return response.blob();
+}
+
+async function rawRequest(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (authStore.token) {
     headers.set("Authorization", `Bearer ${authStore.token}`);
   }
 
-  const response = await fetch(`${API_PREFIX}${path}`, {
+  return fetch(`${API_PREFIX}${path}`, {
     ...options,
     headers
   });
-  const data = await parseJson(response);
-  if (!response.ok) {
-    if (response.status === 401) {
-      authStore.clear();
-      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
-    }
-    throw new Error(errorMessage(data));
-  }
-  return data as T;
 }
 
 export function post<T>(path: string, body?: unknown): Promise<T> {
@@ -83,6 +95,13 @@ async function parseJson(response: Response): Promise<Record<string, unknown> | 
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
     return null;
+  }
+}
+
+function handleUnauthorized(response: Response) {
+  if (response.status === 401) {
+    authStore.clear();
+    window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
   }
 }
 

@@ -1013,6 +1013,11 @@ a {
   min-width: 0;
 }
 
+.audit-log-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .filter-keyword,
 .filter-select,
 .filter-date-range {

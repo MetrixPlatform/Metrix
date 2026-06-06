@@ -13,6 +13,12 @@
         />
         <n-button @click="searchLogs">{{ t("common.search") }}</n-button>
       </div>
+      <div class="toolbar-group audit-log-actions">
+        <n-button :loading="downloading" @click="downloadLogs">
+          <template #icon><n-icon :component="ArrowDownload20Regular" /></template>
+          {{ t("auditLog.downloadCsv") }}
+        </n-button>
+      </div>
     </div>
     <n-data-table
       class="page-data-table"
@@ -33,11 +39,12 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowDownload20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NDatePicker, NInput, NTag, useMessage } from "naive-ui";
+import { NButton, NDataTable, NDatePicker, NIcon, NInput, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
-import { listAuditLogs } from "../api/audit";
+import { downloadAuditLogs, listAuditLogs, type AuditLogFilters } from "../api/audit";
 import type { AuditLogItem } from "../api/types";
 import { formatDateTime, hasI18nKey, t } from "../i18n";
 import { authStore } from "../stores/auth";
@@ -47,6 +54,7 @@ type AuditActorScope = "self" | "all";
 
 const message = useMessage();
 const loading = ref(false);
+const downloading = ref(false);
 const logs = ref<AuditLogItem[]>([]);
 const filters = reactive<{
   keyword: string;
@@ -161,17 +169,7 @@ onMounted(async () => {
 async function loadLogs() {
   loading.value = true;
   try {
-    const result = await listAuditLogs({
-      keyword: filters.keyword,
-      actor_scope: filters.actor_scope,
-      action: filters.action || "",
-      target_type: filters.target_type || "",
-      sort_order: filters.sort_order,
-      start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
-      end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
-      page: pagination.page,
-      page_size: pagination.pageSize
-    });
+    const result = await listAuditLogs(buildFilters(true));
     logs.value = result.items;
     pagination.itemCount = result.total;
     pagination.page = result.page;
@@ -181,6 +179,43 @@ async function loadLogs() {
   } finally {
     loading.value = false;
   }
+}
+
+async function downloadLogs() {
+  downloading.value = true;
+  try {
+    const blob = await downloadAuditLogs(buildFilters(false));
+    saveBlob(blob, `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    downloading.value = false;
+  }
+}
+
+function buildFilters(withPagination: boolean): AuditLogFilters {
+  return {
+    keyword: filters.keyword,
+    actor_scope: filters.actor_scope,
+    action: filters.action || "",
+    target_type: filters.target_type || "",
+    sort_order: filters.sort_order,
+    start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
+    end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
+    page: withPagination ? pagination.page : undefined,
+    page_size: withPagination ? pagination.pageSize : undefined
+  };
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function searchLogs() {

@@ -773,6 +773,10 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     assert forbidden_all.status_code == 403
     assert forbidden_all.json()["detail"]["code"] == "error.auditLogManageOthersDenied"
 
+    forbidden_export_all = client.get("/api/audit-logs/export", params={"actor_scope": "all"}, headers=reader_headers)
+    assert forbidden_export_all.status_code == 403
+    assert forbidden_export_all.json()["detail"]["code"] == "error.auditLogManageOthersDenied"
+
     assign_all = client.put(
         f"/api/roles/{role_id}/permissions",
         json={
@@ -792,6 +796,17 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     )
     assert all_logs.status_code == 200
     assert payload["admin_username"] in {item["actor_username"] for item in page_items(all_logs)}
+
+    exported = client.get(
+        "/api/audit-logs/export",
+        params={"actor_scope": "all", "keyword": payload["admin_username"], "sort_order": "ascend"},
+        headers=reader_headers,
+    )
+    assert exported.status_code == 200
+    assert exported.headers["content-type"].startswith("text/csv")
+    assert exported.headers["content-disposition"] == 'attachment; filename="audit-logs.csv"'
+    assert exported.text.startswith("\ufeffid,operator,action,target_type,target_id,detail,created_at")
+    assert payload["admin_username"] in exported.text
 
     login_logs = client.get("/api/audit-logs", params={"action": "auth.login"}, headers=reader_headers)
     assert login_logs.status_code == 200
