@@ -412,3 +412,8 @@
 - Browser 完整模拟测试覆盖登录、忘记密码、语言/主题切换、首页公告展示/已读、用户新增/编辑/筛选/重置密码/禁用启用/角色分配/删除、注册必填/关闭注册/审核通过/驳回、权限角色新增授权删除、公告新增编辑搜索批量删除单删、操作日志筛选、系统设置保存、个人资料和密码修改、404 返回；测试产生的临时用户、角色、公告和管理员资料改动均已恢复或清理。
 - in-app Browser 当前不支持 `download` 事件，下载功能验证采用 UI 按钮可见性加后端响应校验：操作日志导出返回 `text/csv; charset=utf-8` 且带 BOM 表头，数据备份返回 `application/zip`。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；调试残留扫描无代码命中；Browser 页面控制台无项目 error。
+## 2026-06-07：重新全量复查第二轮
+- 第二轮重新读取前后端源码、测试、配置、路由、页面、服务层、repository、schema、model 和工具函数，未发现新的可确认冗余代码、死代码、废弃调用或不兼容实现；上一轮补齐的系统设置审计日志显示保持稳定。
+- 第二轮 Browser 关键回归覆盖登录、首页、用户管理、权限管理、公告管理、操作日志、系统设置、个人信息和 404；所有主页面均可达，运行时平台名恢复为 `Metrix`，页面控制台无项目 error。
+- 第二轮清理 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__` 后工作区保持干净；`.gitignore` 仍覆盖构建产物、运行时库、缓存、日志、临时目录和本地敏感配置。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；调试残留扫描无代码命中。
