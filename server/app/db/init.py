@@ -76,6 +76,16 @@ def sync_columns(engine) -> None:
             conn,
             inspector,
             table_names,
+            "audit_logs",
+            {
+                "source": "ALTER TABLE audit_logs ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT 'web'",
+                "api_token_prefix": "ALTER TABLE audit_logs ADD COLUMN api_token_prefix VARCHAR(16) NOT NULL DEFAULT ''",
+            },
+        )
+        _sync_table_columns(
+            conn,
+            inspector,
+            table_names,
             "api_tokens",
             {
                 "token_value": "ALTER TABLE api_tokens ADD COLUMN token_value VARCHAR(128)",

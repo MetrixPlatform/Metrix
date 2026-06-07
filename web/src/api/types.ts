@@ -108,6 +108,8 @@ export interface AuditLogItem {
   target_type: string;
   target_id: string;
   detail: string;
+  source: "web" | "api" | string;
+  api_token_prefix: string;
   created_at: string;
 }
 

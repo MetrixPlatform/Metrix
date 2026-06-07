@@ -11,6 +11,8 @@ class AuditLogItem(BaseModel):
     target_type: str
     target_id: str
     detail: str
+    source: str = "web"
+    api_token_prefix: str = ""
     created_at: datetime
 
     model_config = {"from_attributes": True}

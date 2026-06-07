@@ -4,6 +4,7 @@ from io import StringIO
 
 from sqlalchemy.orm import Session
 
+from app.core.auth_context import auth_api_token_prefix, auth_source
 from app.core.exceptions import forbidden
 from app.core.permissions import AUDIT_LOG_MANAGE_OTHERS
 from app.models import AuditLog, User
@@ -20,7 +21,15 @@ def record_audit(
     target_id: str = "",
     detail: str = "",
 ) -> None:
-    AuditRepository(db).add(actor_user_id, action, target_type, target_id, detail)
+    AuditRepository(db).add(
+        actor_user_id,
+        action,
+        target_type,
+        target_id,
+        detail,
+        auth_source(db),
+        auth_api_token_prefix(db),
+    )
 
 
 class AuditService:
@@ -99,12 +108,14 @@ class AuditService:
         output = StringIO()
         output.write("\ufeff")
         writer = csv.writer(output, lineterminator="\n")
-        writer.writerow(["id", "operator", "action", "target_type", "target_id", "detail", "created_at"])
+        writer.writerow(["id", "operator", "source", "api_token_prefix", "action", "target_type", "target_id", "detail", "created_at"])
         for log in logs:
             writer.writerow(
                 [
                     log.id,
                     log.actor_username or "system",
+                    log.source,
+                    log.api_token_prefix,
                     log.action,
                     log.target_type,
                     log.target_id,

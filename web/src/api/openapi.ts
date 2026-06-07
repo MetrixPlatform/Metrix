@@ -10,7 +10,10 @@ export interface OpenApiDocument {
   };
   tags?: Array<{ name: string; description?: string }>;
   paths: Record<string, Record<string, OpenApiOperation>>;
-  components?: Record<string, unknown>;
+  components?: {
+    schemas?: Record<string, OpenApiSchema>;
+    [key: string]: unknown;
+  };
 }
 
 export interface OpenApiOperation {
@@ -19,11 +22,8 @@ export interface OpenApiOperation {
   description?: string;
   operationId?: string;
   parameters?: OpenApiParameter[];
-  requestBody?: {
-    required?: boolean;
-    content?: Record<string, unknown>;
-  };
-  responses?: Record<string, { description?: string; content?: Record<string, unknown> }>;
+  requestBody?: OpenApiRequestBody;
+  responses?: Record<string, OpenApiResponse>;
 }
 
 export interface OpenApiParameter {
@@ -31,7 +31,47 @@ export interface OpenApiParameter {
   in: string;
   required?: boolean;
   description?: string;
-  schema?: Record<string, unknown>;
+  schema?: OpenApiSchema;
+  example?: unknown;
+}
+
+export interface OpenApiRequestBody {
+  required?: boolean;
+  description?: string;
+  content?: Record<string, OpenApiMediaType>;
+}
+
+export interface OpenApiResponse {
+  description?: string;
+  content?: Record<string, OpenApiMediaType>;
+}
+
+export interface OpenApiMediaType {
+  schema?: OpenApiSchema;
+  example?: unknown;
+  examples?: Record<string, { summary?: string; description?: string; value?: unknown }>;
+}
+
+export interface OpenApiSchema {
+  $ref?: string;
+  type?: string;
+  format?: string;
+  title?: string;
+  description?: string;
+  default?: unknown;
+  example?: unknown;
+  examples?: unknown[];
+  enum?: unknown[];
+  const?: unknown;
+  nullable?: boolean;
+  items?: OpenApiSchema;
+  properties?: Record<string, OpenApiSchema>;
+  required?: string[];
+  allOf?: OpenApiSchema[];
+  anyOf?: OpenApiSchema[];
+  oneOf?: OpenApiSchema[];
+  additionalProperties?: boolean | OpenApiSchema;
+  [key: string]: unknown;
 }
 
 export async function getOpenApiDocument() {

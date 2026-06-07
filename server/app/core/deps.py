@@ -4,6 +4,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.auth_context import AUTH_SOURCE_API, AUTH_SOURCE_WEB, set_auth_context
 from app.core.exceptions import forbidden, unauthorized
 from app.core.permissions import API_TOKEN_READ
 from app.core.security import API_TOKEN_PREFIX, decode_access_token, hash_api_token
@@ -29,12 +30,18 @@ def get_current_user(
     if subject is None:
         return _get_api_token_user(db, token)
     user = UserRepository(db).get(int(subject))
+    set_auth_context(db, AUTH_SOURCE_WEB)
     return _guard_user_available(user)
 
 
 def require_api_feature_enabled(db: Session = Depends(get_db)) -> None:
     if not SettingService(db).get_settings().api_enabled:
         raise forbidden("error.apiDisabled", "API feature is disabled")
+
+
+def require_web_session(db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> None:
+    if db.info.get("auth_source") == AUTH_SOURCE_API:
+        raise forbidden("error.webOnly", "This operation is only available in the web UI")
 
 
 def _get_api_token_user(db: Session, plain_token: str) -> User:
@@ -48,6 +55,7 @@ def _get_api_token_user(db: Session, plain_token: str) -> User:
     user = _guard_user_available(api_token.user)
     if not has_permission(user, API_TOKEN_READ):
         raise forbidden()
+    set_auth_context(db, AUTH_SOURCE_API, api_token.token_prefix)
     api_token.last_used_at = utc_now()
     db.commit()
     return user

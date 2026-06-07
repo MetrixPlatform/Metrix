@@ -1370,8 +1370,11 @@ a {
   text-overflow: ellipsis;
 }
 
-.api-operation-test-button {
+.api-operation-actions {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .api-operation h3 {
@@ -1432,6 +1435,77 @@ a {
   border-radius: 6px;
 }
 
+.api-detail-modal {
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(86vh, 820px);
+}
+
+.api-detail-modal > .n-card__content,
+.api-detail-modal > .n-card-content {
+  max-height: calc(86vh - 112px);
+  overflow-y: auto;
+}
+
+.api-detail-content {
+  display: grid;
+  gap: 16px;
+}
+
+.api-detail-content h3,
+.api-detail-section h4 {
+  margin: 0;
+}
+
+.api-detail-section {
+  display: grid;
+  gap: 10px;
+}
+
+.api-schema-card,
+.api-response-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.api-schema-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.api-schema-head span,
+.api-schema-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-response-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.api-json-block {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg-hover);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .api-test-modal {
   width: min(760px, calc(100vw - 32px));
 }
@@ -1458,6 +1532,12 @@ a {
 .api-test-result {
   display: grid;
   gap: 8px;
+}
+
+.api-test-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .api-test-result-head {
@@ -1557,6 +1637,10 @@ a {
   }
 
   .api-operation-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .api-test-result-grid {
     grid-template-columns: 1fr;
   }
 

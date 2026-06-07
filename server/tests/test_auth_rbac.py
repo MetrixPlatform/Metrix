@@ -232,7 +232,7 @@ def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch)
     assert openapi.status_code == 200
     openapi_schema = openapi.json()
     assert openapi_schema["openapi"].startswith("3.")
-    assert "/api/tokens" in openapi_schema["paths"]
+    assert not any(path.startswith("/api/tokens") for path in openapi_schema["paths"])
     assert not any(path.startswith("/api/install") for path in openapi_schema["paths"])
     assert not any(path.startswith("/api/health") for path in openapi_schema["paths"])
 
@@ -511,6 +511,8 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
         "route:dashboard",
         "route:tokens",
         "route:api_docs",
+        "route:announcements",
+        "action:announcement:create",
         "action:api_token:create",
         "action:api_token:delete",
     ]:
@@ -532,6 +534,8 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
                     "route:dashboard",
                     "route:tokens",
                     "route:api_docs",
+                    "route:announcements",
+                    "action:announcement:create",
                     "action:api_token:create",
                     "action:api_token:delete",
                 ]
@@ -582,6 +586,27 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     assert listed.json()[0]["secret_available"] is True
     assert "token" not in listed.json()[0]
 
+    other = client.post(
+        "/api/users",
+        json={
+            "username": "api_other",
+            "password": "ApiPass123",
+            "full_name": "API 其他用户",
+            "phone": "13800000010",
+            "email": "api-other@example.com",
+            "company": "",
+            "department": "",
+            "role_ids": [role_id],
+        },
+        headers=admin_headers,
+    )
+    assert other.status_code == 200
+    other_headers = login(client, "api_other", "ApiPass123")
+    other_listed = client.get("/api/tokens", headers=other_headers)
+    assert other_listed.status_code == 200
+    assert other_listed.json() == []
+    assert client.get(f"/api/tokens/{created_data['id']}/secret", headers=other_headers).status_code == 404
+
     reveal_disabled_settings = client.get("/api/settings", headers=admin_headers).json()
     reveal_disabled_settings["api_token_reveal_enabled"] = False
     assert client.put("/api/settings", json=reveal_disabled_settings, headers=admin_headers).status_code == 200
@@ -596,6 +621,37 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     assert client.get("/api/dashboard/summary", headers=api_headers).status_code == 200
     assert client.get("/api/users", headers=api_headers).status_code == 403
     assert client.get("/openapi.json", headers=api_headers).status_code == 200
+    api_token_manage_call = client.get("/api/tokens", headers=api_headers)
+    assert api_token_manage_call.status_code == 403
+    assert api_token_manage_call.json()["detail"]["code"] == "error.webOnly"
+
+    api_announcement = client.post(
+        "/api/announcements",
+        json={
+            "title": "API 创建公告",
+            "content": "API Token 写操作来源验证",
+            "target_type": "authenticated",
+            "target_value": "",
+            "show_popup": False,
+            "show_ticker": True,
+            "show_sidebar": True,
+            "is_active": True,
+        },
+        headers=api_headers,
+    )
+    assert api_announcement.status_code == 200
+    api_audit_logs = client.get(
+        "/api/audit-logs",
+        params={"actor_scope": "all", "action": "announcement.create"},
+        headers=admin_headers,
+    )
+    assert api_audit_logs.status_code == 200
+    api_log = next(item for item in page_items(api_audit_logs) if item["detail"] == "API 创建公告")
+    assert api_log["source"] == "api"
+    assert api_log["api_token_prefix"] == created_data["token_prefix"]
+    web_login_logs = client.get("/api/audit-logs", params={"actor_scope": "all", "action": "auth.login"}, headers=admin_headers)
+    assert web_login_logs.status_code == 200
+    assert all(item["source"] == "web" for item in page_items(web_login_logs))
 
     deleted = client.delete(f"/api/tokens/{created_data['id']}", headers=user_headers)
     assert deleted.status_code == 200
@@ -964,7 +1020,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     assert exported.status_code == 200
     assert exported.headers["content-type"].startswith("text/csv")
     assert exported.headers["content-disposition"] == 'attachment; filename="audit-logs.csv"'
-    assert exported.text.startswith("\ufeffid,operator,action,target_type,target_id,detail,created_at")
+    assert exported.text.startswith("\ufeffid,operator,source,api_token_prefix,action,target_type,target_id,detail,created_at")
     assert payload["admin_username"] in exported.text
 
     login_logs = client.get("/api/audit-logs", params={"action": "auth.login"}, headers=reader_headers)

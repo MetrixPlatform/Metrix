@@ -83,6 +83,8 @@ const pagination = reactive({
 });
 const auditLogColumnWidths = {
   actor: 130,
+  source: 110,
+  apiTokenPrefix: 130,
   action: 180,
   targetType: 130,
   targetId: 130,
@@ -113,9 +115,11 @@ const auditActionCodes = [
   "announcement.update",
   "announcement.delete",
   "settings.update",
-  "settings.backup"
+  "settings.backup",
+  "api_token.create",
+  "api_token.delete"
 ];
-const auditTargetTypes = ["user", "role", "announcement", "system_settings"];
+const auditTargetTypes = ["user", "role", "announcement", "system_settings", "api_token"];
 const canViewAllLogs = computed(() => authStore.has("action:audit_log:manage_others"));
 const actorScopeOptions = computed(() => [
   { label: t("auditLog.scopeSelf"), value: "self" },
@@ -124,6 +128,18 @@ const actorScopeOptions = computed(() => [
 const actionOptions = computed(() => distinctOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
 const targetTypeOptions = computed(() => distinctOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
 const columns = computed<DataTableColumns<AuditLogItem>>(() => [
+  {
+    title: t("field.auditSource"),
+    key: "source",
+    width: auditLogColumnWidths.source,
+    render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
+  },
+  {
+    title: t("field.apiTokenPrefix"),
+    key: "api_token_prefix",
+    width: auditLogColumnWidths.apiTokenPrefix,
+    render: (row) => row.api_token_prefix || t("common.none")
+  },
   {
     title: t("field.operator"),
     key: "actor_scope",
@@ -259,6 +275,11 @@ function actionLabel(action: string) {
 
 function targetTypeLabel(targetType: string) {
   return targetType ? actionOrTargetLabel(targetType) : t("common.none");
+}
+
+function sourceLabel(source: string) {
+  const key = `auditLog.source.${source}`;
+  return hasI18nKey(key) ? t(key) : source || t("common.none");
 }
 
 function actionOrTargetLabel(value: string) {

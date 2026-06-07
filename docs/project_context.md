@@ -437,3 +437,13 @@
 - API 文档页新增 Token 输入和接口测试弹窗，按 OpenAPI 自动渲染 path/query 参数与 JSON 请求体，发送 Bearer API Token 请求并展示 HTTP 状态和响应内容；不在前端维护第二份接口清单。
 - `docs/development_page_guide.md` 同步补充 Token 可恢复显示、永不过期、OpenAPI 过滤和 API 文档测试面板的后续开发约定。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed；前端 `npm run build` 通过；Browser 验证登录、Token 列表“永不过期”和完整 Token 显示弹窗、API 文档页测试入口可达；接口验证 API Token 调用 `/api/auth/me` 成功，OpenAPI 不含 `/api/install*` 和 `/api/health*`。
+## 2026-06-08：完善 API 文档详情、测试结果和日志来源
+- 后端新增轻量认证上下文 `server/app/core/auth_context.py`，`get_current_user` 会把本次请求来源写入 SQLAlchemy session：网页登录为 `web`，API Token 调用为 `api` 并记录 Token 前缀。
+- `/api/tokens*` 增加 `require_web_session` 强校验，Token 管理只能网页登录态操作；API Token 即使拥有角色权限也不能创建、查询、显示完整值或删除 Token。
+- `audit_logs` 表新增 `source` 和 `api_token_prefix` 字段，并通过启动同步补列；`record_audit(...)` 自动从认证上下文写入来源，日志列表和 CSV 下载都能区分 Web/API 操作。
+- API Token 继续作为用户级资源处理，后端测试显式覆盖其他用户无法看到或显示不属于自己的 Token。
+- `/openapi.json` 过滤范围扩展到 `/api/tokens*` 和 `api-tokens` tag，API 文档只展示可被 API Token 调用的平台能力，不展示 Web-only Token 管理接口。
+- API 文档页改为“接口列表 + 详情弹窗 + 测试弹窗”：列表保持紧凑，详情里查看 operationId、参数说明、请求体字段、请求示例、响应说明和响应示例；测试弹窗展示实际发送的数据和返回结果。
+- 前端新增 `web/src/i18n/openapi.ts` 作为 API 文档专用翻译表，使用 `tag.*`、`operation.<operationId>.*`、`parameter.*`、`schema.property.*` 和 `response.<status>` key；页面优先使用翻译，缺失时回退 OpenAPI 原始说明。
+- API 文档测试请求体不再默认 `{}`，会按 OpenAPI schema 自动生成可编辑示例；响应详情额外补充 400、401、403、404、500 等常见结果解释。
+- `docs/development_page_guide.md` 补充 API 文档翻译、请求/响应示例、Token Web-only、用户级 Token 和审计来源规则。

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_api_feature_enabled, require_permission
+from app.core.deps import require_api_feature_enabled, require_permission, require_web_session
 from app.core.permissions import API_TOKEN_CREATE, API_TOKEN_DELETE, API_TOKEN_READ
 from app.db.session import get_db
 from app.models import User
@@ -9,7 +9,11 @@ from app.schemas.api_token import ApiTokenCreateRequest, ApiTokenCreateResponse,
 from app.schemas.common import MessageResponse, message_response
 from app.services.api_tokens import ApiTokenService
 
-router = APIRouter(prefix="/api/tokens", tags=["api-tokens"], dependencies=[Depends(require_api_feature_enabled)])
+router = APIRouter(
+    prefix="/api/tokens",
+    tags=["api-tokens"],
+    dependencies=[Depends(require_api_feature_enabled), Depends(require_web_session)],
+)
 
 
 @router.get("", response_model=list[ApiTokenItem])
