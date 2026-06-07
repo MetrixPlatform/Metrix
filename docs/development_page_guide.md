@@ -44,6 +44,19 @@
 
 权限管理页面读取后端权限字典，不需要在前端再维护一份权限列表。受保护 API 必须在后端使用权限依赖做强校验，前端按钮只负责显示体验。
 
+## API 与 Token
+
+平台 API 功能由系统设置 `api_enabled` 总开关控制。关闭后 Token 页面、API 文档页面、`/openapi.json` 和 API Token 调用都必须不可用；前端只负责隐藏入口，后端必须继续强校验。
+
+- API 文档页面使用前端 `/api-docs`，读取受保护的 `/openapi.json` 并按 OpenAPI/Swagger 结构展示接口；`/docs` 和 `/openapi.json` 都需要登录且拥有 `action:api_docs:read`。
+- Token 页面使用 `/tokens`，权限为 `route:tokens`，授予后默认扩展 `action:api_token:read`；创建和删除分别使用 `action:api_token:create`、`action:api_token:delete`。
+- API Token 是全平台鉴权入口，后续接口默认不需要额外适配 Token。只要接口继续使用 `get_current_user`、`require_permission(...)` 或 `require_any_permission(...)`，Bearer Token 与 API Token 都会进入同一套用户状态和角色权限校验。
+- API Token 只在创建响应中返回一次明文；数据库只保存哈希和展示前缀。列表接口不得返回明文 Token。
+- 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
+- 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary` 和响应模型，API 文档页会自动从 `/openapi.json` 中展示；不要在前端 API 文档页手写接口清单。
+- 若新增页面属于 API 功能整体开关管辖，在 `web/src/router/page-registry.ts` 的页面注册项中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
+- Vite 开发代理只匹配 `/api/` 和 `/openapi.json`。不要把代理前缀改回宽泛的 `/api`，否则前端页面路径 `/api-docs` 会被误转发到后端并在刷新时显示 404。
+
 ## 页面内按钮
 
 页面内新增、删除、修改、操作按钮优先复用 `PermissionButton`。按钮权限编码使用后端同一套 `action:<resource>:<action>` 规则，避免页面里发明临时权限名。

@@ -11,6 +11,7 @@ from app.core.install import is_installed, load_install_config
 TOKEN_ALGORITHM = hashlib.sha256
 PASSWORD_ALGORITHM = "pbkdf2_sha256"
 PASSWORD_ITERATIONS = 390000
+API_TOKEN_PREFIX = "mtx_"
 
 
 def hash_password(password: str) -> str:
@@ -62,6 +63,14 @@ def decode_access_token(token: str) -> str | None:
         return None
     subject = payload.get("sub")
     return str(subject) if subject else None
+
+
+def create_api_token() -> str:
+    return f"{API_TOKEN_PREFIX}{secrets.token_urlsafe(32)}"
+
+
+def hash_api_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def _secret_key(settings: Settings) -> str:

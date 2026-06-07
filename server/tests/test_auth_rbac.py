@@ -157,13 +157,19 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         AUDIT_LOG_READ,
         ANNOUNCEMENT_MANAGE_OTHERS,
         ANNOUNCEMENT_READ,
+        API_DOCS_READ,
+        API_TOKEN_CREATE,
+        API_TOKEN_DELETE,
+        API_TOKEN_READ,
         DEPRECATED_PERMISSION_CODES,
         PERMISSION_SEEDS,
         ROLE_READ,
+        ROUTE_API_DOCS,
         ROUTE_AUDIT_LOGS,
         ROUTE_ANNOUNCEMENTS,
         ROUTE_PERMISSIONS,
         ROUTE_SETTINGS,
+        ROUTE_TOKENS,
         ROUTE_READ_PERMISSIONS,
         ROUTE_USERS,
         SETTING_OPERATE,
@@ -188,6 +194,10 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert seeds_by_code[SETTING_READ].resource == "setting"
     assert SETTING_UPDATE in seeds_by_code
     assert SETTING_OPERATE in seeds_by_code
+    assert seeds_by_code[API_TOKEN_READ].resource == "api_token"
+    assert API_TOKEN_CREATE in seeds_by_code
+    assert API_TOKEN_DELETE in seeds_by_code
+    assert seeds_by_code[API_DOCS_READ].resource == "api_docs"
     assert "action:announcement:operate" in DEPRECATED_PERMISSION_CODES
     assert "action:announcement:operate" not in seeds_by_code
     assert ROUTE_READ_PERMISSIONS == {
@@ -196,17 +206,32 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_ANNOUNCEMENTS: ANNOUNCEMENT_READ,
         ROUTE_AUDIT_LOGS: AUDIT_LOG_READ,
         ROUTE_SETTINGS: SETTING_READ,
+        ROUTE_TOKENS: API_TOKEN_READ,
+        ROUTE_API_DOCS: API_DOCS_READ,
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
+    assert expand_permissions({ROUTE_TOKENS, ROUTE_API_DOCS}) == {ROUTE_TOKENS, API_TOKEN_READ, ROUTE_API_DOCS, API_DOCS_READ}
 
 
-def test_api_docs_use_local_assets(tmp_path, monkeypatch):
+def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
-    response = client.get("/docs")
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    assert client.get("/docs").status_code == 401
+    assert client.get("/openapi.json").status_code == 401
+
+    response = client.get("/docs", headers=admin_headers)
     assert response.status_code == 200
     assert "http://" not in response.text
     assert "https://" not in response.text
     assert "/static/swagger-ui/swagger-ui-bundle.js" in response.text
+    assert "/openapi.json" in response.text
+
+    openapi = client.get("/openapi.json", headers=admin_headers)
+    assert openapi.status_code == 200
+    assert openapi.json()["openapi"].startswith("3.")
+    assert "/api/tokens" in openapi.json()["paths"]
 
 
 def test_mysql_install_runs_database_and_table_creation(monkeypatch):
@@ -470,6 +495,108 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     assert role_options.json()[0].keys() == {"id", "code", "name"}
     assert client.get("/api/permissions", headers=reader_headers).status_code == 403
     assert client.post("/api/users", json={}, headers=reader_headers).status_code == 403
+
+
+def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
+    for code in [
+        "route:dashboard",
+        "route:tokens",
+        "route:api_docs",
+        "action:api_token:create",
+        "action:api_token:delete",
+    ]:
+        assert code in permission_ids_by_code
+
+    role = client.post(
+        "/api/roles",
+        json={"code": "api_operator", "name": "API 操作员", "description": ""},
+        headers=admin_headers,
+    )
+    assert role.status_code == 200
+    role_id = role.json()["id"]
+    assign = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={
+            "permission_ids": [
+                permission_ids_by_code[code]
+                for code in [
+                    "route:dashboard",
+                    "route:tokens",
+                    "route:api_docs",
+                    "action:api_token:create",
+                    "action:api_token:delete",
+                ]
+            ]
+        },
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+
+    user = client.post(
+        "/api/users",
+        json={
+            "username": "api_user",
+            "password": "ApiPass123",
+            "full_name": "API 用户",
+            "phone": "13800000009",
+            "email": "api-user@example.com",
+            "company": "",
+            "department": "",
+            "role_ids": [role_id],
+        },
+        headers=admin_headers,
+    )
+    assert user.status_code == 200
+    user_headers = login(client, "api_user", "ApiPass123")
+
+    me = client.get("/api/auth/me", headers=user_headers).json()
+    assert "route:tokens" in me["permissions"]
+    assert "action:api_token:read" in me["permissions"]
+    assert "action:api_docs:read" in me["permissions"]
+
+    created = client.post("/api/tokens", json={"name": "自动化调用", "expires_at": None}, headers=user_headers)
+    assert created.status_code == 200
+    created_data = created.json()
+    assert created_data["token"].startswith("mtx_")
+    assert created_data["token_prefix"] == created_data["token"][:12]
+    assert "token_hash" not in created_data
+
+    listed = client.get("/api/tokens", headers=user_headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    assert "token" not in listed.json()[0]
+
+    api_headers = {"Authorization": f"Bearer {created_data['token']}"}
+    assert client.get("/api/dashboard/summary", headers=api_headers).status_code == 200
+    assert client.get("/api/users", headers=api_headers).status_code == 403
+    assert client.get("/openapi.json", headers=api_headers).status_code == 200
+
+    deleted = client.delete(f"/api/tokens/{created_data['id']}", headers=user_headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["code"] == "token.deleted"
+    assert client.get("/api/dashboard/summary", headers=api_headers).status_code == 401
+
+    second_token = client.post("/api/tokens", json={"name": "关闭开关验证", "expires_at": None}, headers=user_headers).json()["token"]
+    disabled_settings = client.get("/api/settings", headers=admin_headers).json()
+    disabled_settings["api_enabled"] = False
+    assert client.put("/api/settings", json=disabled_settings, headers=admin_headers).status_code == 200
+
+    disabled_api_headers = {"Authorization": f"Bearer {second_token}"}
+    disabled_token_call = client.get("/api/dashboard/summary", headers=disabled_api_headers)
+    assert disabled_token_call.status_code == 403
+    assert disabled_token_call.json()["detail"]["code"] == "error.apiDisabled"
+    disabled_token_page = client.get("/api/tokens", headers=user_headers)
+    assert disabled_token_page.status_code == 403
+    assert disabled_token_page.json()["detail"]["code"] == "error.apiDisabled"
+    disabled_openapi = client.get("/openapi.json", headers=admin_headers)
+    assert disabled_openapi.status_code == 403
+    assert disabled_openapi.json()["detail"]["code"] == "error.apiDisabled"
 
 
 def test_user_list_supports_pagination(tmp_path, monkeypatch):
@@ -833,6 +960,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     public_defaults = client.get("/api/settings/public")
     assert public_defaults.status_code == 200
     assert public_defaults.json()["app_name"] == "Metrix"
+    assert public_defaults.json()["api_enabled"] is True
 
     settings_payload = {
         "app_name": "Data Portal",
@@ -845,6 +973,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
         },
         "log_retention_days": 7,
         "default_locale": "en-US",
+        "api_enabled": True,
     }
     updated = client.put("/api/settings", json=settings_payload, headers=admin_headers)
     assert updated.status_code == 200

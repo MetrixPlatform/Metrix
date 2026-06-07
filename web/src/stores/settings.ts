@@ -16,7 +16,8 @@ export const settingsStore = reactive({
       company: false,
       department: false
     },
-    default_locale: DEFAULT_LOCALE
+    default_locale: DEFAULT_LOCALE,
+    api_enabled: true
   } as PublicSettings,
   async loadPublic() {
     this.publicSettings = await getPublicSettings();
@@ -33,5 +34,8 @@ export const settingsStore = reactive({
   defaultLocale(): Locale {
     const locale = this.publicSettings.default_locale;
     return isLocale(locale) ? locale : DEFAULT_LOCALE;
+  },
+  apiEnabled() {
+    return this.publicSettings.api_enabled;
   }
 });

@@ -8,6 +8,7 @@ from app.core.time import utc_now
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.api_token import ApiToken
     from app.models.role import Role
 
 
@@ -33,3 +34,4 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
     roles: Mapped[list["Role"]] = relationship("Role", secondary="user_roles", back_populates="users")
+    api_tokens: Mapped[list["ApiToken"]] = relationship("ApiToken", back_populates="user", cascade="all, delete-orphan")

@@ -19,6 +19,7 @@ class PublicSettings(BaseModel):
     registration_enabled: bool
     registration_required_fields: RegistrationRequiredFields
     default_locale: LocaleCode
+    api_enabled: bool
 
 
 class SystemSettings(PublicSettings):
@@ -31,3 +32,4 @@ class SystemSettingsUpdate(BaseModel):
     registration_required_fields: RegistrationRequiredFields
     log_retention_days: LogRetentionDays
     default_locale: LocaleCode
+    api_enabled: bool

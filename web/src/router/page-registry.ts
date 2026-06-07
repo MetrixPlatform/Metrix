@@ -1,6 +1,8 @@
 import {
   Board20Regular,
   ClipboardClock20Regular,
+  Code20Regular,
+  Key20Regular,
   KeyMultiple20Regular,
   MegaphoneLoud20Regular,
   People20Regular,
@@ -13,6 +15,7 @@ import type { RouteRecordRaw } from "vue-router";
 import { t, type I18nKey } from "../i18n";
 
 type HasPermission = (permission: string) => boolean;
+type IsFeatureEnabled = (feature?: string) => boolean;
 type PageComponent = () => Promise<unknown>;
 
 export interface AppMenuItem {
@@ -37,6 +40,7 @@ interface AppPage {
   titleKey: I18nKey;
   component: PageComponent;
   permission?: string;
+  feature?: "api";
   fallbackOrder?: number;
   menu?: {
     group?: string;
@@ -105,6 +109,26 @@ const appPages: AppPage[] = [
     menu: { group: "system", icon: PeopleSettings20Regular, order: 50 }
   },
   {
+    key: "tokens",
+    path: "/tokens",
+    titleKey: "route.tokens",
+    component: () => import("../views/TokenManageView.vue"),
+    permission: "route:tokens",
+    feature: "api",
+    fallbackOrder: 70,
+    menu: { group: "system", icon: Key20Regular, order: 60 }
+  },
+  {
+    key: "apiDocs",
+    path: "/api-docs",
+    titleKey: "route.apiDocs",
+    component: () => import("../views/ApiDocsView.vue"),
+    permission: "route:api_docs",
+    feature: "api",
+    fallbackOrder: 80,
+    menu: { group: "system", icon: Code20Regular, order: 70 }
+  },
+  {
     key: "profile",
     path: "/profile",
     titleKey: "route.profile",
@@ -119,15 +143,16 @@ export function createAppPageRoutes() {
     component: page.component,
     meta: {
       permission: page.permission,
+      feature: page.feature,
       titleKey: page.titleKey
     }
   })) as RouteRecordRaw[];
 }
 
-export function getFallbackPath(hasPermission: HasPermission) {
+export function getFallbackPath(hasPermission: HasPermission, isFeatureEnabled: IsFeatureEnabled = () => true) {
   return (
     [...appPages]
-      .filter((page) => page.fallbackOrder !== undefined && canAccessPage(page, hasPermission))
+      .filter((page) => page.fallbackOrder !== undefined && canAccessPage(page, hasPermission, isFeatureEnabled))
       .sort((left, right) => (left.fallbackOrder || 0) - (right.fallbackOrder || 0))[0]?.path || "/profile"
   );
 }
@@ -137,7 +162,7 @@ export function getPageTitle(path: string) {
   return page ? t(page.titleKey) : undefined;
 }
 
-export function getVisibleMenuItems(hasPermission: HasPermission) {
+export function getVisibleMenuItems(hasPermission: HasPermission, isFeatureEnabled: IsFeatureEnabled = () => true) {
   const groupMap = new Map<string, AppMenuItem & { order: number; children: AppMenuItem[] }>();
   const topLevel: Array<AppMenuItem & { order: number }> = [];
 
@@ -152,7 +177,7 @@ export function getVisibleMenuItems(hasPermission: HasPermission) {
   }
 
   for (const page of appPages) {
-    if (!page.menu || !canAccessPage(page, hasPermission)) continue;
+    if (!page.menu || !canAccessPage(page, hasPermission, isFeatureEnabled)) continue;
     const item = pageToMenuItem(page, page.menu);
     if (page.menu.group) {
       const group = groupMap.get(page.menu.group);
@@ -203,8 +228,8 @@ function childRoutePath(path: string) {
   return path === "/" ? "" : path.replace(/^\//, "");
 }
 
-function canAccessPage(page: AppPage, hasPermission: HasPermission) {
-  return !page.permission || hasPermission(page.permission);
+function canAccessPage(page: AppPage, hasPermission: HasPermission, isFeatureEnabled: IsFeatureEnabled) {
+  return isFeatureEnabled(page.feature) && (!page.permission || hasPermission(page.permission));
 }
 
 function pageToMenuItem(page: AppPage, menu: NonNullable<AppPage["menu"]>): AppMenuItem & { order: number } {

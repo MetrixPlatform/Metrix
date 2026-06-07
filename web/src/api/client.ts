@@ -37,7 +37,8 @@ const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
   title: "field.title",
   content: "field.content",
   target_type: "field.targetType",
-  target_value: "field.targetValue"
+  target_value: "field.targetValue",
+  expires_at: "field.expiresAt"
 };
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {

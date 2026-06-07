@@ -417,3 +417,14 @@
 - 第二轮 Browser 关键回归覆盖登录、首页、用户管理、权限管理、公告管理、操作日志、系统设置、个人信息和 404；所有主页面均可达，运行时平台名恢复为 `Metrix`，页面控制台无项目 error。
 - 第二轮清理 `web/dist`、`.pytest_cache`、`server/.pytest_cache` 和源码目录 `__pycache__` 后工作区保持干净；`.gitignore` 仍覆盖构建产物、运行时库、缓存、日志、临时目录和本地敏感配置。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 19 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q app tests` 通过；调试残留扫描无代码命中。
+## 2026-06-07：新增 API Token 与 OpenAPI 文档
+- 后端新增 `api_tokens` 表、模型、repository、schema、service 和 `/api/tokens` 接口；Token 明文仅创建时返回一次，数据库只保存 SHA-256 哈希、展示前缀、过期时间、最后使用时间和创建时间。
+- 统一鉴权依赖 `get_current_user` 支持普通登录 Token 与 `mtx_` API Token；API Token 调用会检查系统 `api_enabled`、Token 状态/过期时间、账号状态、角色 API 能力和目标接口权限，后续使用现有权限依赖的 API 默认支持 Token 调用。
+- 系统设置新增 `api_enabled` 总开关，公开设置会返回该字段；关闭后 `/api/tokens`、`/openapi.json`、`/docs` 和 API Token 调用都会被后端拒绝，前端菜单和路由守卫同步隐藏/拦截 Token 与 API 文档页面。
+- OpenAPI 默认公开路径已关闭，改为自定义受保护 `/openapi.json`；`/docs` 继续使用本地 `swagger-ui-bundle` 静态资源，但同样要求登录并拥有 `action:api_docs:read`。
+- 权限种子新增 `route:tokens`、`route:api_docs`、`action:api_token:read/create/delete` 和 `action:api_docs:read`，权限管理页通过现有权限字典和 i18n 映射展示 API 分组。
+- 前端新增 `TokenManageView` 和 `ApiDocsView`：Token 页支持创建、只显示一次明文、复制、刷新和删除；API 文档页读取受保护 OpenAPI JSON，按标签、方法、路径、参数、请求体和响应码展示，并支持复制/下载 JSON。
+- `docs/development_page_guide.md` 新增 API 与 Token 开发规则，说明后续接口如何自动支持 Token、如何维护 OpenAPI 文档、权限和 `feature: "api"` 页面开关。
+- 浏览器验证发现 Vite 代理使用宽泛 `/api` 前缀会把前端页面 `/api-docs` 误转发到后端，导致直接刷新 API 文档页时显示后端 404；开发代理已改为只匹配 `/api/` 和 `/openapi.json`。
+- 浏览器验证覆盖管理员登录、系统菜单新增 Token/API 文档入口、Token 创建明文一次性展示、Token Bearer 调用首页汇总和 `/openapi.json`、API 关闭后 Token/OpenAPI 后端强拒绝、API 文档页直接刷新、系统设置 API 开关、权限页 API 分组；临时 Token 已删除，API 开关恢复开启。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npm run build` 通过。

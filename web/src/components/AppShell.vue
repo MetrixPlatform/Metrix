@@ -111,7 +111,7 @@ const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
-const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code)));
+const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code), isFeatureEnabled));
 const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);
@@ -168,6 +168,10 @@ function toggleTheme() {
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
+}
+
+function isFeatureEnabled(feature?: string) {
+  return feature !== "api" || settingsStore.apiEnabled();
 }
 
 function toMenuOptions(items: AppMenuItem[]) {

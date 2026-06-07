@@ -71,8 +71,13 @@ router.beforeEach(async (to) => {
     }
   }
   const permission = to.meta.permission as string | undefined;
+  const feature = to.meta.feature as string | undefined;
+  if (feature && !isFeatureEnabled(feature)) {
+    const path = getFallbackPath((code) => authStore.has(code), isFeatureEnabled);
+    return to.path === path ? true : path;
+  }
   if (permission && !authStore.has(permission)) {
-    const path = getFallbackPath((code) => authStore.has(code));
+    const path = getFallbackPath((code) => authStore.has(code), isFeatureEnabled);
     return to.path === path ? true : path;
   }
   return true;
@@ -84,4 +89,8 @@ async function loadInstallStatus() {
   } catch {
     return null;
   }
+}
+
+function isFeatureEnabled(feature?: string) {
+  return feature !== "api" || settingsStore.apiEnabled();
 }

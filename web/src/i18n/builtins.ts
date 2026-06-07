@@ -30,6 +30,8 @@ const permissionNameKeys: Record<string, I18nKey> = {
   "route:announcements": "permission.route:announcements",
   "route:audit_logs": "permission.route:audit_logs",
   "route:settings": "permission.route:settings",
+  "route:tokens": "permission.route:tokens",
+  "route:api_docs": "permission.route:api_docs",
   "action:user:create": "permission.action:user:create",
   "action:user:read": "permission.action:user:read",
   "action:user:update": "permission.action:user:update",
@@ -49,7 +51,11 @@ const permissionNameKeys: Record<string, I18nKey> = {
   "action:audit_log:manage_others": "permission.action:audit_log:manage_others",
   "action:setting:read": "permission.action:setting:read",
   "action:setting:update": "permission.action:setting:update",
-  "action:setting:operate": "permission.action:setting:operate"
+  "action:setting:operate": "permission.action:setting:operate",
+  "action:api_token:read": "permission.action:api_token:read",
+  "action:api_token:create": "permission.action:api_token:create",
+  "action:api_token:delete": "permission.action:api_token:delete",
+  "action:api_docs:read": "permission.action:api_docs:read"
 };
 
 const permissionGroupKeys: Record<string, I18nKey> = {
@@ -58,7 +64,8 @@ const permissionGroupKeys: Record<string, I18nKey> = {
   角色: "permission.group.role",
   公告: "permission.group.announcement",
   操作日志: "permission.group.auditLog",
-  系统设置: "permission.group.setting"
+  系统设置: "permission.group.setting",
+  API: "permission.group.api"
 };
 
 export function roleName(role: RoleLike) {

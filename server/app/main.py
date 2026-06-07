@@ -1,14 +1,18 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from swagger_ui_bundle import swagger_ui_path
 
-from app.api import announcements, audit, auth, dashboard, health, install, roles, settings as settings_api, users
+from app.api import announcements, audit, auth, dashboard, health, install, roles, settings as settings_api, tokens, users
 from app.core.config import get_settings
+from app.core.deps import require_api_feature_enabled, require_permission
+from app.core.permissions import API_DOCS_READ
+from app.models import User
 from app.services.maintenance import audit_log_prune_loop
 
 
@@ -27,7 +31,14 @@ async def lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version=settings.app_version, docs_url=None, redoc_url=None, lifespan=lifespan)
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        lifespan=lifespan,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -47,14 +58,25 @@ def create_app() -> FastAPI:
     app.include_router(announcements.router)
     app.include_router(audit.router)
     app.include_router(settings_api.router)
+    app.include_router(tokens.router)
     app.include_router(users.router)
     app.include_router(roles.router)
     app.mount("/static/swagger-ui", StaticFiles(directory=swagger_ui_path), name="swagger-ui")
 
+    @app.get("/openapi.json", include_in_schema=False)
+    def openapi_json(
+        _: None = Depends(require_api_feature_enabled),
+        __: User = Depends(require_permission(API_DOCS_READ)),
+    ) -> JSONResponse:
+        return JSONResponse(app.openapi())
+
     @app.get("/docs", include_in_schema=False)
-    def swagger_docs():
+    def swagger_docs(
+        _: None = Depends(require_api_feature_enabled),
+        __: User = Depends(require_permission(API_DOCS_READ)),
+    ):
         return get_swagger_ui_html(
-            openapi_url=app.openapi_url,
+            openapi_url="/openapi.json",
             title=f"{settings.app_name} API",
             swagger_js_url="/static/swagger-ui/swagger-ui-bundle.js",
             swagger_css_url="/static/swagger-ui/swagger-ui.css",

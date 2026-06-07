@@ -123,8 +123,23 @@ export interface PublicSettings {
   registration_enabled: boolean;
   registration_required_fields: RegistrationRequiredFields;
   default_locale: "zh-CN" | "en-US";
+  api_enabled: boolean;
 }
 
 export interface SystemSettings extends PublicSettings {
   log_retention_days: 7 | 30 | 90 | 180 | 365;
+}
+
+export interface ApiTokenItem {
+  id: number;
+  name: string;
+  token_prefix: string;
+  is_active: boolean;
+  expires_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+export interface ApiTokenCreateResponse extends ApiTokenItem {
+  token: string;
 }

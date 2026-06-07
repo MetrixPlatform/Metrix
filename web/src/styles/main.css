@@ -1206,6 +1206,221 @@ a {
   min-height: 84px;
 }
 
+.token-toolbar {
+  align-items: center;
+}
+
+.token-result-modal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.token-once-tip {
+  margin-bottom: 12px;
+  color: var(--muted-color);
+  line-height: 1.6;
+}
+
+.api-docs-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.api-docs-toolbar {
+  flex: 0 0 auto;
+}
+
+.api-docs-filter-row {
+  display: grid;
+  flex: 1 1 520px;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.api-docs-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.api-docs-spin {
+  min-height: 0;
+  flex: 1;
+}
+
+.api-docs-spin .n-spin-content {
+  height: 100%;
+  min-height: 0;
+}
+
+.api-docs-layout {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  overflow: hidden;
+}
+
+.api-docs-sidebar {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.api-docs-title {
+  display: grid;
+  gap: 4px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.api-docs-title strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.api-docs-title span {
+  color: var(--muted-color);
+  font-size: 12px;
+}
+
+.api-docs-tag {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.api-docs-tag span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.api-docs-tag.active {
+  border-color: var(--primary-color);
+  background: var(--primary-soft);
+}
+
+.api-docs-content {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.api-docs-group {
+  display: grid;
+  gap: 12px;
+}
+
+.api-docs-group + .api-docs-group {
+  margin-top: 20px;
+}
+
+.api-docs-group h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.api-operation {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.api-operation-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.api-operation-head code {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.api-operation h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.api-operation-description {
+  margin: 0;
+  color: var(--muted-color);
+  line-height: 1.6;
+}
+
+.api-operation-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.api-operation-meta div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.api-operation-meta dt {
+  margin-bottom: 4px;
+  color: var(--muted-color);
+  font-size: 12px;
+}
+
+.api-operation-meta dd {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.api-detail-block {
+  display: grid;
+  gap: 8px;
+}
+
+.api-response-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.api-response-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
 @media (max-width: 760px) {
   .app-header {
     padding: 0 12px;
@@ -1216,12 +1431,14 @@ a {
   }
   .profile-grid,
   .user-filter-row,
-  .announcement-filter-row {
+  .announcement-filter-row,
+  .api-docs-filter-row {
     grid-template-columns: 1fr;
   }
 
   .user-toolbar,
-  .announcement-toolbar {
+  .announcement-toolbar,
+  .api-docs-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
   }
@@ -1264,14 +1481,29 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .api-docs-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .api-docs-sidebar {
+    max-height: 180px;
+  }
+
+  .api-operation-meta {
+    grid-template-columns: 1fr;
+  }
+
   .user-toolbar,
-  .announcement-toolbar {
+  .announcement-toolbar,
+  .api-docs-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
   }
 
   .user-filter-row,
-  .announcement-filter-row {
+  .announcement-filter-row,
+  .api-docs-filter-row {
     flex-basis: 100%;
   }
 

@@ -15,6 +15,8 @@ ROUTE_PERMISSIONS = route_code("permissions")
 ROUTE_ANNOUNCEMENTS = route_code("announcements")
 ROUTE_AUDIT_LOGS = route_code("audit_logs")
 ROUTE_SETTINGS = route_code("settings")
+ROUTE_TOKENS = route_code("tokens")
+ROUTE_API_DOCS = route_code("api_docs")
 
 USER_CREATE = action_code("user", "create")
 USER_READ = action_code("user", "read")
@@ -40,6 +42,11 @@ AUDIT_LOG_MANAGE_OTHERS = action_code("audit_log", "manage_others")
 SETTING_READ = action_code("setting", "read")
 SETTING_UPDATE = action_code("setting", "update")
 SETTING_OPERATE = action_code("setting", "operate")
+
+API_TOKEN_READ = action_code("api_token", "read")
+API_TOKEN_CREATE = action_code("api_token", "create")
+API_TOKEN_DELETE = action_code("api_token", "delete")
+API_DOCS_READ = action_code("api_docs", "read")
 
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
@@ -108,6 +115,8 @@ PAGE_PERMISSION_SPECS = (
     PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "公告管理", "announcement", "访问公告管理", 40, ANNOUNCEMENT_READ),
     PagePermissionSpec(ROUTE_AUDIT_LOGS, "操作日志", "audit_log", "访问操作日志", 50, AUDIT_LOG_READ),
     PagePermissionSpec(ROUTE_SETTINGS, "系统设置", "setting", "访问系统设置", 60, SETTING_READ),
+    PagePermissionSpec(ROUTE_TOKENS, "Token", "api_token", "访问 Token 管理", 70, API_TOKEN_READ),
+    PagePermissionSpec(ROUTE_API_DOCS, "API 文档", "api_docs", "访问 API 文档", 80, API_DOCS_READ),
 )
 
 RESOURCE_PERMISSION_SPECS = (
@@ -164,6 +173,24 @@ RESOURCE_PERMISSION_SPECS = (
             ResourceActionSpec("read", "查询系统设置", "查询系统设置", 20),
             ResourceActionSpec("update", "修改系统设置", "修改系统设置", 30),
             ResourceActionSpec("operate", "操作系统设置", "执行数据备份等系统设置操作", 50),
+        ),
+    ),
+    ResourcePermissionSpec(
+        "api_token",
+        "API",
+        600,
+        (
+            ResourceActionSpec("read", "查询 Token", "查询本人创建的 API Token", 20),
+            ResourceActionSpec("create", "创建 Token", "创建本人 API Token", 30),
+            ResourceActionSpec("delete", "删除 Token", "删除本人 API Token", 40),
+        ),
+    ),
+    ResourcePermissionSpec(
+        "api_docs",
+        "API",
+        700,
+        (
+            ResourceActionSpec("read", "查看 API 文档", "查看 OpenAPI 文档", 20),
         ),
     ),
 )
