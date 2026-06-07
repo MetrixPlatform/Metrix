@@ -113,6 +113,8 @@
             :columns="parameterColumns"
             :data="selectedOperation.operation.parameters"
             :pagination="false"
+            :scroll-x="parameterTableScrollX"
+            @unstable-column-resize="handleParameterColumnResize"
           />
         </section>
 
@@ -132,6 +134,8 @@
               :columns="schemaFieldColumns"
               :data="requestBodyFields(selectedOperation)"
               :pagination="false"
+              :scroll-x="schemaFieldTableScrollX"
+              @unstable-column-resize="handleSchemaFieldColumnResize"
             />
             <strong>{{ t("apiDocs.requestExample") }}</strong>
             <pre class="api-json-block">{{ requestBodyExampleText(selectedOperation) }}</pre>
@@ -153,6 +157,8 @@
                 :columns="schemaFieldColumns"
                 :data="response.fields"
                 :pagination="false"
+                :scroll-x="schemaFieldTableScrollX"
+                @unstable-column-resize="handleSchemaFieldColumnResize"
               />
               <template v-if="response.example">
                 <strong>{{ t("apiDocs.responseExample") }}</strong>
@@ -237,6 +243,7 @@ import { t } from "../i18n";
 import { openApiText } from "../i18n/openapi";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 
 interface OperationEntry {
   key: string;
@@ -285,7 +292,35 @@ const testBody = ref("");
 const testStatus = ref<number | null>(null);
 const testRequest = ref("");
 const testResponse = ref("");
+const parameterColumnWidths = reactive<Record<string, number>>({
+  name: 150,
+  in: 90,
+  required: 90,
+  schema: 140,
+  description: 280
+});
+const schemaFieldColumnWidths = reactive<Record<string, number>>({
+  name: 180,
+  required: 90,
+  type: 150,
+  description: 280
+});
+const parameterColumnWidthKeys: Record<string, string> = {
+  name: "name",
+  in: "in",
+  required: "required",
+  schema: "schema",
+  description: "description"
+};
+const schemaFieldColumnWidthKeys: Record<string, string> = {
+  name: "name",
+  required: "required",
+  type: "type",
+  description: "description"
+};
 const documentText = computed(() => (openApiDocument.value ? JSON.stringify(openApiDocument.value, null, 2) : ""));
+const parameterTableScrollX = computed(() => sumColumnWidths(parameterColumnWidths));
+const schemaFieldTableScrollX = computed(() => sumColumnWidths(schemaFieldColumnWidths));
 const groups = computed(() => groupOperations(openApiDocument.value));
 const visibleGroups = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLowerCase();
@@ -302,30 +337,34 @@ const testParameters = computed(() =>
 );
 const hasTestRequestBody = computed(() => Boolean(selectedOperation.value && hasRequestBody(selectedOperation.value)));
 
-const parameterColumns = computed<DataTableColumns<OpenApiParameter>>(() => [
-  { title: t("apiDocs.parameterName"), key: "name", width: 150 },
-  { title: t("apiDocs.parameterIn"), key: "in", width: 90 },
-  {
-    title: t("apiDocs.required"),
-    key: "required",
-    width: 90,
-    render: (row) => h(NTag, { size: "small", type: row.required ? "warning" : "default" }, { default: () => (row.required ? t("common.yes") : t("common.no")) })
-  },
-  { title: t("apiDocs.parameterType"), key: "schema", width: 140, render: (row) => schemaLabel(row.schema) || t("common.none") },
-  { title: t("field.description"), key: "description", minWidth: 260, render: (row) => parameterDescription(row) || t("common.none") }
-]);
+const parameterColumns = computed<DataTableColumns<OpenApiParameter>>(() =>
+  withResizableColumns([
+    { title: t("apiDocs.parameterName"), key: "name", width: parameterColumnWidths.name },
+    { title: t("apiDocs.parameterIn"), key: "in", width: parameterColumnWidths.in },
+    {
+      title: t("apiDocs.required"),
+      key: "required",
+      width: parameterColumnWidths.required,
+      render: (row) => h(NTag, { size: "small", type: row.required ? "warning" : "default" }, { default: () => (row.required ? t("common.yes") : t("common.no")) })
+    },
+    { title: t("apiDocs.parameterType"), key: "schema", width: parameterColumnWidths.schema, render: (row) => schemaLabel(row.schema) || t("common.none") },
+    { title: t("field.description"), key: "description", width: parameterColumnWidths.description, render: (row) => parameterDescription(row) || t("common.none") }
+  ])
+);
 
-const schemaFieldColumns = computed<DataTableColumns<SchemaField>>(() => [
-  { title: t("apiDocs.fieldName"), key: "name", width: 180 },
-  {
-    title: t("apiDocs.required"),
-    key: "required",
-    width: 90,
-    render: (row) => h(NTag, { size: "small", type: row.required ? "warning" : "default" }, { default: () => (row.required ? t("common.yes") : t("common.no")) })
-  },
-  { title: t("apiDocs.parameterType"), key: "type", width: 150 },
-  { title: t("field.description"), key: "description", minWidth: 260 }
-]);
+const schemaFieldColumns = computed<DataTableColumns<SchemaField>>(() =>
+  withResizableColumns([
+    { title: t("apiDocs.fieldName"), key: "name", width: schemaFieldColumnWidths.name },
+    {
+      title: t("apiDocs.required"),
+      key: "required",
+      width: schemaFieldColumnWidths.required,
+      render: (row) => h(NTag, { size: "small", type: row.required ? "warning" : "default" }, { default: () => (row.required ? t("common.yes") : t("common.no")) })
+    },
+    { title: t("apiDocs.parameterType"), key: "type", width: schemaFieldColumnWidths.type },
+    { title: t("field.description"), key: "description", width: schemaFieldColumnWidths.description }
+  ])
+);
 
 onMounted(async () => {
   await loadDocument();
@@ -372,6 +411,14 @@ function openTest(operation: OperationEntry) {
   testRequest.value = "";
   testResponse.value = "";
   showTestModal.value = true;
+}
+
+function handleParameterColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(parameterColumnWidths, column.key, parameterColumnWidthKeys, limitedWidth);
+}
+
+function handleSchemaFieldColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(schemaFieldColumnWidths, column.key, schemaFieldColumnWidthKeys, limitedWidth);
 }
 
 async function sendTestRequest() {

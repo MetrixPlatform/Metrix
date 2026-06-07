@@ -37,6 +37,7 @@
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
       remote
+      @unstable-column-resize="handleColumnResize"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -128,7 +129,7 @@ import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { messageText, showError } from "../utils/message";
-import { singleFilterValue } from "../utils/table";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -211,7 +212,7 @@ const creatorOptions = computed(() => [
   { label: t("announcement.creatorAll"), value: "all" },
   { label: t("announcement.creatorMe"), value: "me" }
 ]);
-const announcementColumnWidths = {
+const announcementColumnWidths = reactive<Record<string, number>>({
   selection: 48,
   title: 180,
   targetType: 180,
@@ -220,15 +221,22 @@ const announcementColumnWidths = {
   creator: 120,
   createdAt: 170,
   actions: 130
+});
+const announcementColumnWidthKeys: Record<string, string> = {
+  title: "title",
+  target_type: "targetType",
+  display_mode: "displayMode",
+  is_active: "status",
+  created_by: "creator",
+  created_at: "createdAt"
 };
 const ANNOUNCEMENT_UPDATE = "action:announcement:update";
 const ANNOUNCEMENT_DELETE = "action:announcement:delete";
 const ANNOUNCEMENT_MANAGE_OTHERS = "action:announcement:manage_others";
-const dataTableScrollX = Object.entries(announcementColumnWidths)
-  .filter(([key]) => key !== "selection")
-  .reduce((total, [, width]) => total + width, 0);
 const tableScrollX = computed(() =>
-  authStore.has(ANNOUNCEMENT_DELETE) ? dataTableScrollX + announcementColumnWidths.selection : dataTableScrollX
+  authStore.has(ANNOUNCEMENT_DELETE)
+    ? sumColumnWidths(announcementColumnWidths)
+    : sumColumnWidths(announcementColumnWidths) - announcementColumnWidths.selection
 );
 
 const selectedDeletableIds = computed(() =>
@@ -323,9 +331,10 @@ const columns = computed<DataTableColumns<AnnouncementItem>>(() => {
         )
     }
   ];
-  return authStore.has(ANNOUNCEMENT_DELETE)
-    ? [{ type: "selection", width: announcementColumnWidths.selection, disabled: (row) => !canDeleteAnnouncement(row) }, ...dataColumns]
+  const visibleColumns = authStore.has(ANNOUNCEMENT_DELETE)
+    ? [{ type: "selection" as const, width: announcementColumnWidths.selection, disabled: (row: AnnouncementItem) => !canDeleteAnnouncement(row) }, ...dataColumns]
     : dataColumns;
+  return withResizableColumns(visibleColumns);
 });
 
 onMounted(async () => {
@@ -396,6 +405,10 @@ function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize;
   pagination.page = 1;
   void loadAnnouncements();
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(announcementColumnWidths, column.key, announcementColumnWidthKeys, limitedWidth);
 }
 
 function isTargetType(value: unknown): value is AnnouncementTargetType {

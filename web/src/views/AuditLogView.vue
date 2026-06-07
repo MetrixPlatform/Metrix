@@ -30,6 +30,7 @@
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
       remote
+      @unstable-column-resize="handleColumnResize"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -99,7 +100,7 @@ import { formatDateTime, hasI18nKey, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
-import { singleFilterValue } from "../utils/table";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 
 type AuditActorScope = "self" | "all";
 
@@ -134,7 +135,7 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
-const auditLogColumnWidths = {
+const auditLogColumnWidths = reactive<Record<string, number>>({
   source: 110,
   actor: 130,
   action: 180,
@@ -142,8 +143,17 @@ const auditLogColumnWidths = {
   targetId: 130,
   detail: 340,
   createdAt: 170
+});
+const auditLogColumnWidthKeys: Record<string, string> = {
+  source: "source",
+  actor_scope: "actor",
+  action: "action",
+  target_type: "targetType",
+  target_id: "targetId",
+  detail: "detail",
+  created_at: "createdAt"
 };
-const tableScrollX = Object.values(auditLogColumnWidths).reduce((total, width) => total + width, 0);
+const tableScrollX = computed(() => sumColumnWidths(auditLogColumnWidths));
 const auditActionCodes = [
   "auth.login",
   "auth.login_failed",
@@ -188,74 +198,76 @@ const selectedFallbackDetail = computed(() => {
   if (!selectedLog.value) return t("auditLog.noStructuredDetail");
   return selectedLog.value.detail || t("auditLog.noStructuredDetail");
 });
-const columns = computed<DataTableColumns<AuditLogItem>>(() => [
-  {
-    title: t("field.auditSource"),
-    key: "source",
-    width: auditLogColumnWidths.source,
-    filter: (value, row) => row.source === value,
-    filterMultiple: false,
-    filterOptionValue: filters.source,
-    filterOptions: sourceOptions.value,
-    render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
-  },
-  {
-    title: t("field.operator"),
-    key: "actor_scope",
-    width: auditLogColumnWidths.actor,
-    filter: () => true,
-    filterMultiple: false,
-    filterOptionValue: filters.actor_scope,
-    filterOptions: actorScopeOptions.value,
-    render: (row) => row.actor_username || t("auditLog.systemOperator")
-  },
-  {
-    title: t("field.action"),
-    key: "action",
-    width: auditLogColumnWidths.action,
-    filter: (value, row) => row.action === value,
-    filterMultiple: false,
-    filterOptionValue: filters.action,
-    filterOptions: actionOptions.value,
-    render: (row) => h(NTag, { size: "small", round: true }, { default: () => actionLabel(row.action) })
-  },
-  {
-    title: t("field.auditTargetType"),
-    key: "target_type",
-    width: auditLogColumnWidths.targetType,
-    filter: (value, row) => row.target_type === value,
-    filterMultiple: false,
-    filterOptionValue: filters.target_type,
-    filterOptions: targetTypeOptions.value,
-    render: (row) => targetTypeLabel(row.target_type)
-  },
-  { title: t("field.targetId"), key: "target_id", width: auditLogColumnWidths.targetId, render: (row) => row.target_id || t("common.none") },
-  {
-    title: t("field.detail"),
-    key: "detail",
-    width: auditLogColumnWidths.detail,
-    render: (row) =>
-      h(
-        NButton,
-        {
-          class: "audit-detail-button",
-          text: true,
-          type: "primary",
-          title: t("auditLog.viewDetail"),
-          onClick: () => openLogDetail(row)
-        },
-        { default: () => detailSummary(row) }
-      )
-  },
-  {
-    title: t("field.createdAt"),
-    key: "created_at",
-    width: auditLogColumnWidths.createdAt,
-    sorter: true,
-    sortOrder: filters.sort_order,
-    render: (row) => formatTime(row.created_at)
-  }
-]);
+const columns = computed<DataTableColumns<AuditLogItem>>(() =>
+  withResizableColumns([
+    {
+      title: t("field.auditSource"),
+      key: "source",
+      width: auditLogColumnWidths.source,
+      filter: (value, row) => row.source === value,
+      filterMultiple: false,
+      filterOptionValue: filters.source,
+      filterOptions: sourceOptions.value,
+      render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
+    },
+    {
+      title: t("field.operator"),
+      key: "actor_scope",
+      width: auditLogColumnWidths.actor,
+      filter: () => true,
+      filterMultiple: false,
+      filterOptionValue: filters.actor_scope,
+      filterOptions: actorScopeOptions.value,
+      render: (row) => row.actor_username || t("auditLog.systemOperator")
+    },
+    {
+      title: t("field.action"),
+      key: "action",
+      width: auditLogColumnWidths.action,
+      filter: (value, row) => row.action === value,
+      filterMultiple: false,
+      filterOptionValue: filters.action,
+      filterOptions: actionOptions.value,
+      render: (row) => h(NTag, { size: "small", round: true }, { default: () => actionLabel(row.action) })
+    },
+    {
+      title: t("field.auditTargetType"),
+      key: "target_type",
+      width: auditLogColumnWidths.targetType,
+      filter: (value, row) => row.target_type === value,
+      filterMultiple: false,
+      filterOptionValue: filters.target_type,
+      filterOptions: targetTypeOptions.value,
+      render: (row) => targetTypeLabel(row.target_type)
+    },
+    { title: t("field.targetId"), key: "target_id", width: auditLogColumnWidths.targetId, render: (row) => row.target_id || t("common.none") },
+    {
+      title: t("field.detail"),
+      key: "detail",
+      width: auditLogColumnWidths.detail,
+      render: (row) =>
+        h(
+          NButton,
+          {
+            class: "audit-detail-button",
+            text: true,
+            type: "primary",
+            title: t("auditLog.viewDetail"),
+            onClick: () => openLogDetail(row)
+          },
+          { default: () => detailSummary(row) }
+        )
+    },
+    {
+      title: t("field.createdAt"),
+      key: "created_at",
+      width: auditLogColumnWidths.createdAt,
+      sorter: true,
+      sortOrder: filters.sort_order,
+      render: (row) => formatTime(row.created_at)
+    }
+  ])
+);
 
 onMounted(async () => {
   await loadLogs();
@@ -337,6 +349,10 @@ function handleSorter(sortState: DataTableSortState | DataTableSortState[] | nul
   filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadLogs();
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(auditLogColumnWidths, column.key, auditLogColumnWidthKeys, limitedWidth);
 }
 
 function openLogDetail(row: AuditLogItem) {

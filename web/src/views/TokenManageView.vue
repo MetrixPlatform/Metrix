@@ -22,6 +22,7 @@
       :pagination="false"
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
+      @unstable-column-resize="handleColumnResize"
     />
 
     <n-modal v-model:show="showCreateModal" preset="card" class="modal-card" :title="t('token.create')">
@@ -91,6 +92,7 @@ import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { settingsStore } from "../stores/settings";
 import { messageText, showError } from "../utils/message";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 type ExpiryMode = "never" | "custom";
@@ -117,7 +119,7 @@ const rules = computed<FormRules>(() => ({
   name: [requiredRule(t("field.tokenName")), maxLengthRule(t("field.tokenName"), 80)]
 }));
 const createdTip = computed(() => (settingsStore.apiTokenRevealEnabled() ? t("token.createdRevealTip") : t("token.createdTip")));
-const tokenColumnWidths = {
+const tokenColumnWidths = reactive<Record<string, number>>({
   name: 180,
   prefix: 150,
   status: 90,
@@ -125,30 +127,40 @@ const tokenColumnWidths = {
   lastUsedAt: 170,
   createdAt: 170,
   actions: 120
+});
+const tokenColumnWidthKeys: Record<string, string> = {
+  name: "name",
+  token_prefix: "prefix",
+  is_active: "status",
+  expires_at: "expiresAt",
+  last_used_at: "lastUsedAt",
+  created_at: "createdAt"
 };
-const tableScrollX = Object.values(tokenColumnWidths).reduce((total, width) => total + width, 0);
+const tableScrollX = computed(() => sumColumnWidths(tokenColumnWidths));
 
-const columns = computed<DataTableColumns<ApiTokenItem>>(() => [
-  { title: t("field.tokenName"), key: "name", width: tokenColumnWidths.name, ellipsis: { tooltip: true } },
-  { title: t("field.tokenPrefix"), key: "token_prefix", width: tokenColumnWidths.prefix },
-  {
-    title: t("field.status"),
-    key: "is_active",
-    width: tokenColumnWidths.status,
-    render: (row) => h(StatusTag, { status: row.is_active })
-  },
-  { title: t("field.expiresAt"), key: "expires_at", width: tokenColumnWidths.expiresAt, render: (row) => formatExpiresAt(row.expires_at) },
-  { title: t("field.lastUsedAt"), key: "last_used_at", width: tokenColumnWidths.lastUsedAt, render: (row) => formatLastUsedAt(row.last_used_at) },
-  { title: t("field.createdAt"), key: "created_at", width: tokenColumnWidths.createdAt, render: (row) => formatDateTime(row.created_at) },
-  {
-    title: t("common.actions"),
-    key: "actions",
-    width: tokenColumnWidths.actions,
-    fixed: "right",
-    align: "center",
-    render: (row) => h("div", { class: "table-action-group" }, actionButtons(row))
-  }
-]);
+const columns = computed<DataTableColumns<ApiTokenItem>>(() =>
+  withResizableColumns([
+    { title: t("field.tokenName"), key: "name", width: tokenColumnWidths.name, ellipsis: { tooltip: true } },
+    { title: t("field.tokenPrefix"), key: "token_prefix", width: tokenColumnWidths.prefix },
+    {
+      title: t("field.status"),
+      key: "is_active",
+      width: tokenColumnWidths.status,
+      render: (row) => h(StatusTag, { status: row.is_active })
+    },
+    { title: t("field.expiresAt"), key: "expires_at", width: tokenColumnWidths.expiresAt, render: (row) => formatExpiresAt(row.expires_at) },
+    { title: t("field.lastUsedAt"), key: "last_used_at", width: tokenColumnWidths.lastUsedAt, render: (row) => formatLastUsedAt(row.last_used_at) },
+    { title: t("field.createdAt"), key: "created_at", width: tokenColumnWidths.createdAt, render: (row) => formatDateTime(row.created_at) },
+    {
+      title: t("common.actions"),
+      key: "actions",
+      width: tokenColumnWidths.actions,
+      fixed: "right",
+      align: "center",
+      render: (row) => h("div", { class: "table-action-group" }, actionButtons(row))
+    }
+  ])
+);
 
 onMounted(async () => {
   await loadTokens();
@@ -163,6 +175,10 @@ async function loadTokens() {
   } finally {
     loading.value = false;
   }
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(tokenColumnWidths, column.key, tokenColumnWidthKeys, limitedWidth);
 }
 
 function openCreate() {

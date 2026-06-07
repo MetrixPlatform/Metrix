@@ -25,6 +25,7 @@
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
       remote
+      @unstable-column-resize="handleColumnResize"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -142,7 +143,7 @@ import { formatDateTime, t } from "../i18n";
 import { roleName } from "../i18n/builtins";
 import { authStore } from "../stores/auth";
 import { messageText, showError } from "../utils/message";
-import { singleFilterValue } from "../utils/table";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const message = useMessage();
@@ -224,7 +225,7 @@ const activeOptions = computed(() => [
   { label: t("common.enabled"), value: "true" },
   { label: t("common.disabled"), value: "false" }
 ]);
-const userColumnWidths = {
+const userColumnWidths = reactive<Record<string, number>>({
   username: 130,
   fullName: 120,
   phone: 130,
@@ -236,70 +237,84 @@ const userColumnWidths = {
   roles: 160,
   createdAt: 170,
   actions: 72
+});
+const userColumnWidthKeys: Record<string, string> = {
+  username: "username",
+  full_name: "fullName",
+  phone: "phone",
+  email: "email",
+  company: "company",
+  department: "department",
+  approval_status: "approval",
+  is_active: "status",
+  roles: "roles",
+  created_at: "createdAt"
 };
-const tableScrollX = Object.values(userColumnWidths).reduce((total, width) => total + width, 0);
+const tableScrollX = computed(() => sumColumnWidths(userColumnWidths));
 
-const columns = computed<DataTableColumns<UserListItem>>(() => [
-  { title: t("field.username"), key: "username", width: userColumnWidths.username },
-  { title: t("field.fullName"), key: "full_name", width: userColumnWidths.fullName },
-  { title: t("field.phone"), key: "phone", width: userColumnWidths.phone },
-  { title: t("field.email"), key: "email", width: userColumnWidths.email },
-  { title: t("field.company"), key: "company", width: userColumnWidths.company },
-  { title: t("field.department"), key: "department", width: userColumnWidths.department },
-  {
-    title: t("field.approval"),
-    key: "approval_status",
-    width: userColumnWidths.approval,
-    filter: (value, row) => row.approval_status === value,
-    filterMultiple: false,
-    filterOptionValue: filters.approval_status,
-    filterOptions: approvalOptions.value,
-    render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels.value })
-  },
-  {
-    title: t("field.status"),
-    key: "is_active",
-    width: userColumnWidths.status,
-    filter: (value, row) => row.is_active === (value === "true"),
-    filterMultiple: false,
-    filterOptionValue: filters.is_active,
-    filterOptions: activeOptions.value,
-    render: (row) => h(StatusTag, { status: row.is_active })
-  },
-  { title: t("field.roles"), key: "roles", width: userColumnWidths.roles, render: (row) => row.roles.map((role) => roleName(role)).join(t("common.listSeparator")) || t("common.none") },
-  {
-    title: t("field.createdAt"),
-    key: "created_at",
-    width: userColumnWidths.createdAt,
-    sorter: true,
-    sortOrder: filters.sort_order,
-    render: (row) => formatTime(row.created_at)
-  },
-  {
-    title: t("common.actions"),
-    key: "actions",
-    width: userColumnWidths.actions,
-    fixed: "right",
-    align: "center",
-    render: (row) => {
-      const options = rowActionOptions(row);
-      return h(
-        NDropdown,
-        { trigger: "click", placement: "bottom-end", options, onSelect: (key) => handleRowAction(row, String(key)) },
-        {
-          default: () =>
-            h(
-              NButton,
-              { class: "row-action-button", size: "small", quaternary: true, circle: true, title: t("common.moreActions"), disabled: options.length === 0 },
-              {
-                icon: () => h(NIcon, { component: MoreHorizontal20Regular })
-              }
-            )
-        }
-      );
+const columns = computed<DataTableColumns<UserListItem>>(() =>
+  withResizableColumns([
+    { title: t("field.username"), key: "username", width: userColumnWidths.username },
+    { title: t("field.fullName"), key: "full_name", width: userColumnWidths.fullName },
+    { title: t("field.phone"), key: "phone", width: userColumnWidths.phone },
+    { title: t("field.email"), key: "email", width: userColumnWidths.email },
+    { title: t("field.company"), key: "company", width: userColumnWidths.company },
+    { title: t("field.department"), key: "department", width: userColumnWidths.department },
+    {
+      title: t("field.approval"),
+      key: "approval_status",
+      width: userColumnWidths.approval,
+      filter: (value, row) => row.approval_status === value,
+      filterMultiple: false,
+      filterOptionValue: filters.approval_status,
+      filterOptions: approvalOptions.value,
+      render: (row) => h(StatusTag, { status: row.approval_status, labels: approvalLabels.value })
+    },
+    {
+      title: t("field.status"),
+      key: "is_active",
+      width: userColumnWidths.status,
+      filter: (value, row) => row.is_active === (value === "true"),
+      filterMultiple: false,
+      filterOptionValue: filters.is_active,
+      filterOptions: activeOptions.value,
+      render: (row) => h(StatusTag, { status: row.is_active })
+    },
+    { title: t("field.roles"), key: "roles", width: userColumnWidths.roles, render: (row) => row.roles.map((role) => roleName(role)).join(t("common.listSeparator")) || t("common.none") },
+    {
+      title: t("field.createdAt"),
+      key: "created_at",
+      width: userColumnWidths.createdAt,
+      sorter: true,
+      sortOrder: filters.sort_order,
+      render: (row) => formatTime(row.created_at)
+    },
+    {
+      title: t("common.actions"),
+      key: "actions",
+      width: userColumnWidths.actions,
+      fixed: "right",
+      align: "center",
+      render: (row) => {
+        const options = rowActionOptions(row);
+        return h(
+          NDropdown,
+          { trigger: "click", placement: "bottom-end", options, onSelect: (key) => handleRowAction(row, String(key)) },
+          {
+            default: () =>
+              h(
+                NButton,
+                { class: "row-action-button", size: "small", quaternary: true, circle: true, title: t("common.moreActions"), disabled: options.length === 0 },
+                {
+                  icon: () => h(NIcon, { component: MoreHorizontal20Regular })
+                }
+              )
+          }
+        );
+      }
     }
-  }
-]);
+  ])
+);
 
 const approvalLabels = computed(() => ({ pending: t("status.pending"), approved: t("status.approved"), rejected: t("status.rejected") }));
 
@@ -361,6 +376,10 @@ function handleSorter(sortState: DataTableSortState | DataTableSortState[] | nul
   filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadUsers();
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(userColumnWidths, column.key, userColumnWidthKeys, limitedWidth);
 }
 
 function isUserApprovalFilter(value: unknown): value is UserApprovalFilter {
