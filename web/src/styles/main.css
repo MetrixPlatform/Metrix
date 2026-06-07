@@ -665,7 +665,7 @@ a {
   top: -1px;
   left: 1px;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .language-switcher-en {
@@ -673,7 +673,7 @@ a {
   right: 0;
   bottom: -1px;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .app-content {

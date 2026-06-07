@@ -469,3 +469,7 @@
 - 各列表页列宽对象改为响应式状态，拖拽后列宽与 `scroll-x` 会同步更新，避免调整列宽后横向滚动范围不足。
 - `docs/development_page_guide.md` 在表格横向滚动规则中明确：后续列表表格所有业务列都必须支持拖拽调整列宽，并优先复用表格工具函数，不在页面中重复实现拖拽逻辑。
 - 验证：前端 `npm run build` 通过；后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed；`git diff --check` 通过；Browser 验证用户列表真实拖拽 `username` 列宽从约 155px 调整到 315px，公告、操作日志、Token 和 API 文档详情表格均为业务列有拖拽手柄、操作列无拖拽手柄。
+
+## 2026-06-08：调整语言切换按钮字重
+- 语言切换按钮中的 `文` 和 `A` 字重从 600 调整为 500，让图标文字更轻但仍保持清晰可读。
+- 验证：前端 `npm run build` 通过；`git diff --check` 通过；Browser 打开 `/tokens` 后读取语言按钮 computed style，`文` 和 `A` 的 `font-weight` 均为 500。
