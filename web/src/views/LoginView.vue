@@ -15,7 +15,7 @@
         :model="form"
         :rules="rules"
         label-placement="left"
-        label-width="64"
+        label-width="auto"
         @keyup.enter="submit"
       >
         <n-form-item :label="t('field.username')" path="username">

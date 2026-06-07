@@ -4,7 +4,7 @@
       <div class="profile-card-head">
         <h3>{{ t("profile.info") }}</h3>
       </div>
-      <n-form ref="profileFormRef" class="form-stack inline-form" :model="profile" :rules="profileRules" label-placement="left" label-width="72">
+      <n-form ref="profileFormRef" class="form-stack inline-form" :model="profile" :rules="profileRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.username')">
           <n-input :value="authStore.user?.username" disabled />
         </n-form-item>
@@ -32,7 +32,7 @@
       <div class="profile-card-head">
         <h3>{{ t("profile.changePassword") }}</h3>
       </div>
-      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="password" :rules="passwordRules" label-placement="left" label-width="72">
+      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="password" :rules="passwordRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.oldPassword')" path="old_password">
           <n-input v-model:value="password.old_password" type="password" show-password-on="click" />
         </n-form-item>

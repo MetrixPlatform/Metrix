@@ -44,7 +44,7 @@
     />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? t('announcement.edit') : t('announcement.add')">
-      <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="96">
+      <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.title')" path="title">
           <n-input v-model:value="form.title" :placeholder="t('announcement.titlePlaceholder')" />
         </n-form-item>

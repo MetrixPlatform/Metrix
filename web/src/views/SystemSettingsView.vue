@@ -3,7 +3,7 @@
     <div class="settings-grid">
       <section class="settings-section">
         <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
-        <n-form ref="formRef" class="inline-form" :model="form" :rules="rules" label-placement="left" label-width="132">
+        <n-form ref="formRef" class="inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
           <n-form-item :label="t('field.platformName')" path="app_name">
             <n-input v-model:value="form.app_name" />
           </n-form-item>

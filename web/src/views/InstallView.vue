@@ -11,7 +11,7 @@
           <p class="auth-subtitle">{{ t("install.subtitle") }}</p>
         </div>
       </div>
-      <n-form ref="formRef" class="install-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="116">
+      <n-form ref="formRef" class="install-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
         <div class="install-grid">
           <section class="install-section">
             <div class="install-section-head">

@@ -316,14 +316,28 @@ a {
   gap: 14px;
 }
 
-.inline-form .n-form-item {
+.inline-form .n-form-item--left-labelled {
+  grid-template-columns: max-content minmax(0, 1fr);
   margin-bottom: 0;
 }
 
 .inline-form .n-form-item-label {
   align-items: center;
+  min-width: max-content;
   min-height: 34px;
   padding-right: 10px;
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.inline-form .n-form-item-label__text {
+  display: block;
+  justify-self: stretch;
+  min-width: 0;
+  width: 100%;
+  line-height: 1.35;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -337,9 +351,31 @@ a {
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 8px;
+}
+
+.form-actions .n-button:not(.n-button--circle),
+.toolbar .n-button:not(.n-button--circle),
+.settings-backup-panel .n-button:not(.n-button--circle),
+.install-section-head .n-button:not(.n-button--circle) {
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: var(--n-height);
+  white-space: normal;
+}
+
+.form-actions .n-button:not(.n-button--circle) .n-button__content,
+.toolbar .n-button:not(.n-button--circle) .n-button__content,
+.settings-backup-panel .n-button:not(.n-button--circle) .n-button__content,
+.install-section-head .n-button:not(.n-button--circle) .n-button__content {
+  min-width: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .forgot-password-content {
@@ -1200,6 +1236,14 @@ a {
   gap: 8px 18px;
 }
 
+.settings-checks .n-checkbox {
+  max-width: 100%;
+}
+
+.settings-checks .n-checkbox__label {
+  overflow-wrap: anywhere;
+}
+
 .settings-backup-panel {
   display: flex;
   align-items: center;
@@ -1218,6 +1262,21 @@ a {
   width: 100%;
   display: grid;
   gap: 10px;
+}
+
+.token-expiry-control .n-radio-group,
+.install-form .n-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.token-expiry-control .n-radio-button,
+.install-form .n-radio-button {
+  min-width: 0;
+  height: auto;
+  min-height: 34px;
+  white-space: normal;
 }
 
 .token-once-tip {
@@ -1568,6 +1627,61 @@ a {
 }
 
 @media (max-width: 760px) {
+  .app-sider {
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    flex-basis: 64px !important;
+  }
+
+  .app-sider .brand {
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  .app-sider .brand .brand-mark {
+    display: grid;
+  }
+
+  .app-sider .brand-text {
+    display: none;
+  }
+
+  .app-sider .app-menu {
+    padding: 14px 8px;
+  }
+
+  .app-sider .app-menu .n-menu-item-content {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    margin: 0 auto 4px;
+    padding: 0 !important;
+  }
+
+  .app-sider .app-menu .n-menu-item {
+    display: flex;
+    justify-content: center;
+  }
+
+  .app-sider .app-menu .n-menu-item-content-header,
+  .app-sider .app-menu .n-menu-item-content__arrow {
+    display: none;
+  }
+
+  .app-sider .app-menu .n-menu-item-content--selected::before,
+  .app-sider .app-menu .n-submenu-children::before,
+  .app-sider .app-menu .n-submenu-children .n-menu-item-content::after {
+    display: none;
+  }
+
+  .app-sider .app-menu .n-menu-item-content__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0 !important;
+  }
+
   .app-header {
     padding: 0 12px;
   }
@@ -1680,6 +1794,22 @@ a {
 }
 
 @media (max-width: 560px) {
+  .inline-form .n-form-item--left-labelled {
+    grid-template-areas:
+      "label"
+      "blank"
+      "feedback";
+    grid-template-columns: minmax(0, 100%);
+    grid-template-rows: minmax(var(--n-label-height), auto) auto auto;
+  }
+
+  .inline-form .n-form-item--left-labelled .n-form-item-label {
+    width: auto !important;
+    min-height: var(--n-label-height);
+    padding: 0 0 6px;
+    text-align: left;
+  }
+
   .auth-announcement-ticker {
     top: 72px;
     width: min(100%, calc(100vw - 28px));

@@ -25,6 +25,9 @@
 - 需要变量插值的文案使用 `{name}`、`{count}` 这类命名参数，例如 `user.deleteConfirm` 或 `announcement.batchDeleted`；后端只传变量值，不拼接最终展示句子。
 - 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
 - 新增语言时只扩展 `locales`、Naive UI 语言映射和语言包，不要在各页面单独写语言切换逻辑。
+- 左侧标签表单统一使用 `.inline-form`、`label-placement="left"` 和 `label-width="auto"`，不要写固定窄标签宽度；标签必须单行右对齐，输入框左边缘由自动标签列保持一致。
+- 长文案按钮、复选框、单选按钮和工具栏操作需要允许换行或自适应宽度，不能因为翻译变长而裁切、重叠或遮挡其他控件。
+- 窄容器和移动宽度下，左侧标签表单可以切成“标签在上、控件在下”的布局，但标签仍不能换行或遮挡输入框；新增语言后至少验证登录、注册、系统设置和常用弹窗。
 
 ## 主框架布局
 

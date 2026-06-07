@@ -170,7 +170,7 @@
           <n-tag :type="methodTagType(selectedOperation.method)" size="small" round>{{ selectedOperation.method.toUpperCase() }}</n-tag>
           <code>{{ selectedOperation.path }}</code>
         </div>
-        <n-form class="form-stack inline-form" label-placement="left" label-width="120">
+        <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
           <n-form-item
             v-for="parameter in testParameters"
             :key="parameterKey(parameter)"

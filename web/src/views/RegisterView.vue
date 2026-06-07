@@ -17,7 +17,7 @@
         :model="form"
         :rules="rules"
         label-placement="left"
-        label-width="92"
+        label-width="auto"
       >
         <div class="register-form-fields">
           <n-form-item :label="t('field.username')" path="username">

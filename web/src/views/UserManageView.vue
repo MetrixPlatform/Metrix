@@ -42,7 +42,7 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" :title="t('user.rejectTitle')">
-      <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="88">
+      <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.reason')" path="reason">
           <n-input v-model:value="rejectForm.reason" type="textarea" :placeholder="t('field.reason')" />
         </n-form-item>
@@ -53,7 +53,7 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? t('user.edit') : t('user.add')">
-      <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="80">
+      <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="auto">
         <n-form-item v-if="!editingUser" :label="t('field.username')" path="username">
           <n-input v-model:value="userForm.username" />
         </n-form-item>
@@ -100,7 +100,7 @@
       </div>
     </n-modal>
     <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" :title="t('user.resetPassword')">
-      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="88">
+      <n-form ref="passwordFormRef" class="form-stack inline-form" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.newPassword')" path="password">
           <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" />
         </n-form-item>
