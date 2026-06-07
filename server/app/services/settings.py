@@ -21,6 +21,7 @@ SETTING_REQUIRED_FIELDS = "registration_required_fields"
 SETTING_LOG_RETENTION_DAYS = "log_retention_days"
 SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
+SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
 DEFAULT_LOG_RETENTION_DAYS = 90
 BACKUP_TABLES = [
     "users",
@@ -49,6 +50,7 @@ class SettingService:
             registration_required_fields=data.registration_required_fields,
             default_locale=data.default_locale,
             api_enabled=data.api_enabled,
+            api_token_reveal_enabled=data.api_token_reveal_enabled,
         )
 
     def get_settings(self) -> SystemSettings:
@@ -63,6 +65,7 @@ class SettingService:
                 SETTING_LOG_RETENTION_DAYS: str(payload.log_retention_days),
                 SETTING_DEFAULT_LOCALE: payload.default_locale,
                 SETTING_API_ENABLED: _dump_bool(payload.api_enabled),
+                SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
             }
         )
         record_audit(self.db, actor.id, "settings.update", "system_settings", "", payload.app_name.strip())
@@ -104,6 +107,7 @@ class SettingService:
             log_retention_days=_parse_retention_days(raw.get(SETTING_LOG_RETENTION_DAYS), defaults.log_retention_days),
             default_locale=_parse_locale(raw.get(SETTING_DEFAULT_LOCALE), defaults.default_locale),
             api_enabled=_parse_bool(raw.get(SETTING_API_ENABLED), defaults.api_enabled),
+            api_token_reveal_enabled=_parse_bool(raw.get(SETTING_API_TOKEN_REVEAL_ENABLED), defaults.api_token_reveal_enabled),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -150,6 +154,7 @@ def _default_settings() -> SystemSettings:
         log_retention_days=DEFAULT_LOG_RETENTION_DAYS,
         default_locale="zh-CN",
         api_enabled=True,
+        api_token_reveal_enabled=True,
     )
 
 

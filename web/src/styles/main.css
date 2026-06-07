@@ -1214,6 +1214,12 @@ a {
   width: min(620px, calc(100vw - 32px));
 }
 
+.token-expiry-control {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
 .token-once-tip {
   margin-bottom: 12px;
   color: var(--muted-color);
@@ -1235,7 +1241,7 @@ a {
 .api-docs-filter-row {
   display: grid;
   flex: 1 1 520px;
-  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 380px) auto;
   gap: 10px;
   align-items: center;
   min-width: 0;
@@ -1358,9 +1364,14 @@ a {
 
 .api-operation-head code {
   min-width: 0;
+  flex: 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.api-operation-test-button {
+  flex: 0 0 auto;
 }
 
 .api-operation h3 {
@@ -1419,6 +1430,61 @@ a {
   padding: 5px 8px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
+}
+
+.api-test-modal {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.api-test-content {
+  display: grid;
+  gap: 14px;
+}
+
+.api-test-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.api-test-endpoint code {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.api-test-result {
+  display: grid;
+  gap: 8px;
+}
+
+.api-test-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.api-test-result-head span {
+  color: var(--muted-color);
+  font-size: 12px;
+}
+
+.api-test-result pre {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg-hover);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 760px) {

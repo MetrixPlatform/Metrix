@@ -124,6 +124,7 @@ export interface PublicSettings {
   registration_required_fields: RegistrationRequiredFields;
   default_locale: "zh-CN" | "en-US";
   api_enabled: boolean;
+  api_token_reveal_enabled: boolean;
 }
 
 export interface SystemSettings extends PublicSettings {
@@ -134,6 +135,7 @@ export interface ApiTokenItem {
   id: number;
   name: string;
   token_prefix: string;
+  secret_available: boolean;
   is_active: boolean;
   expires_at: string | null;
   last_used_at: string | null;

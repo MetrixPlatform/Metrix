@@ -30,7 +30,19 @@
           <n-input v-model:value="form.name" :placeholder="t('token.namePlaceholder')" />
         </n-form-item>
         <n-form-item :label="t('field.expiresAt')" path="expires_at">
-          <n-date-picker v-model:value="form.expires_at" class="full-width" type="datetime" clearable />
+          <div class="token-expiry-control">
+            <n-radio-group v-model:value="form.expires_mode">
+              <n-radio-button value="never">{{ t("token.neverExpires") }}</n-radio-button>
+              <n-radio-button value="custom">{{ t("token.customExpires") }}</n-radio-button>
+            </n-radio-group>
+            <n-date-picker
+              v-if="form.expires_mode === 'custom'"
+              v-model:value="form.expires_at"
+              class="full-width"
+              type="datetime"
+              clearable
+            />
+          </div>
         </n-form-item>
         <div class="form-actions">
           <n-button @click="showCreateModal = false">{{ t("common.cancel") }}</n-button>
@@ -40,7 +52,7 @@
     </n-modal>
 
     <n-modal v-model:show="showPlainTokenModal" preset="card" class="token-result-modal" :title="t('token.created')">
-      <div class="token-once-tip">{{ t("token.createdTip") }}</div>
+      <div class="token-once-tip">{{ createdTip }}</div>
       <n-input :value="plainToken" readonly type="textarea" :autosize="{ minRows: 3, maxRows: 5 }" />
       <div class="form-actions">
         <n-button @click="copyPlainToken">
@@ -50,40 +62,61 @@
         <n-button type="primary" @click="showPlainTokenModal = false">{{ t("common.ok") }}</n-button>
       </div>
     </n-modal>
+
+    <n-modal v-model:show="showSecretModal" preset="card" class="token-result-modal" :title="t('token.fullToken')">
+      <div class="token-once-tip">{{ revealedTokenName }}</div>
+      <n-input :value="revealedToken" readonly type="textarea" :autosize="{ minRows: 3, maxRows: 5 }" />
+      <div class="form-actions">
+        <n-button @click="copyRevealedToken">
+          <template #icon><n-icon :component="Copy20Regular" /></template>
+          {{ t("common.copy") }}
+        </n-button>
+        <n-button type="primary" @click="showSecretModal = false">{{ t("common.close") }}</n-button>
+      </div>
+    </n-modal>
   </section>
 </template>
 
 <script setup lang="ts">
-import { Add20Regular, ArrowClockwise20Regular, Copy20Regular, Delete20Regular } from "@vicons/fluent";
+import { Add20Regular, ArrowClockwise20Regular, Copy20Regular, Delete20Regular, Eye20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NDatePicker, NForm, NFormItem, NIcon, NInput, NModal, useDialog, useMessage } from "naive-ui";
+import { NButton, NDataTable, NDatePicker, NForm, NFormItem, NIcon, NInput, NModal, NRadioButton, NRadioGroup, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, FormInst, FormRules } from "naive-ui";
 
-import { createApiToken, deleteApiToken, listApiTokens } from "../api/tokens";
+import { createApiToken, deleteApiToken, getApiTokenSecret, listApiTokens } from "../api/tokens";
 import type { ApiTokenItem } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
+import { settingsStore } from "../stores/settings";
 import { messageText, showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
+
+type ExpiryMode = "never" | "custom";
 
 const message = useMessage();
 const dialog = useDialog();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
 const creating = ref(false);
+const secretLoadingId = ref<number | null>(null);
 const tokens = ref<ApiTokenItem[]>([]);
 const showCreateModal = ref(false);
 const showPlainTokenModal = ref(false);
+const showSecretModal = ref(false);
 const plainToken = ref("");
+const revealedToken = ref("");
+const revealedTokenName = ref("");
 const form = reactive({
   name: "",
+  expires_mode: "never" as ExpiryMode,
   expires_at: null as number | null
 });
 const rules = computed<FormRules>(() => ({
   name: [requiredRule(t("field.tokenName")), maxLengthRule(t("field.tokenName"), 80)]
 }));
+const createdTip = computed(() => (settingsStore.apiTokenRevealEnabled() ? t("token.createdRevealTip") : t("token.createdTip")));
 const tokenColumnWidths = {
   name: 180,
   prefix: 150,
@@ -91,7 +124,7 @@ const tokenColumnWidths = {
   expiresAt: 170,
   lastUsedAt: 170,
   createdAt: 170,
-  actions: 72
+  actions: 120
 };
 const tableScrollX = Object.values(tokenColumnWidths).reduce((total, width) => total + width, 0);
 
@@ -104,8 +137,8 @@ const columns = computed<DataTableColumns<ApiTokenItem>>(() => [
     width: tokenColumnWidths.status,
     render: (row) => h(StatusTag, { status: row.is_active })
   },
-  { title: t("field.expiresAt"), key: "expires_at", width: tokenColumnWidths.expiresAt, render: (row) => formatOptionalTime(row.expires_at) },
-  { title: t("field.lastUsedAt"), key: "last_used_at", width: tokenColumnWidths.lastUsedAt, render: (row) => formatOptionalTime(row.last_used_at) },
+  { title: t("field.expiresAt"), key: "expires_at", width: tokenColumnWidths.expiresAt, render: (row) => formatExpiresAt(row.expires_at) },
+  { title: t("field.lastUsedAt"), key: "last_used_at", width: tokenColumnWidths.lastUsedAt, render: (row) => formatLastUsedAt(row.last_used_at) },
   { title: t("field.createdAt"), key: "created_at", width: tokenColumnWidths.createdAt, render: (row) => formatDateTime(row.created_at) },
   {
     title: t("common.actions"),
@@ -113,21 +146,7 @@ const columns = computed<DataTableColumns<ApiTokenItem>>(() => [
     width: tokenColumnWidths.actions,
     fixed: "right",
     align: "center",
-    render: (row) =>
-      authStore.has("action:api_token:delete")
-        ? h(
-            NButton,
-            {
-              class: "row-action-button",
-              size: "small",
-              quaternary: true,
-              circle: true,
-              title: t("common.delete"),
-              onClick: () => confirmDelete(row)
-            },
-            { icon: () => h(NIcon, { component: Delete20Regular }) }
-          )
-        : null
+    render: (row) => h("div", { class: "table-action-group" }, actionButtons(row))
   }
 ]);
 
@@ -147,17 +166,21 @@ async function loadTokens() {
 }
 
 function openCreate() {
-  Object.assign(form, { name: "", expires_at: null });
+  Object.assign(form, { name: "", expires_mode: "never" as ExpiryMode, expires_at: null });
   showCreateModal.value = true;
 }
 
 async function saveToken() {
   if (!(await validateForm(formRef.value))) return;
+  if (form.expires_mode === "custom" && !form.expires_at) {
+    message.error(t("validation.required", { label: t("field.expiresAt") }));
+    return;
+  }
   creating.value = true;
   try {
     const result = await createApiToken({
       name: form.name,
-      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null
+      expires_at: form.expires_mode === "custom" && form.expires_at ? new Date(form.expires_at).toISOString() : null
     });
     plainToken.value = result.token;
     showCreateModal.value = false;
@@ -168,6 +191,90 @@ async function saveToken() {
     showError(message, error);
   } finally {
     creating.value = false;
+  }
+}
+
+function actionButtons(row: ApiTokenItem) {
+  const buttons = [];
+  if (canRevealToken(row)) {
+    buttons.push(
+      h(
+        NButton,
+        {
+          class: "row-action-button",
+          size: "small",
+          quaternary: true,
+          circle: true,
+          loading: secretLoadingId.value === row.id,
+          title: t("common.show"),
+          onClick: () => showTokenSecret(row)
+        },
+        { icon: () => h(NIcon, { component: Eye20Regular }) }
+      ),
+      h(
+        NButton,
+        {
+          class: "row-action-button",
+          size: "small",
+          quaternary: true,
+          circle: true,
+          loading: secretLoadingId.value === row.id,
+          title: t("token.copyFull"),
+          onClick: () => copyTokenSecret(row)
+        },
+        { icon: () => h(NIcon, { component: Copy20Regular }) }
+      )
+    );
+  }
+  if (authStore.has("action:api_token:delete")) {
+    buttons.push(
+      h(
+        NButton,
+        {
+          class: "row-action-button",
+          size: "small",
+          quaternary: true,
+          circle: true,
+          title: t("common.delete"),
+          onClick: () => confirmDelete(row)
+        },
+        { icon: () => h(NIcon, { component: Delete20Regular }) }
+      )
+    );
+  }
+  return buttons;
+}
+
+function canRevealToken(row: ApiTokenItem) {
+  return row.secret_available && settingsStore.apiTokenRevealEnabled() && authStore.has("action:api_token:read");
+}
+
+async function showTokenSecret(row: ApiTokenItem) {
+  try {
+    revealedToken.value = await fetchTokenSecret(row);
+    revealedTokenName.value = row.name;
+    showSecretModal.value = true;
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+async function copyTokenSecret(row: ApiTokenItem) {
+  try {
+    await copyText(await fetchTokenSecret(row));
+    message.success(t("common.copied"));
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+async function fetchTokenSecret(row: ApiTokenItem) {
+  secretLoadingId.value = row.id;
+  try {
+    const result = await getApiTokenSecret(row.id);
+    return result.token;
+  } finally {
+    secretLoadingId.value = null;
   }
 }
 
@@ -198,6 +305,15 @@ async function copyPlainToken() {
   }
 }
 
+async function copyRevealedToken() {
+  try {
+    await copyText(revealedToken.value);
+    message.success(t("common.copied"));
+  } catch {
+    message.error(t("message.operationFailed"));
+  }
+}
+
 async function copyText(value: string) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
@@ -211,7 +327,11 @@ async function copyText(value: string) {
   input.remove();
 }
 
-function formatOptionalTime(value: string | null) {
+function formatExpiresAt(value: string | null) {
+  return value ? formatDateTime(value) : t("token.neverExpires");
+}
+
+function formatLastUsedAt(value: string | null) {
   return value ? formatDateTime(value) : t("common.never");
 }
 </script>

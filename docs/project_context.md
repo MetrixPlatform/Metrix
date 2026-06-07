@@ -428,3 +428,12 @@
 - 浏览器验证发现 Vite 代理使用宽泛 `/api` 前缀会把前端页面 `/api-docs` 误转发到后端，导致直接刷新 API 文档页时显示后端 404；开发代理已改为只匹配 `/api/` 和 `/openapi.json`。
 - 浏览器验证覆盖管理员登录、系统菜单新增 Token/API 文档入口、Token 创建明文一次性展示、Token Bearer 调用首页汇总和 `/openapi.json`、API 关闭后 Token/OpenAPI 后端强拒绝、API 文档页直接刷新、系统设置 API 开关、权限页 API 分组；临时 Token 已删除，API 开关恢复开启。
 - 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npm run build` 通过。
+## 2026-06-08：完善 Token 显示复制与 API 文档测试
+- 系统设置新增 `api_token_reveal_enabled`，默认开启，并随公开设置返回；系统设置页新增“允许显示/复制 Token”开关，关闭后前端隐藏完整 Token 显示/复制入口，后端 `/api/tokens/{id}/secret` 继续强制返回 403。
+- `api_tokens` 表新增可空 `token_value` 字段并通过启动同步补列；新创建 Token 会保存完整值以支持后续显示/复制，列表接口仍不返回明文，只返回 `secret_available`，旧 Token 或无完整值 Token 只能显示前缀。
+- Token 创建页明确提供“永不过期”和“自定义时间”两种过期策略，`expires_at = null` 表示永不过期；列表中空过期时间显示为“永不过期”，最后使用时间为空仍显示“从未”。
+- Token 列表支持在设置允许且完整值可用时显示或复制完整 Token，所有显示/复制都通过后端 secret 接口走登录态、API 开关、角色权限和本人 Token 校验。
+- `/openapi.json` 输出时复制 schema 后过滤 `/api/install*` 和 `/api/health*` 及对应 tag，避免把安装和探活接口展示给 API 调用者；业务接口和后续新路由仍按 OpenAPI 自动展示。
+- API 文档页新增 Token 输入和接口测试弹窗，按 OpenAPI 自动渲染 path/query 参数与 JSON 请求体，发送 Bearer API Token 请求并展示 HTTP 状态和响应内容；不在前端维护第二份接口清单。
+- `docs/development_page_guide.md` 同步补充 Token 可恢复显示、永不过期、OpenAPI 过滤和 API 文档测试面板的后续开发约定。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed；前端 `npm run build` 通过；Browser 验证登录、Token 列表“永不过期”和完整 Token 显示弹窗、API 文档页测试入口可达；接口验证 API Token 调用 `/api/auth/me` 成功，OpenAPI 不含 `/api/install*` 和 `/api/health*`。

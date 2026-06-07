@@ -49,9 +49,14 @@
 平台 API 功能由系统设置 `api_enabled` 总开关控制。关闭后 Token 页面、API 文档页面、`/openapi.json` 和 API Token 调用都必须不可用；前端只负责隐藏入口，后端必须继续强校验。
 
 - API 文档页面使用前端 `/api-docs`，读取受保护的 `/openapi.json` 并按 OpenAPI/Swagger 结构展示接口；`/docs` 和 `/openapi.json` 都需要登录且拥有 `action:api_docs:read`。
+- API 文档页内置接口测试面板：开发者填入 API Token 后，可以按 OpenAPI 参数测试接口；页面只自动处理常见 path/query 参数和 JSON 请求体，不在前端维护第二份接口清单。
+- `/openapi.json` 默认过滤安装和探活接口，如 `/api/install*`、`/api/health*`，避免把初始化、探活这类非平台业务能力暴露给调用者文档。
 - Token 页面使用 `/tokens`，权限为 `route:tokens`，授予后默认扩展 `action:api_token:read`；创建和删除分别使用 `action:api_token:create`、`action:api_token:delete`。
 - API Token 是全平台鉴权入口，后续接口默认不需要额外适配 Token。只要接口继续使用 `get_current_user`、`require_permission(...)` 或 `require_any_permission(...)`，Bearer Token 与 API Token 都会进入同一套用户状态和角色权限校验。
-- API Token 只在创建响应中返回一次明文；数据库只保存哈希和展示前缀。列表接口不得返回明文 Token。
+- API Token 创建时 `expires_at = null` 表示永不过期；前端创建弹窗必须显式提供“永不过期”和“自定义时间”两种选择。
+- API Token 始终保存哈希和展示前缀；当系统设置 `api_token_reveal_enabled` 开启时，新创建 Token 还会保存可恢复的完整值，用户可在列表中通过专门的 `/api/tokens/{id}/secret` 接口显示或复制完整 Token。
+- 列表接口不得直接返回明文 Token，只能返回 `secret_available` 让前端判断是否显示“显示/复制”按钮；旧 Token 或未保存完整值的 Token 只能显示前缀。
+- 关闭 `api_token_reveal_enabled` 后，前端隐藏完整 Token 显示/复制入口，后端 secret 接口仍必须返回 403；关闭该开关不会删除已保存的完整值。
 - 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
 - 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary` 和响应模型，API 文档页会自动从 `/openapi.json` 中展示；不要在前端 API 文档页手写接口清单。
 - 若新增页面属于 API 功能整体开关管辖，在 `web/src/router/page-registry.ts` 的页面注册项中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。

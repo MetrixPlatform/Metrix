@@ -16,6 +16,9 @@
           <n-form-item :label="t('field.apiEnabled')" path="api_enabled">
             <n-switch v-model:value="form.api_enabled" />
           </n-form-item>
+          <n-form-item :label="t('field.apiTokenRevealEnabled')" path="api_token_reveal_enabled">
+            <n-switch v-model:value="form.api_token_reveal_enabled" :disabled="!form.api_enabled" />
+          </n-form-item>
           <n-form-item :label="t('field.registrationRequired')" path="registration_required_fields">
             <div class="settings-checks">
               <n-checkbox v-model:checked="form.registration_required_fields.phone">{{ t("field.phone") }}</n-checkbox>
@@ -78,7 +81,8 @@ const form = reactive<SystemSettings>({
   },
   log_retention_days: 90,
   default_locale: "zh-CN",
-  api_enabled: true
+  api_enabled: true,
+  api_token_reveal_enabled: true
 });
 
 const rules = computed<FormRules>(() => ({
@@ -142,6 +146,7 @@ function assignSettings(settings: SystemSettings) {
   form.log_retention_days = settings.log_retention_days;
   form.default_locale = settings.default_locale;
   form.api_enabled = settings.api_enabled;
+  form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
 }
 
 </script>

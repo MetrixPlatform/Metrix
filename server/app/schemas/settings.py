@@ -20,6 +20,7 @@ class PublicSettings(BaseModel):
     registration_required_fields: RegistrationRequiredFields
     default_locale: LocaleCode
     api_enabled: bool
+    api_token_reveal_enabled: bool
 
 
 class SystemSettings(PublicSettings):
@@ -33,3 +34,4 @@ class SystemSettingsUpdate(BaseModel):
     log_retention_days: LogRetentionDays
     default_locale: LocaleCode
     api_enabled: bool
+    api_token_reveal_enabled: bool

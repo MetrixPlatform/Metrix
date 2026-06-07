@@ -3,6 +3,13 @@
     <div class="toolbar api-docs-toolbar">
       <div class="api-docs-filter-row">
         <n-input v-model:value="keyword" class="filter-keyword" :placeholder="t('apiDocs.searchPlaceholder')" clearable />
+        <n-input
+          v-model:value="apiToken"
+          class="filter-keyword"
+          type="password"
+          show-password-on="click"
+          :placeholder="t('apiDocs.testTokenPlaceholder')"
+        />
         <n-button :loading="loading" @click="loadDocument">
           <template #icon><n-icon :component="ArrowClockwise20Regular" /></template>
           {{ t("common.refresh") }}
@@ -49,6 +56,10 @@
               <div class="api-operation-head">
                 <n-tag :type="methodTagType(operation.method)" size="small" round>{{ operation.method.toUpperCase() }}</n-tag>
                 <code>{{ operation.path }}</code>
+                <n-button class="api-operation-test-button" size="small" secondary @click="openTest(operation)">
+                  <template #icon><n-icon :component="Play20Regular" /></template>
+                  {{ t("common.test") }}
+                </n-button>
               </div>
               <h3>{{ operationTitle(operation) }}</h3>
               <p v-if="operation.operation.description" class="api-operation-description">{{ operation.operation.description }}</p>
@@ -80,13 +91,52 @@
         </main>
       </div>
     </n-spin>
+
+    <n-modal v-model:show="showTestModal" preset="card" class="api-test-modal" :title="t('apiDocs.test')">
+      <div v-if="selectedOperation" class="api-test-content">
+        <div class="api-test-endpoint">
+          <n-tag :type="methodTagType(selectedOperation.method)" size="small" round>{{ selectedOperation.method.toUpperCase() }}</n-tag>
+          <code>{{ selectedOperation.path }}</code>
+        </div>
+        <n-form class="form-stack inline-form" label-placement="left" label-width="110">
+          <n-form-item
+            v-for="parameter in testParameters"
+            :key="parameterKey(parameter)"
+            :label="parameterLabel(parameter)"
+          >
+            <n-input
+              :value="testParams[parameterKey(parameter)]"
+              :placeholder="parameter.description || schemaText(parameter.schema) || parameter.name"
+              @update:value="(value) => setTestParam(parameter, value)"
+            />
+          </n-form-item>
+          <n-form-item v-if="hasTestRequestBody" :label="t('field.requestBody')">
+            <n-input v-model:value="testBody" type="textarea" :placeholder="t('apiDocs.bodyPlaceholder')" :autosize="{ minRows: 6, maxRows: 10 }" />
+          </n-form-item>
+        </n-form>
+        <div class="form-actions">
+          <n-button @click="showTestModal = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :loading="testing" @click="sendTestRequest">
+            <template #icon><n-icon :component="Send20Regular" /></template>
+            {{ t("common.test") }}
+          </n-button>
+        </div>
+        <div v-if="testStatus !== null" class="api-test-result">
+          <div class="api-test-result-head">
+            <strong>{{ t("apiDocs.testResponse") }}</strong>
+            <span>{{ t("apiDocs.httpStatus") }} <code>{{ testStatus }}</code></span>
+          </div>
+          <pre>{{ testResponse || t("common.none") }}</pre>
+        </div>
+      </div>
+    </n-modal>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ArrowClockwise20Regular, ArrowDownload20Regular, Copy20Regular } from "@vicons/fluent";
-import { computed, h, onMounted, ref } from "vue";
-import { NButton, NDataTable, NEmpty, NIcon, NInput, NSpin, NTag, useMessage } from "naive-ui";
+import { ArrowClockwise20Regular, ArrowDownload20Regular, Copy20Regular, Play20Regular, Send20Regular } from "@vicons/fluent";
+import { computed, h, onMounted, reactive, ref } from "vue";
+import { NButton, NDataTable, NEmpty, NForm, NFormItem, NIcon, NInput, NModal, NSpin, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 
 import { getOpenApiDocument, type OpenApiDocument, type OpenApiOperation, type OpenApiParameter } from "../api/openapi";
@@ -106,11 +156,21 @@ interface OperationGroup {
   operations: OperationEntry[];
 }
 
+const TEST_METHODS_WITH_BODY = new Set(["post", "put", "patch", "delete"]);
+
 const message = useMessage();
 const loading = ref(false);
+const testing = ref(false);
 const document = ref<OpenApiDocument | null>(null);
 const keyword = ref("");
+const apiToken = ref("");
 const activeTag = ref("");
+const selectedOperation = ref<OperationEntry | null>(null);
+const showTestModal = ref(false);
+const testParams = reactive<Record<string, string>>({});
+const testBody = ref("");
+const testStatus = ref<number | null>(null);
+const testResponse = ref("");
 const documentText = computed(() => (document.value ? JSON.stringify(document.value, null, 2) : ""));
 const groups = computed(() => groupOperations(document.value));
 const visibleGroups = computed(() => {
@@ -122,6 +182,13 @@ const visibleGroups = computed(() => {
       operations: normalizedKeyword ? group.operations.filter((operation) => operationMatches(operation, normalizedKeyword)) : group.operations
     }))
     .filter((group) => group.operations.length > 0);
+});
+const testParameters = computed(() =>
+  (selectedOperation.value?.operation.parameters || []).filter((parameter) => parameter.in === "path" || parameter.in === "query")
+);
+const hasTestRequestBody = computed(() => {
+  const operation = selectedOperation.value;
+  return Boolean(operation && TEST_METHODS_WITH_BODY.has(operation.method) && Object.keys(operation.operation.requestBody?.content || {}).length > 0);
 });
 
 const parameterColumns = computed<DataTableColumns<OpenApiParameter>>(() => [
@@ -163,6 +230,87 @@ async function copyDocument() {
 
 function downloadDocument() {
   saveBlob(new Blob([documentText.value], { type: "application/json;charset=utf-8" }), "openapi.json");
+}
+
+function openTest(operation: OperationEntry) {
+  selectedOperation.value = operation;
+  clearTestParams();
+  for (const parameter of testParameters.value) {
+    testParams[parameterKey(parameter)] = "";
+  }
+  testBody.value = hasRequestBody(operation) ? "{}" : "";
+  testStatus.value = null;
+  testResponse.value = "";
+  showTestModal.value = true;
+}
+
+async function sendTestRequest() {
+  const operation = selectedOperation.value;
+  const token = apiToken.value.trim();
+  if (!operation) return;
+  if (!token) {
+    message.error(t("apiDocs.tokenRequired"));
+    return;
+  }
+  let url = "";
+  let body: string | undefined;
+  try {
+    url = buildRequestUrl(operation);
+    body = buildRequestBody();
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : t("message.operationFailed"));
+    return;
+  }
+
+  testing.value = true;
+  try {
+    const headers = new Headers({ Authorization: `Bearer ${token}`, Accept: "application/json" });
+    if (body !== undefined) {
+      headers.set("Content-Type", "application/json");
+    }
+    const response = await fetch(url, { method: operation.method.toUpperCase(), headers, body });
+    testStatus.value = response.status;
+    testResponse.value = await responseText(response);
+    message.success(t("apiDocs.testSuccess"));
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    testing.value = false;
+  }
+}
+
+function buildRequestUrl(operation: OperationEntry) {
+  let path = operation.path;
+  const query = new URLSearchParams();
+  for (const parameter of testParameters.value) {
+    const key = parameterKey(parameter);
+    const value = (testParams[key] || "").trim();
+    if (parameter.in === "path") {
+      if (!value) {
+        throw new Error(t("apiDocs.pathParamRequired", { name: parameter.name }));
+      }
+      path = path.replace(`{${parameter.name}}`, encodeURIComponent(value));
+    } else if (parameter.in === "query" && value) {
+      query.set(parameter.name, value);
+    }
+  }
+  return query.size ? `${path}?${query}` : path;
+}
+
+function buildRequestBody() {
+  if (!hasTestRequestBody.value) {
+    return undefined;
+  }
+  const body = testBody.value.trim();
+  if (!body) {
+    return undefined;
+  }
+  try {
+    JSON.parse(body);
+  } catch {
+    throw new Error(t("apiDocs.invalidJson"));
+  }
+  return body;
 }
 
 function groupOperations(doc: OpenApiDocument | null): OperationGroup[] {
@@ -209,6 +357,40 @@ function methodTagType(method: string) {
     delete: "error"
   };
   return types[method] || "default";
+}
+
+function parameterKey(parameter: OpenApiParameter) {
+  return `${parameter.in}:${parameter.name}`;
+}
+
+function parameterLabel(parameter: OpenApiParameter) {
+  return `${parameter.name}${parameter.required ? " *" : ""}`;
+}
+
+function setTestParam(parameter: OpenApiParameter, value: string) {
+  testParams[parameterKey(parameter)] = value;
+}
+
+function clearTestParams() {
+  for (const key of Object.keys(testParams)) {
+    delete testParams[key];
+  }
+}
+
+function hasRequestBody(operation: OperationEntry) {
+  return TEST_METHODS_WITH_BODY.has(operation.method) && Object.keys(operation.operation.requestBody?.content || {}).length > 0;
+}
+
+async function responseText(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return "";
+  }
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2);
+  } catch {
+    return text;
+  }
 }
 
 function schemaText(schema: unknown) {

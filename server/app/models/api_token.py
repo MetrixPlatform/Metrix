@@ -19,6 +19,7 @@ class ApiToken(Base):
     name: Mapped[str] = mapped_column(String(80))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     token_prefix: Mapped[str] = mapped_column(String(16), index=True)
+    token_value: Mapped[str | None] = mapped_column(String(128), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -26,3 +27,7 @@ class ApiToken(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 
     user: Mapped["User"] = relationship("User", back_populates="api_tokens")
+
+    @property
+    def secret_available(self) -> bool:
+        return bool(self.token_value)

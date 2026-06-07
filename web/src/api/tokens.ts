@@ -14,6 +14,10 @@ export function createApiToken(payload: ApiTokenCreatePayload) {
   return post<ApiTokenCreateResponse>("/tokens", payload);
 }
 
+export function getApiTokenSecret(id: number) {
+  return request<{ token: string }>(`/tokens/${id}/secret`);
+}
+
 export function deleteApiToken(id: number) {
   return del<ServerMessage>(`/tokens/${id}`);
 }

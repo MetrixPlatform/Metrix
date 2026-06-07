@@ -2,13 +2,14 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import bad_request, not_found
+from app.core.exceptions import bad_request, forbidden, not_found
 from app.core.security import create_api_token, hash_api_token
 from app.core.time import utc_now
 from app.models import ApiToken, User
 from app.repositories.api_tokens import ApiTokenRepository
 from app.schemas.api_token import ApiTokenCreateRequest, ApiTokenCreateResponse, ApiTokenItem
 from app.services.audit import record_audit
+from app.services.settings import SettingService
 
 
 class ApiTokenService:
@@ -31,6 +32,7 @@ class ApiTokenService:
                 name=name,
                 token_hash=hash_api_token(plain_token),
                 token_prefix=plain_token[:12],
+                token_value=plain_token,
                 expires_at=expires_at,
             )
         )
@@ -47,6 +49,16 @@ class ApiTokenService:
         record_audit(self.db, user.id, "api_token.delete", "api_token", str(api_token.id), name)
         self.tokens.delete(api_token)
         self.db.commit()
+
+    def get_token_secret(self, user: User, token_id: int) -> str:
+        if not SettingService(self.db).get_settings().api_token_reveal_enabled:
+            raise forbidden("error.apiTokenRevealDisabled", "API token reveal is disabled")
+        api_token = self.tokens.get_for_user(token_id, user.id)
+        if not api_token:
+            raise not_found("error.apiTokenNotFound", "API token not found")
+        if not api_token.token_value:
+            raise not_found("error.apiTokenSecretUnavailable", "API token secret is unavailable")
+        return api_token.token_value
 
     def _new_unique_token(self) -> str:
         for _ in range(5):

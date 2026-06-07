@@ -58,17 +58,38 @@ def sync_seed_data(db: Session) -> tuple[dict[str, Permission], Role]:
 
 def sync_columns(engine) -> None:
     inspector = inspect(engine)
-    if "users" not in inspector.get_table_names():
+    table_names = set(inspector.get_table_names())
+    if not table_names:
         return
-    existing_columns = {column["name"] for column in inspector.get_columns("users")}
-    column_sql = {
-        "phone": "ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''",
-        "email": "ALTER TABLE users ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT ''",
-    }
     with engine.begin() as conn:
-        for name, statement in column_sql.items():
-            if name not in existing_columns:
-                conn.execute(text(statement))
+        _sync_table_columns(
+            conn,
+            inspector,
+            table_names,
+            "users",
+            {
+                "phone": "ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''",
+                "email": "ALTER TABLE users ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT ''",
+            },
+        )
+        _sync_table_columns(
+            conn,
+            inspector,
+            table_names,
+            "api_tokens",
+            {
+                "token_value": "ALTER TABLE api_tokens ADD COLUMN token_value VARCHAR(128)",
+            },
+        )
+
+
+def _sync_table_columns(conn, inspector, table_names: set[str], table: str, column_sql: dict[str, str]) -> None:
+    if table not in table_names:
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns(table)}
+    for name, statement in column_sql.items():
+        if name not in existing_columns:
+            conn.execute(text(statement))
 
 
 def _sync_permission_seeds(db: Session) -> dict[str, Permission]:

@@ -12,6 +12,7 @@ class ApiTokenItem(BaseModel):
     id: int
     name: str
     token_prefix: str
+    secret_available: bool
     is_active: bool
     expires_at: datetime | None
     last_used_at: datetime | None
@@ -21,4 +22,8 @@ class ApiTokenItem(BaseModel):
 
 
 class ApiTokenCreateResponse(ApiTokenItem):
+    token: str
+
+
+class ApiTokenSecretResponse(BaseModel):
     token: str

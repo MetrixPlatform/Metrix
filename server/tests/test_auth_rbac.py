@@ -230,8 +230,11 @@ def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch)
 
     openapi = client.get("/openapi.json", headers=admin_headers)
     assert openapi.status_code == 200
-    assert openapi.json()["openapi"].startswith("3.")
-    assert "/api/tokens" in openapi.json()["paths"]
+    openapi_schema = openapi.json()
+    assert openapi_schema["openapi"].startswith("3.")
+    assert "/api/tokens" in openapi_schema["paths"]
+    assert not any(path.startswith("/api/install") for path in openapi_schema["paths"])
+    assert not any(path.startswith("/api/health") for path in openapi_schema["paths"])
 
 
 def test_mysql_install_runs_database_and_table_creation(monkeypatch):
@@ -565,12 +568,29 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     created_data = created.json()
     assert created_data["token"].startswith("mtx_")
     assert created_data["token_prefix"] == created_data["token"][:12]
+    assert created_data["secret_available"] is True
+    assert created_data["expires_at"] is None
     assert "token_hash" not in created_data
+
+    secret = client.get(f"/api/tokens/{created_data['id']}/secret", headers=user_headers)
+    assert secret.status_code == 200
+    assert secret.json()["token"] == created_data["token"]
 
     listed = client.get("/api/tokens", headers=user_headers)
     assert listed.status_code == 200
     assert len(listed.json()) == 1
+    assert listed.json()[0]["secret_available"] is True
     assert "token" not in listed.json()[0]
+
+    reveal_disabled_settings = client.get("/api/settings", headers=admin_headers).json()
+    reveal_disabled_settings["api_token_reveal_enabled"] = False
+    assert client.put("/api/settings", json=reveal_disabled_settings, headers=admin_headers).status_code == 200
+    reveal_disabled = client.get(f"/api/tokens/{created_data['id']}/secret", headers=user_headers)
+    assert reveal_disabled.status_code == 403
+    assert reveal_disabled.json()["detail"]["code"] == "error.apiTokenRevealDisabled"
+    reveal_enabled_settings = client.get("/api/settings", headers=admin_headers).json()
+    reveal_enabled_settings["api_token_reveal_enabled"] = True
+    assert client.put("/api/settings", json=reveal_enabled_settings, headers=admin_headers).status_code == 200
 
     api_headers = {"Authorization": f"Bearer {created_data['token']}"}
     assert client.get("/api/dashboard/summary", headers=api_headers).status_code == 200
@@ -961,6 +981,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     assert public_defaults.status_code == 200
     assert public_defaults.json()["app_name"] == "Metrix"
     assert public_defaults.json()["api_enabled"] is True
+    assert public_defaults.json()["api_token_reveal_enabled"] is True
 
     settings_payload = {
         "app_name": "Data Portal",
@@ -974,14 +995,17 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
         "log_retention_days": 7,
         "default_locale": "en-US",
         "api_enabled": True,
+        "api_token_reveal_enabled": False,
     }
     updated = client.put("/api/settings", json=settings_payload, headers=admin_headers)
     assert updated.status_code == 200
     assert updated.json()["app_name"] == "Data Portal"
+    assert updated.json()["api_token_reveal_enabled"] is False
 
     public_updated = client.get("/api/settings/public").json()
     assert public_updated["registration_enabled"] is False
     assert public_updated["default_locale"] == "en-US"
+    assert public_updated["api_token_reveal_enabled"] is False
     disabled_register = client.post(
         "/api/auth/register",
         json={

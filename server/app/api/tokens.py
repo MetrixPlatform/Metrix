@@ -5,7 +5,7 @@ from app.core.deps import require_api_feature_enabled, require_permission
 from app.core.permissions import API_TOKEN_CREATE, API_TOKEN_DELETE, API_TOKEN_READ
 from app.db.session import get_db
 from app.models import User
-from app.schemas.api_token import ApiTokenCreateRequest, ApiTokenCreateResponse, ApiTokenItem
+from app.schemas.api_token import ApiTokenCreateRequest, ApiTokenCreateResponse, ApiTokenItem, ApiTokenSecretResponse
 from app.schemas.common import MessageResponse, message_response
 from app.services.api_tokens import ApiTokenService
 
@@ -27,6 +27,15 @@ def create_token(
     user: User = Depends(require_permission(API_TOKEN_CREATE)),
 ) -> ApiTokenCreateResponse:
     return ApiTokenService(db).create_token(user, payload)
+
+
+@router.get("/{token_id}/secret", response_model=ApiTokenSecretResponse)
+def get_token_secret(
+    token_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission(API_TOKEN_READ)),
+) -> ApiTokenSecretResponse:
+    return ApiTokenSecretResponse(token=ApiTokenService(db).get_token_secret(user, token_id))
 
 
 @router.delete("/{token_id}", response_model=MessageResponse)
