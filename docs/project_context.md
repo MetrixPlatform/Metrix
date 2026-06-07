@@ -473,3 +473,11 @@
 ## 2026-06-08：调整语言切换按钮字重
 - 语言切换按钮中的 `文` 和 `A` 字重从 600 调整为 500，让图标文字更轻但仍保持清晰可读。
 - 验证：前端 `npm run build` 通过；`git diff --check` 通过；Browser 打开 `/tokens` 后读取语言按钮 computed style，`文` 和 `A` 的 `font-weight` 均为 500。
+
+## 2026-06-08：全量复查并修正导出与类型检查配置
+- 第一轮重新阅读后端 schema、API、service、repository、测试、前端路由、store、API 封装、工具、组件、视图、i18n、CSS 和开发文档，未发现可安全删除的死代码；保留的废弃权限相关逻辑仍用于迁移清理和旧数据过滤。
+- `web/tsconfig.json` 增加 `noEmit: true`，避免直接运行 `vue-tsc` 或参数传递错误时把 `.js` / `.js.map` 产物写入 `web/src` 污染源码目录；最终构建后确认 `web/src` 未生成 JS/map 产物。
+- 操作日志 CSV 导出与页面规则对齐：`/api/audit-logs/export` 只导出 `id,operator,source,action,target_type,target_id,detail,created_at`，不再包含 `api_token_prefix`；测试和开发文档同步更新。
+- Browser 完整模拟回归覆盖管理员登录、语言/主题、权限角色新增授权删除、用户新增/搜索/编辑/禁用启用/重置密码/角色分配/删除、受限账号登录、Token 永不过期创建/显示/复制/删除、API 文档详情和测试请求、API Token Web-only 边界、公告新增/搜索/编辑/批量删除/单删、操作日志来源列/详情弹窗/CSV、系统设置保存恢复、数据备份、注册提交/审核通过/驳回/登录、个人资料保存/改密/新密码登录和 404。
+- 测试过程创建的临时用户、角色、Token、公告均已通过页面或接口清理；运行时设置恢复为 `Metrix`、注册开启、API 开启、Token 显示开启、日志保留 90 天。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests -q` 通过 20 passed，仅剩 FastAPI/Starlette TestClient 第三方提示；前端 `npx vue-tsc --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过；`python -m compileall -q server\app server\tests` 通过；`git diff --check` 通过；调试残留扫描无代码命中。

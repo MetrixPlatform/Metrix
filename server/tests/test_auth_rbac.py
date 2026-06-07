@@ -1030,7 +1030,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     assert exported.status_code == 200
     assert exported.headers["content-type"].startswith("text/csv")
     assert exported.headers["content-disposition"] == 'attachment; filename="audit-logs.csv"'
-    assert exported.text.startswith("\ufeffid,operator,source,api_token_prefix,action,target_type,target_id,detail,created_at")
+    assert exported.text.startswith("\ufeffid,operator,source,action,target_type,target_id,detail,created_at")
     assert payload["admin_username"] in exported.text
 
     login_logs = client.get("/api/audit-logs", params={"action": "auth.login"}, headers=reader_headers)

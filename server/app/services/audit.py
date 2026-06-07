@@ -140,14 +140,13 @@ class AuditService:
         output = StringIO()
         output.write("\ufeff")
         writer = csv.writer(output, lineterminator="\n")
-        writer.writerow(["id", "operator", "source", "api_token_prefix", "action", "target_type", "target_id", "detail", "created_at"])
+        writer.writerow(["id", "operator", "source", "action", "target_type", "target_id", "detail", "created_at"])
         for log in logs:
             writer.writerow(
                 [
                     log.id,
                     log.actor_username or "system",
                     log.source,
-                    log.api_token_prefix,
                     log.action,
                     log.target_type,
                     log.target_id,
