@@ -13,7 +13,7 @@ from app.core.install import load_install_config
 from app.models import AuditLog, User
 from app.repositories.settings import SystemSettingRepository
 from app.schemas.settings import PublicSettings, RegistrationRequiredFields, SystemSettings, SystemSettingsUpdate
-from app.services.audit import record_audit
+from app.services.audit import audit_changes, audit_detail, record_audit
 
 SETTING_APP_NAME = "app_name"
 SETTING_REGISTRATION_ENABLED = "registration_enabled"
@@ -57,6 +57,7 @@ class SettingService:
         return self._merged_settings()
 
     def update_settings(self, actor: User, payload: SystemSettingsUpdate) -> SystemSettings:
+        before = _settings_snapshot(self.get_settings())
         self.settings.set_many(
             {
                 SETTING_APP_NAME: payload.app_name.strip(),
@@ -68,7 +69,16 @@ class SettingService:
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
             }
         )
-        record_audit(self.db, actor.id, "settings.update", "system_settings", "", payload.app_name.strip())
+        after = _settings_snapshot(self.get_settings())
+        record_audit(
+            self.db,
+            actor.id,
+            "settings.update",
+            "system_settings",
+            "",
+            after["app_name"],
+            audit_detail(str(after["app_name"]), audit_changes(before, after)),
+        )
         self.db.commit()
         return self.get_settings()
 
@@ -93,7 +103,15 @@ class SettingService:
             for table in BACKUP_TABLES:
                 if self._table_exists(table):
                     backup.writestr(f"tables/{table}.json", json.dumps(self._table_rows(table), ensure_ascii=False, indent=2))
-        record_audit(self.db, actor.id, "settings.backup", "system_settings", "", "backup")
+        record_audit(
+            self.db,
+            actor.id,
+            "settings.backup",
+            "system_settings",
+            "",
+            "backup",
+            audit_detail("backup", meta={"tables": BACKUP_TABLES, "database_type": load_install_config().database_type}),
+        )
         self.db.commit()
         return buffer.getvalue()
 
@@ -156,6 +174,18 @@ def _default_settings() -> SystemSettings:
         api_enabled=True,
         api_token_reveal_enabled=True,
     )
+
+
+def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
+    return {
+        "app_name": settings.app_name,
+        "registration_enabled": settings.registration_enabled,
+        "registration_required_fields": settings.registration_required_fields.model_dump(),
+        "log_retention_days": settings.log_retention_days,
+        "default_locale": settings.default_locale,
+        "api_enabled": settings.api_enabled,
+        "api_token_reveal_enabled": settings.api_token_reveal_enabled,
+    }
 
 
 def _clean_text(value: str | None, fallback: str) -> str:

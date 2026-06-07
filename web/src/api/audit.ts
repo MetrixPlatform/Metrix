@@ -6,6 +6,7 @@ export interface AuditLogFilters {
   actor_scope?: "self" | "all" | "";
   action?: string;
   target_type?: string;
+  source?: string;
   sort_order?: "ascend" | "descend";
   start_time?: string;
   end_time?: string;

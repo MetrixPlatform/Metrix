@@ -649,6 +649,16 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     api_log = next(item for item in page_items(api_audit_logs) if item["detail"] == "API 创建公告")
     assert api_log["source"] == "api"
     assert api_log["api_token_prefix"] == created_data["token_prefix"]
+    assert api_log["detail_data"]["target_name"] == "API 创建公告"
+    assert api_log["detail_data"]["meta"]["title"] == "API 创建公告"
+    source_filtered_logs = client.get(
+        "/api/audit-logs",
+        params={"actor_scope": "all", "source": "api", "page_size": 500},
+        headers=admin_headers,
+    )
+    assert source_filtered_logs.status_code == 200
+    assert source_filtered_logs.json()["total"] >= 1
+    assert all(item["source"] == "api" for item in page_items(source_filtered_logs))
     web_login_logs = client.get("/api/audit-logs", params={"actor_scope": "all", "action": "auth.login"}, headers=admin_headers)
     assert web_login_logs.status_code == 200
     assert all(item["source"] == "web" for item in page_items(web_login_logs))
@@ -1145,6 +1155,9 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     settings_logs = client.get("/api/audit-logs", params={"actor_scope": "all", "target_type": "system_settings"}, headers=admin_headers)
     assert settings_logs.status_code == 200
     assert {"settings.update", "settings.backup"}.issubset({item["action"] for item in page_items(settings_logs)})
+    update_log = next(item for item in page_items(settings_logs) if item["action"] == "settings.update")
+    changed_fields = {item["field"] for item in update_log["detail_data"]["changes"]}
+    assert {"app_name", "api_token_reveal_enabled"}.intersection(changed_fields)
     import zipfile
     from io import BytesIO
 

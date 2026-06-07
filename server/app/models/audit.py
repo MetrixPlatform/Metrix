@@ -16,6 +16,7 @@ class AuditLog(Base):
     target_type: Mapped[str] = mapped_column(String(80), default="")
     target_id: Mapped[str] = mapped_column(String(80), default="")
     detail: Mapped[str] = mapped_column(Text, default="")
+    detail_data: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="web", server_default="web")
     api_token_prefix: Mapped[str] = mapped_column(String(16), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)

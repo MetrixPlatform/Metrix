@@ -19,6 +19,7 @@ class AuditRepository:
         target_type: str = "",
         target_id: str = "",
         detail: str = "",
+        detail_data: str = "",
         source: str = "web",
         api_token_prefix: str = "",
     ) -> None:
@@ -29,6 +30,7 @@ class AuditRepository:
                 target_type=target_type,
                 target_id=target_id,
                 detail=detail,
+                detail_data=detail_data,
                 source=source,
                 api_token_prefix=api_token_prefix,
             )
@@ -41,13 +43,14 @@ class AuditRepository:
         keyword: str = "",
         action: str = "",
         target_type: str = "",
+        source: str = "",
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         created_at_order: str = "descend",
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[AuditLog], int]:
-        query = self._filtered_query(actor_user_id, keyword, action, target_type, start_time, end_time)
+        query = self._filtered_query(actor_user_id, keyword, action, target_type, source, start_time, end_time)
         total = query.count()
         query = self._ordered_query(query, created_at_order)
         offset = (page - 1) * page_size
@@ -59,11 +62,12 @@ class AuditRepository:
         keyword: str = "",
         action: str = "",
         target_type: str = "",
+        source: str = "",
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         created_at_order: str = "descend",
     ) -> list[AuditLog]:
-        query = self._filtered_query(actor_user_id, keyword, action, target_type, start_time, end_time)
+        query = self._filtered_query(actor_user_id, keyword, action, target_type, source, start_time, end_time)
         return self._ordered_query(query, created_at_order).all()
 
     def actor_usernames(self, user_ids: set[int]) -> dict[int, str]:
@@ -78,6 +82,7 @@ class AuditRepository:
         keyword: str = "",
         action: str = "",
         target_type: str = "",
+        source: str = "",
         start_time: datetime | None = None,
         end_time: datetime | None = None,
     ):
@@ -93,12 +98,15 @@ class AuditRepository:
                     AuditLog.target_type.ilike(pattern),
                     AuditLog.target_id.ilike(pattern),
                     AuditLog.detail.ilike(pattern),
+                    AuditLog.detail_data.ilike(pattern),
                 )
             )
         if action:
             query = query.filter(AuditLog.action == action)
         if target_type:
             query = query.filter(AuditLog.target_type == target_type)
+        if source:
+            query = query.filter(AuditLog.source == source)
         if start_time:
             query = query.filter(AuditLog.created_at >= start_time)
         if end_time:

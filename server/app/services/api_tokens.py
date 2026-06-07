@@ -8,7 +8,7 @@ from app.core.time import utc_now
 from app.models import ApiToken, User
 from app.repositories.api_tokens import ApiTokenRepository
 from app.schemas.api_token import ApiTokenCreateRequest, ApiTokenCreateResponse, ApiTokenItem
-from app.services.audit import record_audit
+from app.services.audit import audit_detail, record_audit
 from app.services.settings import SettingService
 
 
@@ -36,7 +36,15 @@ class ApiTokenService:
                 expires_at=expires_at,
             )
         )
-        record_audit(self.db, user.id, "api_token.create", "api_token", str(api_token.id), api_token.name)
+        record_audit(
+            self.db,
+            user.id,
+            "api_token.create",
+            "api_token",
+            str(api_token.id),
+            api_token.name,
+            audit_detail(api_token.name, meta=_token_snapshot(api_token)),
+        )
         self.db.commit()
         data = ApiTokenItem.model_validate(api_token).model_dump()
         return ApiTokenCreateResponse(**data, token=plain_token)
@@ -46,7 +54,15 @@ class ApiTokenService:
         if not api_token:
             raise not_found("error.apiTokenNotFound", "API token not found")
         name = api_token.name
-        record_audit(self.db, user.id, "api_token.delete", "api_token", str(api_token.id), name)
+        record_audit(
+            self.db,
+            user.id,
+            "api_token.delete",
+            "api_token",
+            str(api_token.id),
+            name,
+            audit_detail(name, meta=_token_snapshot(api_token)),
+        )
         self.tokens.delete(api_token)
         self.db.commit()
 
@@ -75,3 +91,12 @@ class ApiTokenService:
         if expires_at <= comparable_now:
             raise bad_request("error.apiTokenExpiredAtInvalid", "Expiration time must be in the future")
         return expires_at
+
+
+def _token_snapshot(api_token: ApiToken) -> dict[str, object]:
+    return {
+        "name": api_token.name,
+        "token_prefix": api_token.token_prefix,
+        "is_active": api_token.is_active,
+        "expires_at": api_token.expires_at.isoformat() if api_token.expires_at else None,
+    }

@@ -80,6 +80,7 @@ def sync_columns(engine) -> None:
             {
                 "source": "ALTER TABLE audit_logs ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT 'web'",
                 "api_token_prefix": "ALTER TABLE audit_logs ADD COLUMN api_token_prefix VARCHAR(16) NOT NULL DEFAULT ''",
+                "detail_data": "ALTER TABLE audit_logs ADD COLUMN detail_data TEXT",
             },
         )
         _sync_table_columns(

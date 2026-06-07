@@ -1,6 +1,8 @@
 from datetime import datetime
 import csv
+import json
 from io import StringIO
+from typing import Any, Mapping
 
 from sqlalchemy.orm import Session
 
@@ -20,6 +22,7 @@ def record_audit(
     target_type: str = "",
     target_id: str = "",
     detail: str = "",
+    detail_data: Mapping[str, Any] | None = None,
 ) -> None:
     AuditRepository(db).add(
         actor_user_id,
@@ -27,9 +30,34 @@ def record_audit(
         target_type,
         target_id,
         detail,
+        _dump_detail_data(detail_data),
         auth_source(db),
         auth_api_token_prefix(db),
     )
+
+
+def audit_detail(
+    target_name: str = "",
+    changes: list[dict[str, Any]] | None = None,
+    meta: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    if target_name:
+        data["target_name"] = target_name
+    if changes:
+        data["changes"] = changes
+    if meta:
+        data["meta"] = {key: _json_value(value) for key, value in meta.items()}
+    return data
+
+
+def audit_changes(before: Mapping[str, Any], after: Mapping[str, Any]) -> list[dict[str, Any]]:
+    changes = []
+    for field, before_value in before.items():
+        after_value = after.get(field)
+        if _json_value(before_value) != _json_value(after_value):
+            changes.append({"field": field, "before": _json_value(before_value), "after": _json_value(after_value)})
+    return changes
 
 
 class AuditService:
@@ -44,6 +72,7 @@ class AuditService:
         keyword: str = "",
         action: str = "",
         target_type: str = "",
+        source: str = "",
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         sort_order: str = "descend",
@@ -57,6 +86,7 @@ class AuditService:
             keyword,
             action,
             target_type,
+            source,
             start_time,
             end_time,
             created_at_order,
@@ -72,6 +102,7 @@ class AuditService:
         keyword: str = "",
         action: str = "",
         target_type: str = "",
+        source: str = "",
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         sort_order: str = "descend",
@@ -83,6 +114,7 @@ class AuditService:
             keyword,
             action,
             target_type,
+            source,
             start_time,
             end_time,
             created_at_order,
@@ -124,3 +156,21 @@ class AuditService:
                 ]
             )
         return output.getvalue()
+
+
+def _dump_detail_data(detail_data: Mapping[str, Any] | None) -> str:
+    if not detail_data:
+        return ""
+    return json.dumps(detail_data, ensure_ascii=False, default=str, separators=(",", ":"))
+
+
+def _json_value(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, list):
+        return [_json_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_value(item) for key, item in value.items()}
+    return value

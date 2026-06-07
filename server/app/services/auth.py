@@ -6,7 +6,7 @@ from app.core.time import utc_now
 from app.models import User
 from app.repositories.users import UserRepository
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, ProfileUpdateRequest, RegisterRequest
-from app.services.audit import record_audit
+from app.services.audit import audit_changes, audit_detail, record_audit
 from app.services.permissions import get_user_permission_codes
 from app.services.settings import SettingService
 
@@ -33,7 +33,26 @@ class AuthService:
             is_builtin=False,
         )
         self.users.create(user)
-        record_audit(self.db, None, "user.register", "user", str(user.id), user.username)
+        record_audit(
+            self.db,
+            None,
+            "user.register",
+            "user",
+            str(user.id),
+            user.username,
+            audit_detail(
+                user.username,
+                meta={
+                    "username": user.username,
+                    "full_name": user.full_name,
+                    "phone": user.phone,
+                    "email": user.email,
+                    "company": user.company,
+                    "department": user.department,
+                    "approval_status": user.approval_status,
+                },
+            ),
+        )
         self.db.commit()
         return user
 
@@ -58,7 +77,15 @@ class AuthService:
     def login(self, payload: LoginRequest) -> tuple[str, User, list[str]]:
         user = self.users.get_by_username(payload.username)
         if not user or not verify_password(payload.password, user.password_hash):
-            record_audit(self.db, None, "auth.login_failed", "user", "", payload.username)
+            record_audit(
+                self.db,
+                None,
+                "auth.login_failed",
+                "user",
+                "",
+                payload.username,
+                audit_detail(payload.username, meta={"reason": "invalid_credentials"}),
+            )
             self.db.commit()
             raise bad_request("error.invalidCredentials", "Invalid username or password")
         if user.approval_status != "approved":
@@ -68,17 +95,26 @@ class AuthService:
         user.last_login_at = utc_now()
         token = create_access_token(str(user.id))
         permissions = sorted(get_user_permission_codes(user))
-        record_audit(self.db, user.id, "auth.login", "user", str(user.id), user.username)
+        record_audit(self.db, user.id, "auth.login", "user", str(user.id), user.username, audit_detail(user.username))
         self.db.commit()
         return token, user, permissions
 
     def update_profile(self, user: User, payload: ProfileUpdateRequest) -> User:
+        before = _user_profile_snapshot(user)
         user.full_name = payload.full_name
         user.phone = payload.phone
         user.email = payload.email
         user.company = payload.company
         user.department = payload.department
-        record_audit(self.db, user.id, "auth.profile_update", "user", str(user.id), user.username)
+        record_audit(
+            self.db,
+            user.id,
+            "auth.profile_update",
+            "user",
+            str(user.id),
+            user.username,
+            audit_detail(user.username, audit_changes(before, _user_profile_snapshot(user))),
+        )
         self.db.commit()
         return user
 
@@ -86,5 +122,23 @@ class AuthService:
         if not verify_password(payload.old_password, user.password_hash):
             raise bad_request("error.oldPasswordIncorrect", "Old password is incorrect")
         user.password_hash = hash_password(payload.new_password)
-        record_audit(self.db, user.id, "auth.change_password", "user", str(user.id), user.username)
+        record_audit(
+            self.db,
+            user.id,
+            "auth.change_password",
+            "user",
+            str(user.id),
+            user.username,
+            audit_detail(user.username, meta={"password_changed": True}),
+        )
         self.db.commit()
+
+
+def _user_profile_snapshot(user: User) -> dict[str, str]:
+    return {
+        "full_name": user.full_name,
+        "phone": user.phone,
+        "email": user.email,
+        "company": user.company,
+        "department": user.department,
+    }

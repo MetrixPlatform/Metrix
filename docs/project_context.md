@@ -453,3 +453,12 @@
 - 长文案按钮、工具栏按钮、设置复选项、Token/安装单选项允许自适应换行；760px 以下侧栏收窄释放内容宽度，560px 以下左侧标签表单自动切为上下布局，避免窄屏遮挡输入控件。
 - `docs/development_page_guide.md` 新增多语言表单布局规则：新增页面使用 `.inline-form` + `label-width="auto"`，不得写固定窄标签宽度，并需验证登录、注册、系统设置和常用弹窗。
 - 验证：前端 `npm run build` 通过；Browser 复测登录页和注册页桌面/390px 窄屏，标签不换行、无重叠，桌面输入框左边缘保持一致；`git diff --check` 通过。
+
+## 2026-06-08：优化操作日志详情展示
+- `audit_logs` 表新增 `detail_data` 结构化详情字段，并通过启动同步补列；响应 schema 会把旧日志空值或 JSON 字符串兜底解析为对象，保持旧日志可读。
+- 后端新增 `audit_detail(...)` 和 `audit_changes(...)` 辅助函数，用户、角色、公告、设置、认证和 Token 等写操作开始记录操作对象、字段变更前后值和必要 meta；密码、完整 Token、hash 等敏感信息不写入日志。
+- 操作日志列表和 CSV 导出新增 `source` 查询参数，后端 repository 统一按来源过滤；关键字搜索同时覆盖结构化详情内容。
+- 前端操作日志表格去掉 Token 前缀列，只展示来源列；来源列支持表头筛选，详情列改为可点击摘要，完整操作记录在弹窗中展示基础信息、操作对象、字段变更和附加记录。
+- 多语言补充操作日志详情弹窗、变更字段、常见结构化字段名和来源筛选文案；长字段值在弹窗内换行，列表摘要保持单行省略，避免撑乱表格。
+- `docs/development_page_guide.md` 补充操作日志开发规则：新增写操作应优先传结构化 `detail_data`，页面只显示来源，完整信息放详情弹窗，CSV 保留来源和 Token 前缀用于审计导出。
+- 验证：后端 `E:\code\Metrix\.venv\Scripts\python.exe -m pytest server\tests\test_auth_rbac.py -q` 通过 20 passed；前端 `npm run build` 通过；Browser 验证日志页无 Token 前缀列、来源筛选可用、详情弹窗显示变更前后值且不展示 Token 前缀。

@@ -1054,6 +1054,107 @@ a {
   margin-left: auto;
 }
 
+.audit-detail-button {
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.audit-detail-button .n-button__content {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-log-detail-modal {
+  width: min(820px, calc(100vw - 32px));
+  max-height: min(86vh, 760px);
+}
+
+.audit-log-detail-modal > .n-card__content,
+.audit-log-detail-modal > .n-card-content {
+  max-height: calc(86vh - 112px);
+  overflow-y: auto;
+}
+
+.audit-log-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.audit-log-detail-section {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.audit-log-detail-section h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.audit-log-change-wrapper {
+  overflow-x: auto;
+}
+
+.audit-log-change-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.audit-log-change-table th,
+.audit-log-change-table td {
+  padding: 9px 10px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.audit-log-change-table th {
+  background: var(--panel-bg-hover);
+  font-weight: 700;
+}
+
+.audit-log-change-table th:first-child,
+.audit-log-change-table td:first-child {
+  width: 160px;
+}
+
+.audit-log-meta-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-bottom: 0;
+}
+
+.audit-log-meta-list dt,
+.audit-log-meta-list dd {
+  min-width: 0;
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-wrap: anywhere;
+}
+
+.audit-log-meta-list dt {
+  font-weight: 700;
+  background: var(--panel-bg-hover);
+}
+
+.audit-log-empty-detail {
+  margin: 0;
+  color: var(--muted-color);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .filter-keyword,
 .filter-select,
 .filter-date-range {
@@ -1692,12 +1793,14 @@ a {
   .profile-grid,
   .user-filter-row,
   .announcement-filter-row,
+  .audit-log-filter-row,
   .api-docs-filter-row {
     grid-template-columns: 1fr;
   }
 
   .user-toolbar,
   .announcement-toolbar,
+  .audit-log-toolbar,
   .api-docs-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
@@ -1760,6 +1863,7 @@ a {
 
   .user-toolbar,
   .announcement-toolbar,
+  .audit-log-toolbar,
   .api-docs-toolbar {
     align-items: stretch;
     flex-wrap: wrap;
@@ -1767,6 +1871,7 @@ a {
 
   .user-filter-row,
   .announcement-filter-row,
+  .audit-log-filter-row,
   .api-docs-filter-row {
     flex-basis: 100%;
   }

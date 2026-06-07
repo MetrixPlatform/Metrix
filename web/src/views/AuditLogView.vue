@@ -35,17 +35,66 @@
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
     />
+
+    <n-modal v-model:show="showDetailModal" preset="card" class="audit-log-detail-modal" :title="t('auditLog.detailTitle')">
+      <div v-if="selectedLog" class="audit-log-detail">
+        <n-descriptions bordered size="small" :column="2">
+          <n-descriptions-item :label="t('field.auditSource')">{{ sourceLabel(selectedLog.source) }}</n-descriptions-item>
+          <n-descriptions-item :label="t('field.operator')">
+            {{ selectedLog.actor_username || t("auditLog.systemOperator") }}
+          </n-descriptions-item>
+          <n-descriptions-item :label="t('field.action')">{{ actionLabel(selectedLog.action) }}</n-descriptions-item>
+          <n-descriptions-item :label="t('field.auditTargetType')">{{ targetTypeLabel(selectedLog.target_type) }}</n-descriptions-item>
+          <n-descriptions-item :label="t('field.targetId')">{{ selectedLog.target_id || t("common.none") }}</n-descriptions-item>
+          <n-descriptions-item :label="t('field.createdAt')">{{ formatTime(selectedLog.created_at) }}</n-descriptions-item>
+          <n-descriptions-item :label="t('auditLog.targetName')" :span="2">{{ selectedTargetName }}</n-descriptions-item>
+        </n-descriptions>
+
+        <section class="audit-log-detail-section">
+          <h3>{{ t("auditLog.changedFields") }}</h3>
+          <div v-if="selectedChanges.length" class="audit-log-change-wrapper">
+            <table class="audit-log-change-table">
+              <thead>
+                <tr>
+                  <th>{{ t("apiDocs.fieldName") }}</th>
+                  <th>{{ t("auditLog.before") }}</th>
+                  <th>{{ t("auditLog.after") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="change in selectedChanges" :key="change.field">
+                  <td>{{ fieldLabel(change.field) }}</td>
+                  <td>{{ formatDetailValue(change.before) }}</td>
+                  <td>{{ formatDetailValue(change.after) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-else class="audit-log-empty-detail">{{ selectedFallbackDetail }}</p>
+        </section>
+
+        <section v-if="selectedMetaEntries.length" class="audit-log-detail-section">
+          <h3>{{ t("auditLog.meta") }}</h3>
+          <dl class="audit-log-meta-list">
+            <template v-for="item in selectedMetaEntries" :key="item.key">
+              <dt>{{ fieldLabel(item.key) }}</dt>
+              <dd>{{ formatDetailValue(item.value) }}</dd>
+            </template>
+          </dl>
+        </section>
+      </div>
+    </n-modal>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ArrowDownload20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NDatePicker, NIcon, NInput, NTag, useMessage } from "naive-ui";
+import { NButton, NDataTable, NDatePicker, NDescriptions, NDescriptionsItem, NIcon, NInput, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
 import { downloadAuditLogs, listAuditLogs, type AuditLogFilters } from "../api/audit";
-import type { AuditLogItem } from "../api/types";
+import type { AuditLogDetailChange, AuditLogItem } from "../api/types";
 import { formatDateTime, hasI18nKey, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { saveBlob } from "../utils/download";
@@ -58,11 +107,14 @@ const message = useMessage();
 const loading = ref(false);
 const downloading = ref(false);
 const logs = ref<AuditLogItem[]>([]);
+const showDetailModal = ref(false);
+const selectedLog = ref<AuditLogItem | null>(null);
 const filters = reactive<{
   keyword: string;
   actor_scope: AuditActorScope;
   action: string | null;
   target_type: string | null;
+  source: string | null;
   sort_order: "ascend" | "descend";
   time_range: [number, number] | null;
 }>({
@@ -70,6 +122,7 @@ const filters = reactive<{
   actor_scope: "self",
   action: null,
   target_type: null,
+  source: null,
   sort_order: "descend",
   time_range: null
 });
@@ -82,13 +135,12 @@ const pagination = reactive({
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
 const auditLogColumnWidths = {
-  actor: 130,
   source: 110,
-  apiTokenPrefix: 130,
+  actor: 130,
   action: 180,
   targetType: 130,
   targetId: 130,
-  detail: 260,
+  detail: 340,
   createdAt: 170
 };
 const tableScrollX = Object.values(auditLogColumnWidths).reduce((total, width) => total + width, 0);
@@ -120,6 +172,7 @@ const auditActionCodes = [
   "api_token.delete"
 ];
 const auditTargetTypes = ["user", "role", "announcement", "system_settings", "api_token"];
+const auditSources = ["web", "api"];
 const canViewAllLogs = computed(() => authStore.has("action:audit_log:manage_others"));
 const actorScopeOptions = computed(() => [
   { label: t("auditLog.scopeSelf"), value: "self" },
@@ -127,18 +180,24 @@ const actorScopeOptions = computed(() => [
 ]);
 const actionOptions = computed(() => distinctOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
 const targetTypeOptions = computed(() => distinctOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
+const sourceOptions = computed(() => distinctSourceOptions([...auditSources, ...logs.value.map((item) => item.source)]));
+const selectedChanges = computed(() => (selectedLog.value ? detailChanges(selectedLog.value) : []));
+const selectedMetaEntries = computed(() => (selectedLog.value ? detailMetaEntries(selectedLog.value) : []));
+const selectedTargetName = computed(() => (selectedLog.value ? detailTargetName(selectedLog.value) : t("common.none")));
+const selectedFallbackDetail = computed(() => {
+  if (!selectedLog.value) return t("auditLog.noStructuredDetail");
+  return selectedLog.value.detail || t("auditLog.noStructuredDetail");
+});
 const columns = computed<DataTableColumns<AuditLogItem>>(() => [
   {
     title: t("field.auditSource"),
     key: "source",
     width: auditLogColumnWidths.source,
+    filter: (value, row) => row.source === value,
+    filterMultiple: false,
+    filterOptionValue: filters.source,
+    filterOptions: sourceOptions.value,
     render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
-  },
-  {
-    title: t("field.apiTokenPrefix"),
-    key: "api_token_prefix",
-    width: auditLogColumnWidths.apiTokenPrefix,
-    render: (row) => row.api_token_prefix || t("common.none")
   },
   {
     title: t("field.operator"),
@@ -171,7 +230,23 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() => [
     render: (row) => targetTypeLabel(row.target_type)
   },
   { title: t("field.targetId"), key: "target_id", width: auditLogColumnWidths.targetId, render: (row) => row.target_id || t("common.none") },
-  { title: t("field.detail"), key: "detail", width: auditLogColumnWidths.detail, ellipsis: { tooltip: true }, render: (row) => row.detail || t("common.none") },
+  {
+    title: t("field.detail"),
+    key: "detail",
+    width: auditLogColumnWidths.detail,
+    render: (row) =>
+      h(
+        NButton,
+        {
+          class: "audit-detail-button",
+          text: true,
+          type: "primary",
+          title: t("auditLog.viewDetail"),
+          onClick: () => openLogDetail(row)
+        },
+        { default: () => detailSummary(row) }
+      )
+  },
   {
     title: t("field.createdAt"),
     key: "created_at",
@@ -219,6 +294,7 @@ function buildFilters(withPagination: boolean): AuditLogFilters {
     actor_scope: filters.actor_scope,
     action: filters.action || "",
     target_type: filters.target_type || "",
+    source: filters.source || "",
     sort_order: filters.sort_order,
     start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
     end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
@@ -247,9 +323,11 @@ function handleTableFilters(filterState: DataTableFilterState) {
   const actorScope = singleFilterValue(filterState, "actor_scope");
   const action = singleFilterValue(filterState, "action");
   const targetType = singleFilterValue(filterState, "target_type");
+  const source = singleFilterValue(filterState, "source");
   filters.actor_scope = isActorScope(actorScope) && (actorScope === "self" || canViewAllLogs.value) ? actorScope : "self";
   filters.action = typeof action === "string" ? action : null;
   filters.target_type = typeof targetType === "string" ? targetType : null;
+  filters.source = typeof source === "string" ? source : null;
   pagination.page = 1;
   void loadLogs();
 }
@@ -261,12 +339,21 @@ function handleSorter(sortState: DataTableSortState | DataTableSortState[] | nul
   void loadLogs();
 }
 
+function openLogDetail(row: AuditLogItem) {
+  selectedLog.value = row;
+  showDetailModal.value = true;
+}
+
 function isActorScope(value: unknown): value is AuditActorScope {
   return value === "self" || value === "all";
 }
 
 function distinctOptions(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: actionOrTargetLabel(value), value }));
+}
+
+function distinctSourceOptions(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: sourceLabel(value), value }));
 }
 
 function actionLabel(action: string) {
@@ -285,6 +372,71 @@ function sourceLabel(source: string) {
 function actionOrTargetLabel(value: string) {
   const key = `auditLog.${value}`;
   return hasI18nKey(key) ? t(key) : value;
+}
+
+function detailSummary(row: AuditLogItem) {
+  const changes = detailChanges(row);
+  if (changes.length === 1) {
+    const change = changes[0];
+    return `${fieldLabel(change.field)}${t("common.labelSeparator")}${compactDetailValue(change.before)} -> ${compactDetailValue(change.after)}`;
+  }
+  if (changes.length > 1) {
+    const fields = changes.slice(0, 2).map((change) => fieldLabel(change.field)).join(t("common.listSeparator"));
+    return t("auditLog.changeSummary", { fields, count: changes.length });
+  }
+  const targetName = detailTargetName(row);
+  return targetName ? `${actionLabel(row.action)}${t("common.labelSeparator")}${targetName}` : row.detail || t("common.none");
+}
+
+function detailChanges(row: AuditLogItem): AuditLogDetailChange[] {
+  return Array.isArray(row.detail_data?.changes) ? row.detail_data.changes.filter((change) => typeof change.field === "string") : [];
+}
+
+function detailMetaEntries(row: AuditLogItem) {
+  const meta = row.detail_data?.meta;
+  if (!meta) return [];
+  return Object.entries(meta).map(([key, value]) => ({ key, value }));
+}
+
+function detailTargetName(row: AuditLogItem) {
+  return row.detail_data?.target_name || row.detail || t("common.none");
+}
+
+function fieldLabel(field: string) {
+  const key = `auditLog.field.${field}`;
+  return hasI18nKey(key) ? t(key) : field.replaceAll("_", " ");
+}
+
+function compactDetailValue(value: unknown) {
+  const text = formatDetailValue(value);
+  return text.length > 64 ? `${text.slice(0, 64)}...` : text;
+}
+
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return t("common.none");
+  if (typeof value === "boolean") return value ? t("common.yes") : t("common.no");
+  if (Array.isArray(value)) {
+    return value.length ? value.map((item) => formatDetailValue(item)).join(t("common.listSeparator")) : t("common.none");
+  }
+  if (isRecord(value)) {
+    const entries = Object.entries(value);
+    if (!entries.length) return t("common.none");
+    return entries.map(([key, item]) => `${fieldLabel(key)}${t("common.labelSeparator")}${formatDetailValue(item)}`).join(t("common.messageSeparator"));
+  }
+  if (typeof value === "string") return valueLabel(value);
+  return String(value);
+}
+
+function valueLabel(value: string) {
+  const statusKey = `status.${value}`;
+  if (hasI18nKey(statusKey)) return t(statusKey);
+  const languageKey = `language.${value === "zh-CN" ? "zhCN" : value === "en-US" ? "enUS" : value}`;
+  if (hasI18nKey(languageKey)) return t(languageKey);
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatTime(value: string) {

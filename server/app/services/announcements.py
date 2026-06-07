@@ -7,7 +7,7 @@ from app.core.permissions import ANNOUNCEMENT_MANAGE_OTHERS
 from app.models import Announcement, User
 from app.repositories.announcements import AnnouncementRepository
 from app.schemas.announcement import AnnouncementFeedItem, AnnouncementItem, AnnouncementListResponse, AnnouncementPayload
-from app.services.audit import record_audit
+from app.services.audit import audit_changes, audit_detail, record_audit
 from app.services.permissions import has_permission
 
 
@@ -82,13 +82,22 @@ class AnnouncementService:
                 created_by=actor.id,
             )
         )
-        record_audit(self.db, actor.id, "announcement.create", "announcement", str(announcement.id), announcement.title)
+        record_audit(
+            self.db,
+            actor.id,
+            "announcement.create",
+            "announcement",
+            str(announcement.id),
+            announcement.title,
+            audit_detail(announcement.title, meta=_announcement_snapshot(announcement)),
+        )
         self.db.commit()
         return self._with_creator_username(announcement, actor.username)
 
     def update(self, actor: User, announcement_id: int, payload: AnnouncementPayload) -> AnnouncementItem:
         announcement = self._get(announcement_id)
         self._ensure_can_manage(actor, announcement)
+        before = _announcement_snapshot(announcement)
         announcement.title = payload.title
         announcement.content = payload.content
         announcement.target_type = payload.target_type
@@ -97,7 +106,15 @@ class AnnouncementService:
         announcement.show_ticker = payload.show_ticker
         announcement.show_sidebar = payload.show_sidebar
         announcement.is_active = payload.is_active
-        record_audit(self.db, actor.id, "announcement.update", "announcement", str(announcement.id), announcement.title)
+        record_audit(
+            self.db,
+            actor.id,
+            "announcement.update",
+            "announcement",
+            str(announcement.id),
+            announcement.title,
+            audit_detail(announcement.title, audit_changes(before, _announcement_snapshot(announcement))),
+        )
         self.db.commit()
         creator_name = actor.username if announcement.created_by == actor.id else self._creator_username(announcement)
         return self._with_creator_username(announcement, creator_name)
@@ -105,7 +122,15 @@ class AnnouncementService:
     def delete(self, actor: User, announcement_id: int) -> None:
         announcement = self._get(announcement_id)
         self._ensure_can_manage(actor, announcement)
-        record_audit(self.db, actor.id, "announcement.delete", "announcement", str(announcement.id), announcement.title)
+        record_audit(
+            self.db,
+            actor.id,
+            "announcement.delete",
+            "announcement",
+            str(announcement.id),
+            announcement.title,
+            audit_detail(announcement.title, meta=_announcement_snapshot(announcement)),
+        )
         self.announcements.delete(announcement)
         self.db.commit()
 
@@ -114,7 +139,15 @@ class AnnouncementService:
         for announcement_id in dict.fromkeys(announcement_ids):
             announcement = self._get(announcement_id)
             self._ensure_can_manage(actor, announcement)
-            record_audit(self.db, actor.id, "announcement.delete", "announcement", str(announcement.id), announcement.title)
+            record_audit(
+                self.db,
+                actor.id,
+                "announcement.delete",
+                "announcement",
+                str(announcement.id),
+                announcement.title,
+                audit_detail(announcement.title, meta=_announcement_snapshot(announcement)),
+            )
             self.announcements.delete(announcement)
             deleted_count += 1
         self.db.commit()
@@ -182,3 +215,16 @@ class AnnouncementService:
         if announcement.created_by is None:
             return ""
         return self.announcements.creator_usernames({announcement.created_by}).get(announcement.created_by, "")
+
+
+def _announcement_snapshot(announcement: Announcement) -> dict[str, object]:
+    return {
+        "title": announcement.title,
+        "content": announcement.content,
+        "target_type": announcement.target_type,
+        "target_value": announcement.target_value,
+        "show_popup": announcement.show_popup,
+        "show_ticker": announcement.show_ticker,
+        "show_sidebar": announcement.show_sidebar,
+        "is_active": announcement.is_active,
+    }

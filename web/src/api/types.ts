@@ -100,6 +100,18 @@ export interface PublicAnnouncementItem {
   created_at: string;
 }
 
+export interface AuditLogDetailChange {
+  field: string;
+  before: unknown;
+  after: unknown;
+}
+
+export interface AuditLogDetailData {
+  target_name?: string;
+  changes?: AuditLogDetailChange[];
+  meta?: Record<string, unknown>;
+}
+
 export interface AuditLogItem {
   id: number;
   actor_user_id: number | null;
@@ -108,6 +120,7 @@ export interface AuditLogItem {
   target_type: string;
   target_id: string;
   detail: string;
+  detail_data: AuditLogDetailData;
   source: "web" | "api" | string;
   api_token_prefix: string;
   created_at: string;
