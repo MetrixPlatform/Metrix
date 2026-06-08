@@ -187,7 +187,17 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert route_code("tasks") == "route:tasks"
     assert action_code("task", "start") == "action:task:start"
     assert seeds_by_code[ROUTE_USERS].type == "route"
+    assert seeds_by_code[ROUTE_USERS].name == "permission.route:users"
+    assert seeds_by_code[ROUTE_USERS].group_name == "permission.group.page"
+    assert seeds_by_code[ROUTE_USERS].description == "permission.description.route:users"
     assert seeds_by_code[USER_READ].type == "action"
+    assert seeds_by_code[USER_READ].name == "permission.action:user:read"
+    assert seeds_by_code[USER_READ].group_name == "permission.group.user"
+    assert seeds_by_code[USER_READ].description == "permission.description.action:user:read"
+    assert all(
+        not re.search(r"[\u4e00-\u9fff]", f"{seed.name}{seed.group_name}{seed.description}")
+        for seed in PERMISSION_SEEDS
+    )
     assert ANNOUNCEMENT_MANAGE_OTHERS in seeds_by_code
     assert AUDIT_LOG_MANAGE_OTHERS in seeds_by_code
     assert seeds_by_code[AUDIT_LOG_READ].resource == "audit_log"

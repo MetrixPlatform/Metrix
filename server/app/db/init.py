@@ -48,8 +48,8 @@ def sync_database(engine) -> None:
 
 def sync_seed_data(db: Session) -> tuple[dict[str, Permission], Role]:
     permissions_by_code = _sync_permission_seeds(db)
-    admin_role = _ensure_role(db, ADMIN_ROLE, "超级管理员", "拥有全部权限", True)
-    user_role = _ensure_role(db, USER_ROLE, "普通用户", "默认基础用户", True)
+    admin_role = _ensure_role(db, ADMIN_ROLE, "role.admin.name", "role.admin.description", True)
+    user_role = _ensure_role(db, USER_ROLE, "role.user.name", "role.user.description", True)
     admin_role.permissions = list(permissions_by_code.values())
     if not user_role.permissions:
         user_role.permissions = [permissions_by_code[ROUTE_DASHBOARD]]

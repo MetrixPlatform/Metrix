@@ -47,6 +47,8 @@
 4. 在 `RESOURCE_PERMISSION_SPECS` 中添加资源功能权限规格。
 5. 路由权限授予后需要默认拥有查询能力时，在页面权限规格里填写对应 `read_permission`。
 
+后端内置权限和内置角色种子只保存稳定 key 或编码，不保存中文、英文等展示文案。权限种子的 `name`、`group_name`、`description` 使用 `permission.*` 这类资源 key，内置角色使用 `role.*` key；页面展示统一由前端 i18n 根据权限 `code`、分组 key 或角色 key 翻译。
+
 权限管理页面读取后端权限字典，不需要在前端再维护一份权限列表。受保护 API 必须在后端使用权限依赖做强校验，前端按钮只负责显示体验。
 
 ## API 与 Token

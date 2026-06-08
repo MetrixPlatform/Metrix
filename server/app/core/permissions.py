@@ -68,129 +68,146 @@ class PermissionSeed:
 @dataclass(frozen=True)
 class PagePermissionSpec:
     code: str
-    name: str
     resource: str
-    description: str
     sort_order: int
     read_permission: str | None = None
 
     def to_seed(self) -> PermissionSeed:
-        return PermissionSeed(self.code, self.name, "route", self.resource, "页面", self.description, self.sort_order)
+        return PermissionSeed(
+            self.code,
+            permission_name_key(self.code),
+            "route",
+            self.resource,
+            permission_group_key("page"),
+            permission_description_key(self.code),
+            self.sort_order,
+        )
 
 
 @dataclass(frozen=True)
 class ResourceActionSpec:
     action: str
-    name: str
-    description: str
     order: int
 
 
 @dataclass(frozen=True)
 class ResourcePermissionSpec:
     resource: str
-    group_name: str
+    group: str
     sort_order_base: int
     actions: tuple[ResourceActionSpec, ...]
 
     def to_seeds(self) -> tuple[PermissionSeed, ...]:
-        return tuple(
-            PermissionSeed(
-                action_code(self.resource, action.action),
-                action.name,
-                "action",
-                self.resource,
-                self.group_name,
-                action.description,
-                self.sort_order_base + action.order,
-            )
-            for action in self.actions
+        return tuple(self.to_seed(action) for action in self.actions)
+
+    def to_seed(self, action: ResourceActionSpec) -> PermissionSeed:
+        code = action_code(self.resource, action.action)
+        return PermissionSeed(
+            code,
+            permission_name_key(code),
+            "action",
+            self.resource,
+            permission_group_key(self.group),
+            permission_description_key(code),
+            self.sort_order_base + action.order,
         )
 
 
+def permission_name_key(code: str) -> str:
+    return f"permission.{code}"
+
+
+def permission_description_key(code: str) -> str:
+    return f"permission.description.{code}"
+
+
+def permission_group_key(group: str) -> str:
+    return f"permission.group.{group}"
+
+
 PAGE_PERMISSION_SPECS = (
-    PagePermissionSpec(ROUTE_DASHBOARD, "首页", "dashboard", "访问首页", 10),
-    PagePermissionSpec(ROUTE_USERS, "用户管理", "user", "访问用户管理", 20, USER_READ),
-    PagePermissionSpec(ROUTE_PERMISSIONS, "权限管理", "role", "访问权限管理", 30, ROLE_READ),
-    PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "公告管理", "announcement", "访问公告管理", 40, ANNOUNCEMENT_READ),
-    PagePermissionSpec(ROUTE_AUDIT_LOGS, "操作日志", "audit_log", "访问操作日志", 50, AUDIT_LOG_READ),
-    PagePermissionSpec(ROUTE_SETTINGS, "系统设置", "setting", "访问系统设置", 60, SETTING_READ),
-    PagePermissionSpec(ROUTE_TOKENS, "Token", "api_token", "访问 Token 管理", 70, API_TOKEN_READ),
-    PagePermissionSpec(ROUTE_API_DOCS, "API 文档", "api_docs", "访问 API 文档", 80, API_DOCS_READ),
+    PagePermissionSpec(ROUTE_DASHBOARD, "dashboard", 10),
+    PagePermissionSpec(ROUTE_USERS, "user", 20, USER_READ),
+    PagePermissionSpec(ROUTE_PERMISSIONS, "role", 30, ROLE_READ),
+    PagePermissionSpec(ROUTE_ANNOUNCEMENTS, "announcement", 40, ANNOUNCEMENT_READ),
+    PagePermissionSpec(ROUTE_AUDIT_LOGS, "audit_log", 50, AUDIT_LOG_READ),
+    PagePermissionSpec(ROUTE_SETTINGS, "setting", 60, SETTING_READ),
+    PagePermissionSpec(ROUTE_TOKENS, "api_token", 70, API_TOKEN_READ),
+    PagePermissionSpec(ROUTE_API_DOCS, "api_docs", 80, API_DOCS_READ),
 )
 
 RESOURCE_PERMISSION_SPECS = (
     ResourcePermissionSpec(
         "user",
-        "用户",
+        "user",
         100,
         (
-            ResourceActionSpec("create", "新增用户", "创建用户", 10),
-            ResourceActionSpec("read", "查询用户", "查询用户", 20),
-            ResourceActionSpec("update", "修改用户", "修改用户", 30),
-            ResourceActionSpec("delete", "删除用户", "删除用户", 40),
-            ResourceActionSpec("operate", "操作用户", "审核、启用、禁用、重置密码、分配角色", 50),
+            ResourceActionSpec("create", 10),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("update", 30),
+            ResourceActionSpec("delete", 40),
+            ResourceActionSpec("operate", 50),
         ),
     ),
     ResourcePermissionSpec(
         "role",
-        "角色",
+        "role",
         200,
         (
-            ResourceActionSpec("create", "新增角色", "创建角色", 10),
-            ResourceActionSpec("read", "查询角色", "查询角色和权限字典", 20),
-            ResourceActionSpec("update", "修改角色", "修改角色", 30),
-            ResourceActionSpec("delete", "删除角色", "删除角色", 40),
-            ResourceActionSpec("operate", "操作角色", "分配权限", 50),
+            ResourceActionSpec("create", 10),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("update", 30),
+            ResourceActionSpec("delete", 40),
+            ResourceActionSpec("operate", 50),
         ),
     ),
     ResourcePermissionSpec(
         "announcement",
-        "公告",
+        "announcement",
         300,
         (
-            ResourceActionSpec("create", "新增公告", "创建公告", 10),
-            ResourceActionSpec("read", "查询公告", "查询公告", 20),
-            ResourceActionSpec("update", "修改公告", "修改公告", 30),
-            ResourceActionSpec("delete", "删除公告", "删除公告", 40),
-            ResourceActionSpec("manage_others", "操作他人公告", "编辑、删除、发布或停用他人创建的公告", 50),
+            ResourceActionSpec("create", 10),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("update", 30),
+            ResourceActionSpec("delete", 40),
+            ResourceActionSpec("manage_others", 50),
         ),
     ),
     ResourcePermissionSpec(
         "audit_log",
-        "操作日志",
+        "auditLog",
         400,
         (
-            ResourceActionSpec("read", "查询操作日志", "查询操作日志", 20),
-            ResourceActionSpec("manage_others", "查看所有日志", "查看所有账号产生的操作日志", 50),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("manage_others", 50),
         ),
     ),
     ResourcePermissionSpec(
         "setting",
-        "系统设置",
+        "setting",
         500,
         (
-            ResourceActionSpec("read", "查询系统设置", "查询系统设置", 20),
-            ResourceActionSpec("update", "修改系统设置", "修改系统设置", 30),
-            ResourceActionSpec("operate", "操作系统设置", "执行数据备份等系统设置操作", 50),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("update", 30),
+            ResourceActionSpec("operate", 50),
         ),
     ),
     ResourcePermissionSpec(
         "api_token",
-        "API",
+        "api",
         600,
         (
-            ResourceActionSpec("read", "查询 Token", "查询本人创建的 API Token", 20),
-            ResourceActionSpec("create", "创建 Token", "创建本人 API Token", 30),
-            ResourceActionSpec("delete", "删除 Token", "删除本人 API Token", 40),
+            ResourceActionSpec("read", 20),
+            ResourceActionSpec("create", 30),
+            ResourceActionSpec("delete", 40),
         ),
     ),
     ResourcePermissionSpec(
         "api_docs",
-        "API",
+        "api",
         700,
         (
-            ResourceActionSpec("read", "查看 API 文档", "查看 OpenAPI 文档", 20),
+            ResourceActionSpec("read", 20),
         ),
     ),
 )

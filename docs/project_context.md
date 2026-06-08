@@ -485,3 +485,8 @@
 - 全局 `.inline-form` 为 `n-form-item`、`n-input`、`n-input-number`、`n-select`、`n-date-picker` 等控件补齐 `min-width: 0` 和 `width: 100%`，避免输入内容、密码后缀图标或校验状态导致控件宽度跳变。
 - 安装页数据库和管理员信息区域改为更稳定的局部上标签布局，MySQL 端口列最小宽度提升到 150px，管理员信息输入框不再被左侧标签挤窄。
 - `docs/development_page_guide.md` 增加表单控件宽度规则：新增表单必须撑满可用宽度并保持宽度稳定，紧凑布局不得牺牲输入框可用宽度。
+## 2026-06-08：清理后端内置权限展示文案
+- 后端 `server/app/core/permissions.py` 不再保存中文权限名称、分组和说明，权限种子的 `name`、`group_name`、`description` 统一生成 `permission.*` 稳定资源 key。
+- 后端内置角色初始化改为保存 `role.admin.*`、`role.user.*` key；开发库启动同步时会覆盖旧中文内置角色和权限种子数据。
+- 前端 `web/src/i18n/builtins.ts` 改为根据内置角色 key、权限 `code` 和分组 key 做 i18n 翻译，不再维护重复的权限 code 映射表。
+- `docs/development_page_guide.md` 明确新增权限和内置角色种子不得写中文或英文展示文案，展示统一交给前端 i18n。
