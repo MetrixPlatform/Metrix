@@ -2,9 +2,7 @@
   <div class="auth-page login-page" :class="{ 'has-announcement': publicAnnouncements.length > 0 }">
     <div class="auth-top-actions">
       <LanguageSwitcher />
-      <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
-        <template #icon><n-icon :component="themeIcon" /></template>
-      </n-button>
+      <ThemeToggleButton />
     </div>
     <announcement-ticker v-if="publicAnnouncements.length > 0" class="auth-announcement-ticker" :items="publicAnnouncements" />
     <div class="auth-card login-card">
@@ -44,8 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { WeatherMoon20Regular as WeatherMoon, WeatherSunny20Regular as WeatherSunny } from "@vicons/fluent";
-import { NButton, NForm, NFormItem, NIcon, NInput, NModal, useMessage } from "naive-ui";
+import { NButton, NForm, NFormItem, NInput, NModal, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -56,8 +53,8 @@ import type { PublicAnnouncementItem } from "../api/types";
 import AnnouncementTicker from "../components/AnnouncementTicker.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
+import ThemeToggleButton from "../components/ThemeToggleButton.vue";
 import { t } from "../i18n";
-import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { settingsStore } from "../stores/settings";
 import { showError } from "../utils/message";
@@ -71,8 +68,6 @@ const showForgotModal = ref(false);
 const publicAnnouncements = ref<PublicAnnouncementItem[]>([]);
 const appName = computed(() => settingsStore.appName());
 const registrationEnabled = computed(() => settingsStore.publicSettings.registration_enabled);
-const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
-const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const form = reactive({ username: "", password: "" });
 const rules = computed<FormRules>(() => ({
   username: [requiredRule(t("field.username")), maxLengthRule(t("field.username"), 64)],
@@ -101,7 +96,4 @@ async function submit() {
   }
 }
 
-function toggleTheme() {
-  appStore.toggleTheme();
-}
 </script>

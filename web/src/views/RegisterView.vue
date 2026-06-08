@@ -2,6 +2,7 @@
   <div class="auth-page register-page">
     <div class="auth-top-actions">
       <LanguageSwitcher />
+      <ThemeToggleButton />
     </div>
     <div class="auth-card register-card">
       <div class="auth-brand">
@@ -69,6 +70,7 @@ import { register } from "../api/auth";
 import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
+import ThemeToggleButton from "../components/ThemeToggleButton.vue";
 import { t } from "../i18n";
 import { settingsStore } from "../stores/settings";
 import { messageText, showError } from "../utils/message";

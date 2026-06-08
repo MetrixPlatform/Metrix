@@ -97,12 +97,12 @@ a {
   height: 100dvh;
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   justify-items: center;
   overflow: auto;
-  padding: 72px 24px 24px;
+  padding: 24px;
   background:
     var(--auth-bg-layer),
     var(--app-bg);
@@ -135,8 +135,8 @@ a {
 
 .register-card {
   width: min(680px, calc(100% - 48px));
-  height: min(680px, calc(100dvh - 128px));
-  max-height: calc(100dvh - 128px);
+  height: min(680px, calc(100dvh - 116px));
+  max-height: calc(100dvh - 116px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -178,12 +178,10 @@ a {
 }
 
 .auth-top-actions {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 20;
+  z-index: 2;
   display: flex;
   align-items: center;
+  justify-self: end;
   gap: 8px;
 }
 
@@ -198,13 +196,13 @@ a {
   top: 24px;
   left: 50%;
   z-index: 1;
-  width: min(780px, calc(100vw - 112px));
+  width: min(780px, calc(100vw - 152px));
   transform: translateX(-50%);
   box-shadow: 0 10px 30px var(--shadow-color);
 }
 
 .login-page.has-announcement .auth-card {
-  margin-top: 42px;
+  margin-top: 24px;
 }
 
 .auth-wordmark {
@@ -1855,8 +1853,8 @@ a {
 
   .register-card {
     width: min(100%, calc(100vw - 28px));
-    height: min(680px, calc(100dvh - 128px));
-    max-height: calc(100dvh - 128px);
+    height: min(680px, calc(100dvh - 116px));
+    max-height: calc(100dvh - 116px);
   }
 
   .register-card .auth-brand {
@@ -1963,12 +1961,13 @@ a {
   }
 
   .auth-announcement-ticker {
-    top: 72px;
-    width: min(100%, calc(100vw - 28px));
+    position: static;
+    width: min(100%, calc(100vw - 48px));
+    transform: none;
   }
 
   .login-page.has-announcement .auth-card {
-    margin-top: 76px;
+    margin-top: 0;
   }
 
   .install-card {

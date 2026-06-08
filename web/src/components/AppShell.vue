@@ -32,9 +32,7 @@
         </div>
         <div class="header-actions">
           <LanguageSwitcher />
-          <n-button quaternary circle :title="themeTitle" @click="toggleTheme">
-            <template #icon><n-icon :component="themeIcon" /></template>
-          </n-button>
+          <ThemeToggleButton />
           <n-dropdown trigger="click" :options="userOptions" @select="handleUserAction">
             <n-button quaternary>
               <template #icon><n-icon :component="PersonCircle" /></template>
@@ -75,9 +73,7 @@
 <script setup lang="ts">
 import {
   PersonCircle20Regular as PersonCircle,
-  PersonSettings20Regular,
-  WeatherMoon20Regular as WeatherMoon,
-  WeatherSunny20Regular as WeatherSunny
+  PersonSettings20Regular
 } from "@vicons/fluent";
 import { computed, h, onMounted, ref, watch, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -97,13 +93,13 @@ import {
   type AppMenuItem
 } from "../router/page-registry";
 import { announcementStore } from "../stores/announcements";
-import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { settingsStore } from "../stores/settings";
 import AnnouncementTicker from "./AnnouncementTicker.vue";
 import BrandMark from "./BrandMark.vue";
 import CopyrightNotice from "./CopyrightNotice.vue";
 import LanguageSwitcher from "./LanguageSwitcher.vue";
+import ThemeToggleButton from "./ThemeToggleButton.vue";
 
 const SIDEBAR_KEY = appKey("sidebar.collapsed");
 
@@ -118,8 +114,6 @@ const expandedKeys = ref<string[]>([]);
 const showAnnouncementModal = ref(false);
 const appName = computed(() => settingsStore.appName());
 const currentTitle = computed(() => getPageTitle(route.path) || appName.value);
-const themeIcon = computed(() => (appStore.dark ? WeatherSunny : WeatherMoon));
-const themeTitle = computed(() => (appStore.dark ? t("common.themeLight") : t("common.themeDark")));
 const tickerAnnouncements = computed(() => announcementStore.items.filter((item) => item.show_ticker && !item.is_read));
 const popupAnnouncement = computed(() => announcementStore.items.find((item) => item.show_popup && !item.is_read) || null);
 
@@ -160,10 +154,6 @@ async function handleUserAction(key: string) {
     authStore.clear();
     await router.push("/login");
   }
-}
-
-function toggleTheme() {
-  appStore.toggleTheme();
 }
 
 function renderIcon(icon: Component) {

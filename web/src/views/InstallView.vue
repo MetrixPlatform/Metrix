@@ -2,6 +2,7 @@
   <div class="auth-page">
     <div class="auth-top-actions">
       <LanguageSwitcher />
+      <ThemeToggleButton />
     </div>
     <div class="auth-card install-card">
       <div class="auth-brand">
@@ -102,6 +103,7 @@ import { installSystem, testInstallDatabase } from "../api/install";
 import BrandMark from "../components/BrandMark.vue";
 import CopyrightNotice from "../components/CopyrightNotice.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
+import ThemeToggleButton from "../components/ThemeToggleButton.vue";
 import { APP_NAME, DEFAULT_DATABASE_NAME, DEFAULT_SQLITE_PATH } from "../config/app";
 import { t } from "../i18n";
 import { messageText, showError } from "../utils/message";
