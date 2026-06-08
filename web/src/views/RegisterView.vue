@@ -47,8 +47,8 @@
           </n-form-item>
         </div>
         <div class="register-form-footer">
-          <n-button type="primary" block :loading="loading" @click="submit">{{ t("auth.submitRegister") }}</n-button>
-          <div class="form-actions">
+          <div class="form-actions register-form-actions">
+            <n-button type="primary" :loading="loading" @click="submit">{{ t("auth.submitRegister") }}</n-button>
             <router-link class="muted-link" to="/login">{{ t("auth.backToLogin") }}</router-link>
           </div>
         </div>

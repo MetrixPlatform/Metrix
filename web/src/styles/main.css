@@ -111,18 +111,30 @@ a {
   align-items: center;
   justify-items: center;
   overflow: auto;
-  padding: 24px;
+  padding: 24px 24px 60px;
   background:
     var(--auth-bg-layer),
     var(--app-bg);
 }
 
 .auth-footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  min-width: var(--app-min-width);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
   width: 100%;
   color: var(--muted-color);
   font-size: 12px;
   line-height: 20px;
   text-align: center;
+  background: var(--app-bg);
   overflow-wrap: anywhere;
 }
 
@@ -151,10 +163,10 @@ a {
 }
 
 .login-form-links {
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 16px;
   margin-top: 16px;
 }
 
@@ -204,7 +216,22 @@ a {
 }
 
 .register-form-footer .form-actions {
-  margin-top: 12px;
+  margin-top: 0;
+}
+
+.register-form-actions {
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.register-form-actions .n-button {
+  flex: 1 1 0;
+}
+
+.register-form-actions .muted-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .auth-top-actions {
