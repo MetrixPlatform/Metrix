@@ -505,3 +505,14 @@
 - `web/src/i18n/builtins.ts` 不再硬编码 `admin/user` 角色 key 映射，优先翻译后端返回的资源 key，并按 `role.<code>.*` 兜底，后续新增内置角色更少改代码。
 - 普通表单字段显式补充 `placeholder=""`，搜索、默认路径、格式示例和 API 请求体等有信息增量的 placeholder 保留，避免局部页面继续漏出 Naive UI 默认“请输入/请选择”。
 - `docs/development_page_guide.md` 补充语言 JSON、动态加载、OpenAPI 分组和语言切换统一入口规则。
+
+## 2026-06-08：优化语言名称维护方式
+- 每个语言 JSON 顶层 `language` 改为只保存自己的显示名称，例如 `zh-CN.json` 写 `简体中文`，`en-US.json` 写 `English`，不再在每个文件里维护所有语言名称。
+- `web/src/i18n/messages.ts` 通过 `import.meta.glob` 自动发现 `locales/*.json` 并生成语言加载器，默认语言 `zh-CN` 保持静态首包加载，其他语言继续按需拆分。
+- `web/src/i18n/index.ts` 的 `localeOptions` 改为从各语言 JSON 的顶层 `language` 读取名称；语言切换器和系统设置语言下拉不再依赖 `language.zhCN`、`language.enUS` 这类跨语言 key。
+- `web/src/i18n/naive.ts` 提供 `getNaiveLocale(...)`，没有单独适配 Naive UI 语言包的新语言会先回退默认组件语言，避免新增翻译 JSON 时必须同步修改组件语言映射。
+
+## 2026-06-08：固定认证页语言切换按钮
+- `LanguageSwitcher` 改用离线内联 SVG 翻译图标，移除手工拼接的“文/A”文字图标，避免字体和行高导致按钮内容漂移；图标尺寸由 `.language-switcher-svg` 统一控制。
+- 认证、注册和安装页的 `.auth-top-actions` 改为固定在视口右上角，`.auth-page` 顶部增加安全留白，避免页面滚动或安装页表单过高时语言切换按钮遮挡表单。
+- 开发文档补充规则：认证/注册/安装页顶部工具按钮必须使用固定尺寸图标按钮并固定在视口右上角，不进入表单内容流。

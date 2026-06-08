@@ -1,6 +1,6 @@
 import { dateEnUS, dateZhCN, enUS, zhCN } from "naive-ui";
 
-import type { Locale } from "./messages";
+import { DEFAULT_LOCALE, type Locale } from "./messages";
 
 type NaiveLocale = typeof zhCN;
 
@@ -30,7 +30,11 @@ function withoutGenericPlaceholders(locale: NaiveLocale): NaiveLocale {
   };
 }
 
-export const naiveLocales = {
+const naiveLocales: Record<string, { locale: NaiveLocale; dateLocale: typeof dateZhCN }> = {
   "zh-CN": { locale: withoutGenericPlaceholders(zhCN), dateLocale: dateZhCN },
   "en-US": { locale: withoutGenericPlaceholders(enUS), dateLocale: dateEnUS }
-} satisfies Record<Locale, { locale: NaiveLocale; dateLocale: typeof dateZhCN }>;
+};
+
+export function getNaiveLocale(locale: Locale) {
+  return naiveLocales[locale] || naiveLocales[DEFAULT_LOCALE];
+}

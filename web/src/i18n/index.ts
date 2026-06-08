@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, reactive } from "vue";
 import { createI18n } from "vue-i18n";
 
 import { appKey } from "../config/app";
@@ -7,6 +7,7 @@ import {
   defaultMessages,
   hasMessagePath,
   isLocale,
+  loadLocaleName,
   loadLocaleMessages,
   locales,
   type I18nKey,
@@ -25,16 +26,26 @@ export const i18n = createI18n({
   fallbackLocale: DEFAULT_LOCALE,
   messages: {
     [DEFAULT_LOCALE]: defaultMessages
-  },
+  } as Record<string, typeof defaultMessages>,
   missingWarn: false,
   fallbackWarn: false
 });
 const loadedLocales = new Set<Locale>([DEFAULT_LOCALE]);
+const localeNames = reactive<Record<string, string>>({
+  [DEFAULT_LOCALE]: defaultMessages.language || DEFAULT_LOCALE
+});
+let localeNamesPromise: Promise<void> | null = null;
 
-export const localeOptions = [
-  { labelKey: "language.zhCN" as I18nKey, value: "zh-CN" as Locale },
-  { labelKey: "language.enUS" as I18nKey, value: "en-US" as Locale }
-];
+export const localeOptions = computed(() => locales.map((value) => ({ label: localeNames[value] || value, value })));
+
+export function ensureLocaleNames() {
+  localeNamesPromise ??= Promise.all(
+    locales.map(async (locale) => {
+      localeNames[locale] = await loadLocaleName(locale);
+    })
+  ).then(() => undefined);
+  return localeNamesPromise;
+}
 
 export function t(key: I18nKey | string, params: TranslateParams = {}) {
   return String(i18n.global.t(key, params));
@@ -51,7 +62,9 @@ export async function setupI18n(locale: Locale = initialLocale()) {
 export async function setI18nLocale(locale: Locale) {
   const nextLocale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   if (!loadedLocales.has(nextLocale)) {
-    i18n.global.setLocaleMessage(nextLocale, await loadLocaleMessages(nextLocale));
+    const messages = await loadLocaleMessages(nextLocale);
+    i18n.global.setLocaleMessage(nextLocale, messages);
+    localeNames[nextLocale] = messages.language || nextLocale;
     loadedLocales.add(nextLocale);
   }
   i18n.global.locale.value = nextLocale;

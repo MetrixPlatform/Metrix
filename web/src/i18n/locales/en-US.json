@@ -1,4 +1,5 @@
 {
+  "language": "English",
   "common": {
     "language": "Language",
     "themeLight": "Switch to light theme",
@@ -34,10 +35,6 @@
     "endTime": "End time",
     "total": "{count} items",
     "moreActions": "More actions"
-  },
-  "language": {
-    "zhCN": "简体中文",
-    "enUS": "English"
   },
   "route": {
     "group": {

@@ -96,7 +96,7 @@ import type { DataTableColumns, DataTableFilterState, DataTableSortState } from 
 
 import { downloadAuditLogs, listAuditLogs, type AuditLogFilters } from "../api/audit";
 import type { AuditLogDetailChange, AuditLogItem } from "../api/types";
-import { formatDateTime, hasI18nKey, t } from "../i18n";
+import { ensureLocaleNames, formatDateTime, hasI18nKey, localeOptions, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
@@ -191,6 +191,7 @@ const actorScopeOptions = computed(() => [
 const actionOptions = computed(() => distinctOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
 const targetTypeOptions = computed(() => distinctOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
 const sourceOptions = computed(() => distinctSourceOptions([...auditSources, ...logs.value.map((item) => item.source)]));
+const localeLabelMap = computed(() => Object.fromEntries(localeOptions.value.map((option) => [option.value, option.label])));
 const selectedChanges = computed(() => (selectedLog.value ? detailChanges(selectedLog.value) : []));
 const selectedMetaEntries = computed(() => (selectedLog.value ? detailMetaEntries(selectedLog.value) : []));
 const selectedTargetName = computed(() => (selectedLog.value ? detailTargetName(selectedLog.value) : t("common.none")));
@@ -270,6 +271,7 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
 );
 
 onMounted(async () => {
+  void ensureLocaleNames();
   await loadLogs();
 });
 
@@ -446,9 +448,7 @@ function formatDetailValue(value: unknown): string {
 function valueLabel(value: string) {
   const statusKey = `status.${value}`;
   if (hasI18nKey(statusKey)) return t(statusKey);
-  const languageKey = `language.${value === "zh-CN" ? "zhCN" : value === "en-US" ? "enUS" : value}`;
-  if (hasI18nKey(languageKey)) return t(languageKey);
-  return value;
+  return localeLabelMap.value[value] || value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

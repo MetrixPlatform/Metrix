@@ -12,8 +12,8 @@
 import { darkTheme, NConfigProvider, NDialogProvider, NMessageProvider } from "naive-ui";
 import { computed } from "vue";
 
-import { naiveLocales } from "./i18n/naive";
+import { getNaiveLocale } from "./i18n/naive";
 import { appStore } from "./stores/app";
 
-const naiveLocale = computed(() => naiveLocales[appStore.locale]);
+const naiveLocale = computed(() => getNaiveLocale(appStore.locale));
 </script>

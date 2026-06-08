@@ -59,7 +59,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { backupData, getSystemSettings, updateSystemSettings } from "../api/settings";
 import type { SystemSettings } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
-import { localeOptions, t } from "../i18n";
+import { ensureLocaleNames, localeOptions, t } from "../i18n";
 import { appStore } from "../stores/app";
 import { settingsStore } from "../stores/settings";
 import { saveBlob } from "../utils/download";
@@ -88,7 +88,7 @@ const form = reactive<SystemSettings>({
 const rules = computed<FormRules>(() => ({
   app_name: [requiredRule(t("field.platformName")), maxLengthRule(t("field.platformName"), 80)]
 }));
-const localeSelectOptions = computed(() => localeOptions.map((item) => ({ label: t(item.labelKey), value: item.value })));
+const localeSelectOptions = computed(() => localeOptions.value);
 const retentionOptions = computed(() => [
   { label: t("settings.retention7"), value: 7 },
   { label: t("settings.retention30"), value: 30 },
@@ -98,6 +98,7 @@ const retentionOptions = computed(() => [
 ]);
 
 onMounted(async () => {
+  void ensureLocaleNames();
   await loadSettings();
 });
 

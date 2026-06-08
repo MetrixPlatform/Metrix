@@ -17,7 +17,8 @@
 前端文案统一通过 `web/src/i18n` 管理，底层使用本地依赖 `vue-i18n`，当前支持 `zh-CN` 和 `en-US`。新增页面、弹窗、按钮、表单提示、空状态、确认信息、表头、枚举显示和路由标题都不能在页面组件中直接硬编码展示文案。
 
 - 语言资源按语言拆分到 `web/src/i18n/locales/<locale>.json`，JSON 内按 key 路径分组，例如 `common.save` 写成 `{ "common": { "save": "保存" } }`；不要再把多种语言的翻译集中写进同一个 TS 文件。
-- 默认语言 `zh-CN` 随首包加载，其他语言通过 `web/src/i18n/messages.ts` 按需动态加载；新增语言时同步扩展 `locales`、加载器、`localeOptions` 和 Naive UI 语言映射。
+- 每个语言 JSON 顶层必须提供自己的语言显示名，例如 `"language": "简体中文"` 或 `"language": "English"`；不要在每个语言文件里维护其他语言名称列表。
+- 默认语言 `zh-CN` 随首包加载，其他语言由 `web/src/i18n/messages.ts` 自动发现并按需动态加载；新增语言时优先只新增 `locales/<locale>.json`。只有 Naive UI 已有对应组件语言包且需要适配日期、组件内置文案时，才扩展 `web/src/i18n/naive.ts` 映射。
 - 新增页面标题和菜单名称时，在语言 JSON 中新增 `route.*` key，并在 `page-registry.ts` 使用 `titleKey` 或 `labelKey`。
 - 页面展示文案使用 `t("...")`，日期时间使用 `formatDateTime`，不要在页面里直接调用固定语言的格式化逻辑。
 - 表单校验规则需要使用 `computed` 生成，确保语言切换后校验提示同步更新。
@@ -28,6 +29,7 @@
 - 需要变量插值的文案使用 `{name}`、`{count}` 这类命名参数，例如 `user.deleteConfirm` 或 `announcement.batchDeleted`；后端只传变量值，不拼接最终展示句子。
 - 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
 - 不要在各页面单独写语言加载或语言切换逻辑；切换语言统一调用 `appStore.setLocale(...)`，由 i18n 层负责动态加载资源。
+- 认证、注册和安装页的语言切换等顶部工具按钮必须使用固定尺寸图标按钮，并固定在视口右上角；不要让工具按钮进入表单内容流或随页面滚动遮挡输入项。
 - 有明确 `label` 的普通表单字段不要使用“请输入”“请选择”“Please input”“Please select”这类泛化 placeholder；Naive UI 默认泛化 placeholder 已在 `web/src/i18n/naive.ts` 统一置空。
 - 普通 `n-input`、`n-input-number`、`n-select`、`n-date-picker` 如果没有业务提示，应显式设置 `placeholder=""`，避免组件默认占位符在局部页面或热更新场景漏出。
 - placeholder 只用于有信息增量的场景，例如搜索范围、日期范围、默认值说明、格式示例、批量输入分隔规则或 API 请求体提示；不要把字段名或必填校验文案重复写进输入框。

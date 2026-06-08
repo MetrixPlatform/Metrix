@@ -102,7 +102,7 @@ a {
   align-items: center;
   justify-items: center;
   overflow: auto;
-  padding: 24px;
+  padding: 72px 24px 24px;
   background:
     var(--auth-bg-layer),
     var(--app-bg);
@@ -135,8 +135,8 @@ a {
 
 .register-card {
   width: min(680px, calc(100% - 48px));
-  height: min(680px, calc(100dvh - 80px));
-  max-height: calc(100dvh - 80px);
+  height: min(680px, calc(100dvh - 128px));
+  max-height: calc(100dvh - 128px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -178,13 +178,19 @@ a {
 }
 
 .auth-top-actions {
-  position: absolute;
+  position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 1;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.auth-top-actions .n-button {
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .auth-announcement-ticker {
@@ -698,33 +704,23 @@ a {
 .language-switcher-button {
   --n-width: 32px;
   --n-height: 32px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  padding: 0;
   color: var(--muted-color);
 }
 
-.language-switcher-icon {
-  position: relative;
+.language-switcher-button .n-button__icon {
+  margin: 0;
+  font-size: 20px;
+}
+
+.language-switcher-svg {
   width: 20px;
   height: 20px;
-  display: inline-block;
-  color: currentColor;
-  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
-  line-height: 1;
-}
-
-.language-switcher-zh {
-  position: absolute;
-  top: -1px;
-  left: 1px;
-  font-size: 17px;
-  font-weight: 500;
-}
-
-.language-switcher-en {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  font-size: 17px;
-  font-weight: 500;
+  display: block;
 }
 
 .app-content {
@@ -1859,8 +1855,8 @@ a {
 
   .register-card {
     width: min(100%, calc(100vw - 28px));
-    height: min(680px, calc(100dvh - 66px));
-    max-height: calc(100dvh - 66px);
+    height: min(680px, calc(100dvh - 128px));
+    max-height: calc(100dvh - 128px);
   }
 
   .register-card .auth-brand {
