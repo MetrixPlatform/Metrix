@@ -2010,7 +2010,9 @@ a {
   }
 
   .inline-form .n-form-item--left-labelled .n-form-item-label {
-    width: auto !important;
+    width: max-content !important;
+    max-width: 100%;
+    justify-self: start;
     min-height: var(--n-label-height);
     padding: 0 0 6px;
     text-align: left;
