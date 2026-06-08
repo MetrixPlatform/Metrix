@@ -30,6 +30,7 @@
 - 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
 - 不要在各页面单独写语言加载或语言切换逻辑；切换语言统一调用 `appStore.setLocale(...)`，由 i18n 层负责动态加载资源。
 - 认证、注册和安装页的语言切换、主题切换等顶部工具按钮必须使用固定尺寸图标按钮，并放在 `.auth-top-actions` 独立顶部工具行；不要使用覆盖卡片内容的浮层，也不要让工具按钮随表单滚动遮挡输入项。
+- 认证、注册和安装页的主卡片、顶部工具行和页脚必须各占独立布局行；窗口高度不足时允许页面整体滚动，不要把主卡片放进可压缩网格行导致页脚、链接或工具按钮与表单重叠。
 - 有明确 `label` 的普通表单字段不要使用“请输入”“请选择”“Please input”“Please select”这类泛化 placeholder；Naive UI 默认泛化 placeholder 已在 `web/src/i18n/naive.ts` 统一置空。
 - 普通 `n-input`、`n-input-number`、`n-select`、`n-date-picker` 如果没有业务提示，应显式设置 `placeholder=""`，避免组件默认占位符在局部页面或热更新场景漏出。
 - placeholder 只用于有信息增量的场景，例如搜索范围、日期范围、默认值说明、格式示例、批量输入分隔规则或 API 请求体提示；不要把字段名或必填校验文案重复写进输入框。

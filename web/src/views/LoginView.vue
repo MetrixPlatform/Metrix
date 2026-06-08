@@ -23,7 +23,7 @@
           <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="" />
         </n-form-item>
         <n-button type="primary" block :loading="loading" @click="submit">{{ t("auth.login") }}</n-button>
-        <div class="form-actions">
+        <div class="form-actions login-form-links">
           <router-link v-if="registrationEnabled" class="muted-link" to="/register">{{ t("auth.registerAccount") }}</router-link>
           <n-button text class="muted-link" @click="showForgotModal = true">{{ t("auth.forgotPassword") }}</n-button>
         </div>

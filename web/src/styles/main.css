@@ -94,11 +94,10 @@ a {
 
 .auth-page {
   position: relative;
-  height: 100dvh;
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-rows: auto auto auto;
+  gap: 14px;
   align-items: center;
   justify-items: center;
   overflow: auto;
@@ -114,6 +113,7 @@ a {
   font-size: 12px;
   line-height: 20px;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .auth-card {
@@ -127,6 +127,14 @@ a {
 
 .login-card {
   width: min(440px, calc(100% - 48px));
+}
+
+.login-form-links {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 16px;
 }
 
 .register-page {
@@ -181,8 +189,22 @@ a {
   z-index: 2;
   display: flex;
   align-items: center;
-  justify-self: end;
+  justify-content: flex-end;
+  width: min(440px, calc(100% - 48px));
   gap: 8px;
+}
+
+.register-page .auth-top-actions {
+  width: min(680px, calc(100% - 48px));
+}
+
+.install-page .auth-top-actions {
+  width: min(980px, 100%);
+}
+
+.install-card + .auth-footer,
+.register-card + .auth-footer {
+  margin-top: 0;
 }
 
 .auth-top-actions .n-button {
@@ -1944,6 +1966,17 @@ a {
 }
 
 @media (max-width: 560px) {
+  .auth-page {
+    padding: 18px 14px;
+  }
+
+  .auth-top-actions,
+  .login-card,
+  .register-page .auth-top-actions,
+  .install-page .auth-top-actions {
+    width: 100%;
+  }
+
   .inline-form .n-form-item--left-labelled {
     grid-template-areas:
       "label"

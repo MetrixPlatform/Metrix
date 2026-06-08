@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page">
+  <div class="auth-page install-page">
     <div class="auth-top-actions">
       <LanguageSwitcher />
       <ThemeToggleButton />
