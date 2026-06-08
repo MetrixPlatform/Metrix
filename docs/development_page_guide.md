@@ -25,6 +25,8 @@
 - 需要变量插值的文案使用 `{name}`、`{count}` 这类命名参数，例如 `user.deleteConfirm` 或 `announcement.batchDeleted`；后端只传变量值，不拼接最终展示句子。
 - 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
 - 新增语言时只扩展 `locales`、Naive UI 语言映射和语言包，不要在各页面单独写语言切换逻辑。
+- 有明确 `label` 的普通表单字段不要使用“请输入”“请选择”“Please input”“Please select”这类泛化 placeholder；Naive UI 默认泛化 placeholder 已在 `web/src/i18n/naive.ts` 统一置空。
+- placeholder 只用于有信息增量的场景，例如搜索范围、日期范围、默认值说明、格式示例、批量输入分隔规则或 API 请求体提示；不要把字段名或必填校验文案重复写进输入框。
 - 左侧标签表单统一使用 `.inline-form`、`label-placement="left"` 和 `label-width="auto"`，不要写固定窄标签宽度；标签必须单行右对齐，输入框左边缘由自动标签列保持一致。
 - 表单控件必须撑满当前可用宽度，并保持宽度稳定；`n-input`、`n-input-number`、`n-select`、`n-date-picker` 等不能因为输入内容、密码显示图标、后缀按钮或校验状态出现宽度跳变。
 - 两列或紧凑表单中，如果标签会挤压输入框宽度，应在局部使用“标签在上、控件在下”的布局或调整网格列宽，不能牺牲输入框可用宽度。

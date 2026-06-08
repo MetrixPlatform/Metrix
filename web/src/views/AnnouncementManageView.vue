@@ -47,10 +47,10 @@
     <n-modal v-model:show="showModal" preset="card" class="modal-card announcement-edit-modal" :title="editing ? t('announcement.edit') : t('announcement.add')">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.title')" path="title">
-          <n-input v-model:value="form.title" :placeholder="t('announcement.titlePlaceholder')" />
+          <n-input v-model:value="form.title" />
         </n-form-item>
         <n-form-item :label="t('field.content')" path="content">
-          <n-input v-model:value="form.content" type="textarea" :placeholder="t('announcement.contentPlaceholder')" />
+          <n-input v-model:value="form.content" type="textarea" />
         </n-form-item>
         <n-form-item :label="t('field.targetType')">
           <n-select v-model:value="form.target_type" :options="targetTypeOptions" />
@@ -59,14 +59,14 @@
           <n-input v-model:value="form.target_value" :placeholder="t('announcement.permissionTargetPlaceholder')" />
         </n-form-item>
         <n-form-item v-if="form.target_type === 'company'" :label="t('field.company')">
-          <n-input v-model:value="form.target_value" :placeholder="t('announcement.companyPlaceholder')" />
+          <n-input v-model:value="form.target_value" />
         </n-form-item>
         <template v-if="form.target_type === 'company_department'">
           <n-form-item :label="t('field.company')">
-            <n-input v-model:value="targetCompany" :placeholder="t('announcement.companyPlaceholder')" />
+            <n-input v-model:value="targetCompany" />
           </n-form-item>
           <n-form-item :label="t('field.departmentOrPosition')">
-            <n-input v-model:value="targetDepartment" :placeholder="t('announcement.departmentPlaceholder')" />
+            <n-input v-model:value="targetDepartment" />
           </n-form-item>
         </template>
         <n-form-item v-if="form.target_type === 'user'" :label="t('field.username')">

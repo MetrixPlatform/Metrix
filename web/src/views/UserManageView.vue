@@ -45,7 +45,7 @@
     <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" :title="t('user.rejectTitle')">
       <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.reason')" path="reason">
-          <n-input v-model:value="rejectForm.reason" type="textarea" :placeholder="t('field.reason')" />
+          <n-input v-model:value="rejectForm.reason" type="textarea" />
         </n-form-item>
       </n-form>
       <div class="form-actions">

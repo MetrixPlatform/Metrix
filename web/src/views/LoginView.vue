@@ -19,10 +19,10 @@
         @keyup.enter="submit"
       >
         <n-form-item :label="t('field.username')" path="username">
-          <n-input v-model:value="form.username" :placeholder="t('validation.required', { label: t('field.username') })" />
+          <n-input v-model:value="form.username" />
         </n-form-item>
         <n-form-item :label="t('field.password')" path="password">
-          <n-input v-model:value="form.password" type="password" show-password-on="click" :placeholder="t('validation.required', { label: t('field.password') })" />
+          <n-input v-model:value="form.password" type="password" show-password-on="click" />
         </n-form-item>
         <n-button type="primary" block :loading="loading" @click="submit">{{ t("auth.login") }}</n-button>
         <div class="form-actions">

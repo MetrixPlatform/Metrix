@@ -490,3 +490,9 @@
 - 后端内置角色初始化改为保存 `role.admin.*`、`role.user.*` key；开发库启动同步时会覆盖旧中文内置角色和权限种子数据。
 - 前端 `web/src/i18n/builtins.ts` 改为根据内置角色 key、权限 `code` 和分组 key 做 i18n 翻译，不再维护重复的权限 code 映射表。
 - `docs/development_page_guide.md` 明确新增权限和内置角色种子不得写中文或英文展示文案，展示统一交给前端 i18n。
+
+## 2026-06-08：优化表单占位提示
+- 前端 `web/src/i18n/naive.ts` 基于 Naive UI 本地语言包派生项目 locale，统一清空 Input、InputNumber、Select、Cascader、DatePicker 和 TimePicker 的泛化默认 placeholder，避免普通表单空值时显示“请输入/请选择”。
+- 登录、公告管理、用户管理和 Token 管理页面移除手写的泛化 placeholder；有明确标签的普通字段只依赖 label 和校验提示表达字段含义。
+- 搜索框、时间范围、SQLite 默认路径、公告定向目标格式、API 测试输入等有信息增量的 placeholder 保留。
+- `docs/development_page_guide.md` 增加表单占位提示规则：不要重复字段名或必填校验文案，placeholder 只用于搜索、格式示例、默认值说明、批量输入规则等场景。
