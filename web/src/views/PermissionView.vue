@@ -77,13 +77,13 @@
     <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="editingRole ? t('permission.editRole') : t('permission.addRole')">
       <n-form ref="roleFormRef" class="form-stack inline-form" :model="roleForm" :rules="roleRules" label-placement="left" label-width="auto">
         <n-form-item v-if="!editingRole" :label="t('field.roleCode')" path="code">
-          <n-input v-model:value="roleForm.code" />
+          <n-input v-model:value="roleForm.code" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.roleName')" path="name">
-          <n-input v-model:value="roleForm.name" />
+          <n-input v-model:value="roleForm.name" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.description')" path="description">
-          <n-input v-model:value="roleForm.description" type="textarea" />
+          <n-input v-model:value="roleForm.description" type="textarea" placeholder="" />
         </n-form-item>
         <div class="form-actions">
           <n-button @click="showRoleModal = false">{{ t("common.cancel") }}</n-button>

@@ -2,7 +2,17 @@ import { computed } from "vue";
 import { createI18n } from "vue-i18n";
 
 import { appKey } from "../config/app";
-import { DEFAULT_LOCALE, hasMessageKey, isLocale, locales, messages, type I18nKey, type Locale, type TranslateParams } from "./messages";
+import {
+  DEFAULT_LOCALE,
+  defaultMessages,
+  hasMessagePath,
+  isLocale,
+  loadLocaleMessages,
+  locales,
+  type I18nKey,
+  type Locale,
+  type TranslateParams
+} from "./messages";
 
 export { DEFAULT_LOCALE, isLocale, locales };
 export type { I18nKey, Locale, TranslateParams };
@@ -13,10 +23,13 @@ export const i18n = createI18n({
   legacy: false,
   locale: initialLocale(),
   fallbackLocale: DEFAULT_LOCALE,
-  messages,
+  messages: {
+    [DEFAULT_LOCALE]: defaultMessages
+  },
   missingWarn: false,
   fallbackWarn: false
 });
+const loadedLocales = new Set<Locale>([DEFAULT_LOCALE]);
 
 export const localeOptions = [
   { labelKey: "language.zhCN" as I18nKey, value: "zh-CN" as Locale },
@@ -28,11 +41,20 @@ export function t(key: I18nKey | string, params: TranslateParams = {}) {
 }
 
 export function hasI18nKey(key: string) {
-  return hasMessageKey(currentLocale(), key);
+  return hasMessagePath(i18n.global.getLocaleMessage(currentLocale()), key) || hasMessagePath(i18n.global.getLocaleMessage(DEFAULT_LOCALE), key);
 }
 
-export function setI18nLocale(locale: Locale) {
-  i18n.global.locale.value = locale;
+export async function setupI18n(locale: Locale = initialLocale()) {
+  await setI18nLocale(locale);
+}
+
+export async function setI18nLocale(locale: Locale) {
+  const nextLocale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  if (!loadedLocales.has(nextLocale)) {
+    i18n.global.setLocaleMessage(nextLocale, await loadLocaleMessages(nextLocale));
+    loadedLocales.add(nextLocale);
+  }
+  i18n.global.locale.value = nextLocale;
 }
 
 export function translateMessage(code: string, params: TranslateParams = {}, fallback = "") {

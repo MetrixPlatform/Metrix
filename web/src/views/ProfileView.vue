@@ -6,22 +6,22 @@
       </div>
       <n-form ref="profileFormRef" class="form-stack inline-form" :model="profile" :rules="profileRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.username')">
-          <n-input :value="authStore.user?.username" disabled />
+          <n-input :value="authStore.user?.username" disabled placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.fullName')" path="full_name">
-          <n-input v-model:value="profile.full_name" />
+          <n-input v-model:value="profile.full_name" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.phone')" path="phone">
-          <n-input v-model:value="profile.phone" />
+          <n-input v-model:value="profile.phone" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.email')" path="email">
-          <n-input v-model:value="profile.email" />
+          <n-input v-model:value="profile.email" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.company')" path="company">
-          <n-input v-model:value="profile.company" />
+          <n-input v-model:value="profile.company" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.department')" path="department">
-          <n-input v-model:value="profile.department" />
+          <n-input v-model:value="profile.department" placeholder="" />
         </n-form-item>
         <div class="form-actions">
           <n-button type="primary" @click="saveProfile">{{ t("profile.saveProfile") }}</n-button>
@@ -34,10 +34,10 @@
       </div>
       <n-form ref="passwordFormRef" class="form-stack inline-form" :model="password" :rules="passwordRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.oldPassword')" path="old_password">
-          <n-input v-model:value="password.old_password" type="password" show-password-on="click" />
+          <n-input v-model:value="password.old_password" type="password" show-password-on="click" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.newPassword')" path="new_password">
-          <n-input v-model:value="password.new_password" type="password" show-password-on="click" />
+          <n-input v-model:value="password.new_password" type="password" show-password-on="click" placeholder="" />
         </n-form-item>
         <div class="form-actions">
           <n-button type="primary" @click="savePassword">{{ t("profile.changePassword") }}</n-button>

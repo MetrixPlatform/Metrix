@@ -21,28 +21,28 @@
       >
         <div class="register-form-fields">
           <n-form-item :label="t('field.username')" path="username">
-            <n-input v-model:value="form.username" />
+            <n-input v-model:value="form.username" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.password')" path="password">
-            <n-input v-model:value="form.password" type="password" show-password-on="click" />
+            <n-input v-model:value="form.password" type="password" show-password-on="click" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.confirmPassword')" path="confirm_password">
-            <n-input v-model:value="form.confirm_password" type="password" show-password-on="click" />
+            <n-input v-model:value="form.confirm_password" type="password" show-password-on="click" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.fullName')" path="full_name">
-            <n-input v-model:value="form.full_name" />
+            <n-input v-model:value="form.full_name" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.phone')" path="phone">
-            <n-input v-model:value="form.phone" />
+            <n-input v-model:value="form.phone" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.email')" path="email">
-            <n-input v-model:value="form.email" />
+            <n-input v-model:value="form.email" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.company')" path="company">
-            <n-input v-model:value="form.company" />
+            <n-input v-model:value="form.company" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.department')" path="department">
-            <n-input v-model:value="form.department" />
+            <n-input v-model:value="form.department" placeholder="" />
           </n-form-item>
         </div>
         <div class="register-form-footer">

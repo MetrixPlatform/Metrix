@@ -45,7 +45,7 @@
     <n-modal v-model:show="showRejectModal" preset="card" class="modal-card" :title="t('user.rejectTitle')">
       <n-form ref="rejectFormRef" class="inline-form" :model="rejectForm" :rules="rejectRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.reason')" path="reason">
-          <n-input v-model:value="rejectForm.reason" type="textarea" />
+          <n-input v-model:value="rejectForm.reason" type="textarea" placeholder="" />
         </n-form-item>
       </n-form>
       <div class="form-actions">
@@ -56,25 +56,25 @@
     <n-modal v-model:show="showUserModal" preset="card" class="modal-card" :title="editingUser ? t('user.edit') : t('user.add')">
       <n-form ref="userFormRef" class="form-stack inline-form" :model="userForm" :rules="userRules" label-placement="left" label-width="auto">
         <n-form-item v-if="!editingUser" :label="t('field.username')" path="username">
-          <n-input v-model:value="userForm.username" />
+          <n-input v-model:value="userForm.username" placeholder="" />
         </n-form-item>
         <n-form-item v-if="!editingUser" :label="t('field.password')" path="password">
-          <n-input v-model:value="userForm.password" type="password" show-password-on="click" />
+          <n-input v-model:value="userForm.password" type="password" show-password-on="click" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.fullName')" path="full_name">
-          <n-input v-model:value="userForm.full_name" />
+          <n-input v-model:value="userForm.full_name" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.phone')" path="phone">
-          <n-input v-model:value="userForm.phone" />
+          <n-input v-model:value="userForm.phone" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.email')" path="email">
-          <n-input v-model:value="userForm.email" />
+          <n-input v-model:value="userForm.email" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.company')" path="company">
-          <n-input v-model:value="userForm.company" />
+          <n-input v-model:value="userForm.company" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.department')" path="department">
-          <n-input v-model:value="userForm.department" />
+          <n-input v-model:value="userForm.department" placeholder="" />
         </n-form-item>
         <n-form-item v-if="!editingUser" :label="t('field.role')">
           <n-checkbox-group v-model:value="roleIds">
@@ -103,7 +103,7 @@
     <n-modal v-model:show="showPasswordModal" preset="card" class="modal-card" :title="t('user.resetPassword')">
       <n-form ref="passwordFormRef" class="form-stack inline-form" :model="passwordForm" :rules="passwordRules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.newPassword')" path="password">
-          <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" />
+          <n-input v-model:value="passwordForm.password" type="password" show-password-on="click" placeholder="" />
         </n-form-item>
         <div class="form-actions">
           <n-button @click="showPasswordModal = false">{{ t("common.cancel") }}</n-button>

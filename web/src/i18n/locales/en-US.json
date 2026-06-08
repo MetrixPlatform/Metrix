@@ -1,0 +1,715 @@
+{
+  "common": {
+    "language": "Language",
+    "themeLight": "Switch to light theme",
+    "themeDark": "Switch to dark theme",
+    "ok": "Got it",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "New",
+    "search": "Search",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "copied": "Copied",
+    "show": "Show",
+    "test": "Test",
+    "download": "Download",
+    "actions": "Actions",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "yes": "Yes",
+    "no": "No",
+    "builtin": "Built-in",
+    "custom": "Custom",
+    "noDescription": "No description",
+    "none": "-",
+    "never": "Never",
+    "listSeparator": ", ",
+    "labelSeparator": ": ",
+    "messageSeparator": "; ",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "total": "{count} items",
+    "moreActions": "More actions"
+  },
+  "language": {
+    "zhCN": "简体中文",
+    "enUS": "English"
+  },
+  "route": {
+    "group": {
+      "system": "System"
+    },
+    "dashboard": "Home",
+    "users": "Users",
+    "permissions": "Permissions",
+    "announcements": "Announcements",
+    "auditLogs": "Audit logs",
+    "settings": "Settings",
+    "tokens": "Tokens",
+    "apiDocs": "API docs",
+    "profile": "Profile"
+  },
+  "field": {
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "oldPassword": "Old password",
+    "newPassword": "New password",
+    "fullName": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "company": "Company",
+    "department": "Department",
+    "departmentOrPosition": "Department/Position",
+    "role": "Role",
+    "roles": "Roles",
+    "reason": "Reason",
+    "roleCode": "Role code",
+    "roleName": "Role name",
+    "description": "Description",
+    "databaseType": "Database type",
+    "sqlitePath": "SQLite database file",
+    "mysqlHost": "MySQL host",
+    "mysqlPort": "Port",
+    "mysqlDatabase": "Database",
+    "mysqlUsername": "Username",
+    "mysqlPassword": "Password",
+    "adminUsername": "Admin username",
+    "adminPassword": "Admin password",
+    "adminFullName": "Name",
+    "adminPhone": "Phone",
+    "adminEmail": "Email",
+    "adminCompany": "Company",
+    "adminDepartment": "Department",
+    "title": "Title",
+    "content": "Content",
+    "targetType": "Target",
+    "targetValue": "Target value",
+    "permissionCode": "Permission code",
+    "displayModes": "Display modes",
+    "status": "Status",
+    "creator": "Operator",
+    "operator": "Operator",
+    "action": "Action",
+    "auditSource": "Source",
+    "apiTokenPrefix": "Token prefix",
+    "auditTargetType": "Target type",
+    "targetId": "Target ID",
+    "detail": "Detail",
+    "platformName": "Platform name",
+    "defaultLocale": "Default language",
+    "registrationEnabled": "Registration",
+    "registrationRequired": "Required registration fields",
+    "logRetention": "Log retention",
+    "apiEnabled": "API access",
+    "apiTokenRevealEnabled": "Allow token reveal/copy",
+    "requestBody": "Request body",
+    "tokenName": "Token name",
+    "tokenPrefix": "Token prefix",
+    "expiresAt": "Expires at",
+    "lastUsedAt": "Last used at",
+    "createdAt": "Created at",
+    "approval": "Approval"
+  },
+  "validation": {
+    "required": "Please enter {label}",
+    "minLength": "{label} must be at least {min} characters",
+    "maxLength": "{label} cannot exceed {max} characters",
+    "tooLong": "{label} is too long",
+    "minValue": "{label} cannot be less than {min}",
+    "tooSmall": "{label} is too small",
+    "maxValue": "{label} cannot be greater than {max}",
+    "tooLarge": "{label} is too large",
+    "integer": "{label} must be an integer",
+    "invalidFormat": "{label} has an invalid format",
+    "phone": "Phone number format is invalid",
+    "email": "Email format is invalid",
+    "passwordMismatch": "The two passwords do not match",
+    "displayModeRequired": "Select at least one display mode",
+    "announcementTargetType": "Invalid announcement target type",
+    "announcementTargetRequired": "Enter a targeted push target"
+  },
+  "api": {
+    "requestFailed": "Request failed",
+    "invalidParams": "Invalid request parameters",
+    "requestParam": "Request parameter"
+  },
+  "message": {
+    "operationFailed": "Operation failed"
+  },
+  "error": {
+    "forbidden": "Permission denied",
+    "notFound": "Resource not found",
+    "serviceUnavailable": "Service unavailable",
+    "authRequired": "Please log in first",
+    "authExpired": "Session expired",
+    "accountUnavailable": "Account unavailable",
+    "notInstalled": "System is not initialized",
+    "usernameExists": "Username already exists",
+    "invalidCredentials": "Invalid username or password",
+    "accountPending": "Account approval is pending",
+    "accountDisabled": "Account is disabled",
+    "oldPasswordIncorrect": "Old password is incorrect",
+    "userNotFound": "User not found",
+    "onlyPendingUserCanApprove": "Only pending users can be approved",
+    "onlyPendingUserCanReject": "Only pending users can be rejected",
+    "builtinUserCannotDelete": "Built-in users cannot be deleted",
+    "lastAdminRequired": "The last administrator cannot be changed",
+    "lastAdminRoleRequired": "The last administrator role cannot be removed",
+    "selfAdminRoleRequired": "You cannot remove your own administrator role",
+    "roleNotFound": "Role not found",
+    "roleCodeExists": "Role code already exists",
+    "builtinRoleCannotDelete": "Built-in roles cannot be deleted",
+    "databaseConnectionFailed": "Database connection failed. Check the connection config",
+    "installed": "System is already initialized",
+    "mysqlConfigRequired": "MySQL connection config is required",
+    "mysqlDatabaseNameInvalid": "MySQL database name can only contain letters, numbers, and underscores",
+    "announcementNotFound": "Announcement not found",
+    "announcementManageOthersDenied": "You cannot manage announcements created by others",
+    "auditLogManageOthersDenied": "You cannot view audit logs created by others",
+    "registrationDisabled": "Registration is disabled",
+    "registrationFieldRequired": "Required registration information is missing",
+    "apiDisabled": "API access is disabled",
+    "apiTokenNotFound": "Token not found",
+    "apiTokenNameRequired": "Enter a token name",
+    "apiTokenCreateFailed": "Failed to create token. Try again",
+    "apiTokenExpiredAtInvalid": "Expiration time must be later than now",
+    "apiTokenRevealDisabled": "Full token reveal is disabled",
+    "apiTokenSecretUnavailable": "Full token is unavailable",
+    "webOnly": "This operation is only available in the web UI"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "loggedOut": "{username} logged out",
+    "registerAccount": "Register",
+    "submitRegister": "Submit registration",
+    "backToLogin": "Back to login",
+    "forgotPassword": "Forgot password",
+    "forgotPasswordTip": "Contact an administrator to reset your password.",
+    "registerSubtitle": "Wait for administrator approval after submission",
+    "registerSubmitted": "Registration request submitted"
+  },
+  "install": {
+    "title": "Initialize {name}",
+    "subtitle": "Choose the site database and create the initial administrator",
+    "databaseConfig": "Database",
+    "adminInfo": "Administrator",
+    "testConnection": "Test connection",
+    "emptySqlitePath": "Leave empty to use {path}",
+    "submit": "Initialize",
+    "connectionOk": "Database connection is healthy",
+    "finished": "Initialization completed. Please log in"
+  },
+  "dashboard": {
+    "announcements": "Announcements",
+    "emptyAnnouncements": "No announcements"
+  },
+  "status": {
+    "read": "Read",
+    "unread": "Unread",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "user": {
+    "searchPlaceholder": "Search username, name, phone, email, company, department",
+    "add": "New user",
+    "edit": "Edit user",
+    "approveTitle": "Approve registration",
+    "rejectTitle": "Reject registration",
+    "assignRoles": "Assign roles",
+    "resetPassword": "Reset password",
+    "pass": "Approve",
+    "reject": "Reject",
+    "saved": "User saved",
+    "approved": "User approved",
+    "rejected": "User rejected",
+    "rolesUpdated": "Roles updated",
+    "passwordReset": "Password reset",
+    "deleteTitle": "Delete user",
+    "deleteConfirm": "Delete {name}?",
+    "deleted": "User deleted",
+    "cannotRemoveSelfAdmin": "Cannot remove your own admin role",
+    "builtinCannotDelete": "Built-in users cannot be deleted"
+  },
+  "permission": {
+    "roles": "Roles",
+    "assignment": "Permission assignment",
+    "savePermissions": "Save permissions",
+    "selectRole": "Select a role",
+    "addRole": "New role",
+    "editRole": "Edit role",
+    "otherGroup": "Other",
+    "roleSaved": "Role saved",
+    "deleteRoleTitle": "Delete role",
+    "deleteRoleConfirm": "Delete role {name}?",
+    "roleDeleted": "Role deleted",
+    "saved": "Permissions saved",
+    "group": {
+      "page": "Pages",
+      "user": "Users",
+      "role": "Roles",
+      "announcement": "Announcements",
+      "auditLog": "Audit logs",
+      "setting": "Settings",
+      "api": "API"
+    },
+    "route:dashboard": "Home",
+    "route:users": "User management",
+    "route:permissions": "Permission management",
+    "route:announcements": "Announcement management",
+    "route:audit_logs": "Audit logs",
+    "route:settings": "Settings",
+    "route:tokens": "Tokens",
+    "route:api_docs": "API docs",
+    "action:user:create": "Create users",
+    "action:user:read": "View users",
+    "action:user:update": "Update users",
+    "action:user:delete": "Delete users",
+    "action:user:operate": "Operate users",
+    "action:role:create": "Create roles",
+    "action:role:read": "View roles",
+    "action:role:update": "Update roles",
+    "action:role:delete": "Delete roles",
+    "action:role:operate": "Assign permissions",
+    "action:announcement:create": "Create announcements",
+    "action:announcement:read": "View announcements",
+    "action:announcement:update": "Update announcements",
+    "action:announcement:delete": "Delete announcements",
+    "action:announcement:manage_others": "Manage others' announcements",
+    "action:audit_log:read": "View audit logs",
+    "action:audit_log:manage_others": "View all logs",
+    "action:setting:read": "View settings",
+    "action:setting:update": "Update settings",
+    "action:setting:operate": "Operate settings",
+    "action:api_token:read": "View tokens",
+    "action:api_token:create": "Create tokens",
+    "action:api_token:delete": "Delete tokens",
+    "action:api_docs:read": "View API docs"
+  },
+  "role": {
+    "admin": {
+      "name": "Super admin",
+      "description": "Has all permissions"
+    },
+    "user": {
+      "name": "Standard user",
+      "description": "Default basic user"
+    }
+  },
+  "announcement": {
+    "searchPlaceholder": "Search title or content",
+    "add": "New announcement",
+    "edit": "Edit announcement",
+    "batchDelete": "Batch delete",
+    "batchDeleteCount": "Batch delete ({count})",
+    "permissionTargetPlaceholder": "Separate permissions with commas, e.g. route:users",
+    "userTargetPlaceholder": "Separate usernames with commas or new lines",
+    "targetAll": "Whole platform",
+    "targetAuthenticated": "All users",
+    "targetPermission": "Specific permission",
+    "targetCompany": "Specific company",
+    "targetCompanyDepartment": "Specific company-department/position",
+    "targetUser": "Specific user",
+    "targetPermissionShort": "Permission",
+    "targetCompanyShort": "Company",
+    "targetCompanyDepartmentShort": "Company-department/position",
+    "targetUserShort": "User",
+    "displayPopup": "Popup",
+    "displayTicker": "Ticker",
+    "displaySidebar": "Home sidebar",
+    "creatorAll": "Everyone",
+    "creatorMe": "Only me",
+    "saved": "Announcement saved",
+    "targetRequired": "Enter a push target",
+    "deleteTitle": "Delete announcement",
+    "deleteConfirm": "Delete announcement {title}?",
+    "deleted": "Announcement deleted",
+    "batchDeleted": "{count} announcements deleted",
+    "batchDeleteTitle": "Batch delete announcements",
+    "batchDeleteConfirm": "Delete the selected {count} announcements?",
+    "closeTicker": "Close announcement"
+  },
+  "auditLog": {
+    "searchPlaceholder": "Search operator, action, target, detail",
+    "scopeSelf": "Only me",
+    "scopeAll": "All accounts",
+    "systemOperator": "System",
+    "downloadCsv": "Download CSV",
+    "source": {
+      "web": "Web",
+      "api": "API"
+    },
+    "detailTitle": "Operation detail",
+    "viewDetail": "View detail",
+    "targetName": "Target",
+    "changedFields": "Changed fields",
+    "before": "Before",
+    "after": "After",
+    "meta": "Record data",
+    "noStructuredDetail": "No structured detail",
+    "changeSummary": "{count} changes: {fields}",
+    "auth": {
+      "login": "Login succeeded",
+      "login_failed": "Login failed",
+      "profile_update": "Updated profile",
+      "change_password": "Changed password"
+    },
+    "user": "User",
+    "role": "Role",
+    "announcement": "Announcement",
+    "settings": {
+      "update": "Updated settings",
+      "backup": "Backed up data"
+    },
+    "api_token": "Token",
+    "system_settings": "Settings",
+    "field": {
+      "username": "Username",
+      "full_name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "company": "Company",
+      "department": "Department/Position",
+      "approval_status": "Approval status",
+      "rejected_reason": "Reject reason",
+      "roles": "Roles",
+      "is_active": "Enabled",
+      "code": "Code",
+      "name": "Name",
+      "description": "Description",
+      "is_builtin": "Built-in",
+      "permissions": "Permissions",
+      "title": "Title",
+      "content": "Content",
+      "target_type": "Target type",
+      "target_value": "Target value",
+      "show_popup": "Show popup",
+      "show_ticker": "Show ticker",
+      "show_sidebar": "Show home sidebar",
+      "app_name": "Platform name",
+      "registration_enabled": "Registration enabled",
+      "registration_required_fields": "Required registration fields",
+      "log_retention_days": "Log retention",
+      "default_locale": "Default language",
+      "api_enabled": "API enabled",
+      "api_token_reveal_enabled": "Allow token reveal/copy",
+      "token_prefix": "Token prefix",
+      "expires_at": "Expires at",
+      "password_changed": "Password changed",
+      "reason": "Reason",
+      "tables": "Backup tables",
+      "database_type": "Database type"
+    }
+  },
+  "settings": {
+    "basic": "Basic settings",
+    "backup": "Data backup",
+    "backupData": "Back up all data",
+    "saved": "Settings saved",
+    "retention7": "Last 7 days",
+    "retention30": "Last 1 month",
+    "retention90": "Last 3 months",
+    "retention180": "Last 6 months",
+    "retention365": "Last 1 year"
+  },
+  "token": {
+    "title": "API tokens",
+    "create": "Create token",
+    "created": "Token created",
+    "createdTip": "Copy and store it now. The full token cannot be viewed again after closing this dialog.",
+    "createdRevealTip": "Copy and store it. The system currently allows showing or copying the full token later from the list.",
+    "neverExpires": "Never expires",
+    "customExpires": "Custom time",
+    "fullToken": "Full token",
+    "copyFull": "Copy full token",
+    "deleteTitle": "Delete token",
+    "deleteConfirm": "Delete token {name}?",
+    "deleted": "Token deleted"
+  },
+  "apiDocs": {
+    "searchPlaceholder": "Search paths, methods, summaries, or tags",
+    "empty": "No API docs",
+    "noMatch": "No matching APIs",
+    "defaultTag": "Ungrouped",
+    "operationId": "Operation ID",
+    "detail": "Details",
+    "requestBody": "Request body",
+    "parameters": "Parameters",
+    "responses": "Responses",
+    "parameterName": "Name",
+    "parameterIn": "In",
+    "parameterType": "Type",
+    "required": "Required",
+    "optional": "Optional",
+    "contentType": "Content type",
+    "requestExample": "Request example",
+    "responseExample": "Response example",
+    "statusCode": "Status code",
+    "fieldName": "Field",
+    "testRequest": "Sent data",
+    "test": "Test API",
+    "testTokenPlaceholder": "Enter an API token to test APIs",
+    "testResponse": "Response",
+    "httpStatus": "HTTP status",
+    "bodyPlaceholder": "JSON request body",
+    "tokenRequired": "Enter an API token first",
+    "pathParamRequired": "Enter path parameter {name}",
+    "invalidJson": "Request body is not valid JSON",
+    "testSuccess": "API test completed"
+  },
+  "profile": {
+    "info": "Profile",
+    "changePassword": "Change password",
+    "saveProfile": "Save profile",
+    "profileSaved": "Profile saved",
+    "passwordChanged": "Password changed"
+  },
+  "notFound": {
+    "description": "Page not found. Returning home in {seconds}s",
+    "backHome": "Back home"
+  },
+  "openapi": {
+    "tag": {
+      "auth": "Auth",
+      "dashboard": "Dashboard",
+      "announcements": "Announcements",
+      "audit": "Audit logs",
+      "settings": "Settings",
+      "users": "Users",
+      "roles": "Roles and permissions"
+    },
+    "operation": {
+      "register_api_auth_register_post": {
+        "summary": "Submit registration",
+        "description": "Create a pending account. The request fails when registration is disabled or required profile fields are missing."
+      },
+      "login_api_auth_login_post": {
+        "summary": "Log in with password",
+        "description": "Exchange username and password for a web session token, user profile, and permissions."
+      },
+      "logout_api_auth_logout_post": {
+        "summary": "Log out",
+        "description": "Return a logout message. The current version does not store server-side sessions."
+      },
+      "me_api_auth_me_get": {
+        "summary": "Get current user",
+        "description": "Read the user profile and permissions for the current bearer credential."
+      },
+      "update_profile_api_auth_profile_put": {
+        "summary": "Update profile",
+        "description": "Update the current user's profile and contact information."
+      },
+      "change_password_api_auth_change_password_post": {
+        "summary": "Change password",
+        "description": "Validate the old password and set a new password for the current user."
+      },
+      "summary_api_dashboard_summary_get": {
+        "summary": "Get dashboard summary",
+        "description": "Read concise statistics used by the dashboard."
+      },
+      "public_announcements_api_announcements_public_get": {
+        "summary": "List public announcements",
+        "description": "Read public announcements visible to visitors."
+      },
+      "my_announcements_api_announcements_mine_get": {
+        "summary": "List my announcements",
+        "description": "Return announcements visible to the current user by profile, permissions, and targeting rules."
+      },
+      "mark_announcement_read_api_announcements__announcement_id__read_post": {
+        "summary": "Mark announcement as read",
+        "description": "Mark one visible announcement as read for the current user."
+      },
+      "list_announcements_api_announcements_get": {
+        "summary": "List announcements",
+        "description": "Query announcements with pagination and filters."
+      },
+      "create_announcement_api_announcements_post": {
+        "summary": "Create announcement",
+        "description": "Create an announcement and configure its audience."
+      },
+      "batch_delete_announcements_api_announcements_batch_delete_post": {
+        "summary": "Batch delete announcements",
+        "description": "Delete announcements by ID. Without manage-others permission, users can only delete their own announcements."
+      },
+      "update_announcement_api_announcements__announcement_id__put": {
+        "summary": "Update announcement",
+        "description": "Update announcement content, audience, display modes, and status."
+      },
+      "delete_announcement_api_announcements__announcement_id__delete": {
+        "summary": "Delete announcement",
+        "description": "Delete one announcement."
+      },
+      "list_audit_logs_api_audit_logs_get": {
+        "summary": "List audit logs",
+        "description": "Query audit logs and distinguish web operations from API token calls."
+      },
+      "export_audit_logs_api_audit_logs_export_get": {
+        "summary": "Export audit logs as CSV",
+        "description": "Export all audit logs matching the current filters."
+      },
+      "public_settings_api_settings_public_get": {
+        "summary": "Get public settings",
+        "description": "Read public settings used by login, registration, and app startup."
+      },
+      "get_system_settings_api_settings_get": {
+        "summary": "Get system settings",
+        "description": "Read full system settings."
+      },
+      "update_system_settings_api_settings_put": {
+        "summary": "Update system settings",
+        "description": "Update platform name, registration rules, retention, locale, API switch, and token reveal switch."
+      },
+      "backup_data_api_settings_backup_post": {
+        "summary": "Back up all data",
+        "description": "Create a ZIP backup containing core data."
+      },
+      "list_users_api_users_get": {
+        "summary": "List users",
+        "description": "Query users with pagination and filters."
+      },
+      "create_user_api_users_post": {
+        "summary": "Create user",
+        "description": "Create an approved user and optionally assign roles."
+      },
+      "list_role_options_api_users_role_options_get": {
+        "summary": "List role options",
+        "description": "Read brief roles for user creation and role assignment."
+      },
+      "get_user_api_users__user_id__get": {
+        "summary": "Get user",
+        "description": "Read one user's profile, status, and roles."
+      },
+      "update_user_api_users__user_id__put": {
+        "summary": "Update user",
+        "description": "Update one user's profile."
+      },
+      "delete_user_api_users__user_id__delete": {
+        "summary": "Delete user",
+        "description": "Delete one user. Built-in users and the last administrator are protected."
+      },
+      "enable_user_api_users__user_id__enable_post": {
+        "summary": "Enable user",
+        "description": "Enable one user account."
+      },
+      "disable_user_api_users__user_id__disable_post": {
+        "summary": "Disable user",
+        "description": "Disable one user account. The last administrator is protected."
+      },
+      "reset_password_api_users__user_id__reset_password_post": {
+        "summary": "Reset password",
+        "description": "Set a new password for one user."
+      },
+      "assign_roles_api_users__user_id__roles_put": {
+        "summary": "Assign user roles",
+        "description": "Replace one user's role list."
+      },
+      "approve_user_api_users__user_id__approve_post": {
+        "summary": "Approve user",
+        "description": "Approve a pending registered user and assign roles."
+      },
+      "reject_user_api_users__user_id__reject_post": {
+        "summary": "Reject user",
+        "description": "Reject a pending registered user with an optional reason."
+      },
+      "list_roles_api_roles_get": {
+        "summary": "List roles",
+        "description": "Read roles and their permissions."
+      },
+      "create_role_api_roles_post": {
+        "summary": "Create role",
+        "description": "Create a custom role."
+      },
+      "update_role_api_roles__role_id__put": {
+        "summary": "Update role",
+        "description": "Update role name and description."
+      },
+      "delete_role_api_roles__role_id__delete": {
+        "summary": "Delete role",
+        "description": "Delete a custom role. Built-in roles cannot be deleted."
+      },
+      "list_permissions_api_permissions_get": {
+        "summary": "List permissions",
+        "description": "Read the platform permission dictionary."
+      },
+      "assign_permissions_api_roles__role_id__permissions_put": {
+        "summary": "Assign role permissions",
+        "description": "Replace one role's permissions. The super admin role always has all permissions."
+      }
+    },
+    "parameter": {
+      "common": {
+        "actor_scope": "Audit actor scope. self means current user only; all requires extra permission.",
+        "approval_status": "Approval status, such as pending, approved, or rejected.",
+        "created_by": "Announcement creator scope. me means current user; all means everyone.",
+        "display_mode": "Announcement display mode, such as popup, ticker, or sidebar.",
+        "end_time": "End time in ISO 8601 format.",
+        "is_active": "Whether the record is enabled.",
+        "keyword": "Keyword matched by the endpoint.",
+        "page": "Page number, starting from 1.",
+        "page_size": "Items per page, up to 500.",
+        "sort_order": "Creation time order. descend or ascend.",
+        "start_time": "Start time in ISO 8601 format.",
+        "target_type": "Target type or audience.",
+        "action": "Audit action code, such as auth.login or user.create.",
+        "announcement_id": "Announcement ID.",
+        "role_id": "Role ID.",
+        "user_id": "User ID."
+      }
+    },
+    "schema": {
+      "property": {
+        "username": "Unique username used for login and audit.",
+        "password": "Password.",
+        "old_password": "Current password.",
+        "new_password": "New password.",
+        "full_name": "Display name.",
+        "phone": "Phone number.",
+        "email": "Email address.",
+        "company": "Company.",
+        "department": "Department or position.",
+        "role_ids": "Role ID list.",
+        "reason": "Reject reason.",
+        "title": "Title.",
+        "content": "Content.",
+        "target_type": "Audience type.",
+        "target_value": "Audience target value.",
+        "show_popup": "Show as popup.",
+        "show_ticker": "Show in ticker.",
+        "show_sidebar": "Show in dashboard sidebar.",
+        "is_active": "Whether it is enabled.",
+        "ids": "ID list.",
+        "code": "Stable code.",
+        "name": "Name.",
+        "description": "Description.",
+        "permission_ids": "Permission ID list.",
+        "app_name": "Platform name.",
+        "registration_enabled": "Whether registration is open.",
+        "registration_required_fields": {
+          "phone": "Whether phone is required during registration.",
+          "email": "Whether email is required during registration.",
+          "company": "Whether company is required during registration.",
+          "department": "Whether department or position is required during registration."
+        },
+        "log_retention_days": "Audit log retention days.",
+        "default_locale": "Default language.",
+        "api_enabled": "Whether API access is enabled.",
+        "api_token_reveal_enabled": "Whether full token reveal/copy is allowed."
+      }
+    },
+    "response": {
+      "200": "Request succeeded. See the example for the response shape.",
+      "400": "Business rule validation failed. The response includes a stable error code.",
+      "401": "Authentication is missing, expired, or the API token is invalid.",
+      "403": "Permission denied, API is disabled, or the endpoint is web-only.",
+      "404": "The target resource does not exist or is not visible to the current user.",
+      "422": "Request validation failed, usually due to field type, length, or required rules.",
+      "500": "Server error. Check backend logs for details."
+    }
+  }
+}

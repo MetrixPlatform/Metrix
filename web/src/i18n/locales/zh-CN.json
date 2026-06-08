@@ -1,0 +1,715 @@
+{
+  "common": {
+    "language": "语言",
+    "themeLight": "切换浅色主题",
+    "themeDark": "切换深色主题",
+    "ok": "我知道了",
+    "close": "关闭",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "新增",
+    "search": "查询",
+    "refresh": "刷新",
+    "copy": "复制",
+    "copied": "已复制",
+    "show": "显示",
+    "test": "测试",
+    "download": "下载",
+    "actions": "操作",
+    "enabled": "启用",
+    "disabled": "禁用",
+    "yes": "是",
+    "no": "否",
+    "builtin": "内置",
+    "custom": "自定义",
+    "noDescription": "无说明",
+    "none": "-",
+    "never": "从未",
+    "listSeparator": "、",
+    "labelSeparator": "：",
+    "messageSeparator": "；",
+    "startTime": "开始时间",
+    "endTime": "结束时间",
+    "total": "共 {count} 条",
+    "moreActions": "更多操作"
+  },
+  "language": {
+    "zhCN": "简体中文",
+    "enUS": "English"
+  },
+  "route": {
+    "group": {
+      "system": "系统管理"
+    },
+    "dashboard": "首页",
+    "users": "用户管理",
+    "permissions": "权限管理",
+    "announcements": "公告管理",
+    "auditLogs": "操作日志",
+    "settings": "系统设置",
+    "tokens": "Token",
+    "apiDocs": "API 文档",
+    "profile": "个人信息"
+  },
+  "field": {
+    "username": "账号",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "oldPassword": "旧密码",
+    "newPassword": "新密码",
+    "fullName": "姓名",
+    "phone": "手机号码",
+    "email": "邮箱",
+    "company": "公司",
+    "department": "部门",
+    "departmentOrPosition": "部门/职位",
+    "role": "角色",
+    "roles": "角色",
+    "reason": "驳回原因",
+    "roleCode": "角色编码",
+    "roleName": "角色名称",
+    "description": "说明",
+    "databaseType": "数据库类型",
+    "sqlitePath": "SQLite 数据库文件",
+    "mysqlHost": "MySQL 地址",
+    "mysqlPort": "端口",
+    "mysqlDatabase": "数据库名",
+    "mysqlUsername": "用户名",
+    "mysqlPassword": "密码",
+    "adminUsername": "管理员账号",
+    "adminPassword": "管理员密码",
+    "adminFullName": "姓名",
+    "adminPhone": "手机号码",
+    "adminEmail": "邮箱",
+    "adminCompany": "公司",
+    "adminDepartment": "部门",
+    "title": "标题",
+    "content": "内容",
+    "targetType": "推送范围",
+    "targetValue": "推送目标",
+    "permissionCode": "权限编码",
+    "displayModes": "展示方式",
+    "status": "状态",
+    "creator": "操作账号",
+    "operator": "操作账号",
+    "action": "操作类型",
+    "auditSource": "来源",
+    "apiTokenPrefix": "Token 前缀",
+    "auditTargetType": "目标类型",
+    "targetId": "目标 ID",
+    "detail": "详情",
+    "platformName": "平台名称",
+    "defaultLocale": "默认语言",
+    "registrationEnabled": "开放注册",
+    "registrationRequired": "注册必填资料",
+    "logRetention": "日志保留时长",
+    "apiEnabled": "开放 API",
+    "apiTokenRevealEnabled": "允许显示/复制 Token",
+    "requestBody": "请求体",
+    "tokenName": "Token 名称",
+    "tokenPrefix": "Token 前缀",
+    "expiresAt": "过期时间",
+    "lastUsedAt": "最后使用时间",
+    "createdAt": "创建时间",
+    "approval": "审核"
+  },
+  "validation": {
+    "required": "请输入{label}",
+    "minLength": "{label}至少 {min} 个字符",
+    "maxLength": "{label}不能超过 {max} 个字符",
+    "tooLong": "{label}过长",
+    "minValue": "{label}不能小于 {min}",
+    "tooSmall": "{label}过小",
+    "maxValue": "{label}不能大于 {max}",
+    "tooLarge": "{label}过大",
+    "integer": "{label}必须是整数",
+    "invalidFormat": "{label}格式不正确",
+    "phone": "手机号码格式不正确",
+    "email": "邮箱格式不正确",
+    "passwordMismatch": "两次输入的密码不一致",
+    "displayModeRequired": "请至少选择一种展示方式",
+    "announcementTargetType": "公告目标类型不正确",
+    "announcementTargetRequired": "请填写定向目标"
+  },
+  "api": {
+    "requestFailed": "请求失败",
+    "invalidParams": "请求参数不正确",
+    "requestParam": "请求参数"
+  },
+  "message": {
+    "operationFailed": "操作失败"
+  },
+  "error": {
+    "forbidden": "无权限执行该操作",
+    "notFound": "资源不存在",
+    "serviceUnavailable": "服务暂不可用",
+    "authRequired": "请先登录",
+    "authExpired": "登录已失效",
+    "accountUnavailable": "账号不可用",
+    "notInstalled": "系统未初始化",
+    "usernameExists": "账号已存在",
+    "invalidCredentials": "账号或密码错误",
+    "accountPending": "账号尚未审核通过",
+    "accountDisabled": "账号已禁用",
+    "oldPasswordIncorrect": "旧密码不正确",
+    "userNotFound": "用户不存在",
+    "onlyPendingUserCanApprove": "只能审核待审核用户",
+    "onlyPendingUserCanReject": "只能驳回待审核用户",
+    "builtinUserCannotDelete": "内置用户不能删除",
+    "lastAdminRequired": "不能操作最后一个管理员",
+    "lastAdminRoleRequired": "不能移除最后一个管理员的管理员角色",
+    "selfAdminRoleRequired": "不能移除自己的管理员角色",
+    "roleNotFound": "角色不存在",
+    "roleCodeExists": "角色编码已存在",
+    "builtinRoleCannotDelete": "内置角色不能删除",
+    "databaseConnectionFailed": "数据库连接失败，请检查连接配置",
+    "installed": "系统已初始化",
+    "mysqlConfigRequired": "请填写 MySQL 连接信息",
+    "mysqlDatabaseNameInvalid": "MySQL 数据库名只能包含字母、数字和下划线",
+    "announcementNotFound": "公告不存在",
+    "announcementManageOthersDenied": "无权限操作他人公告",
+    "auditLogManageOthersDenied": "无权限查看他人操作日志",
+    "registrationDisabled": "注册功能已关闭",
+    "registrationFieldRequired": "请填写必填注册资料",
+    "apiDisabled": "API 功能已关闭",
+    "apiTokenNotFound": "Token 不存在",
+    "apiTokenNameRequired": "请填写 Token 名称",
+    "apiTokenCreateFailed": "Token 创建失败，请重试",
+    "apiTokenExpiredAtInvalid": "过期时间必须晚于当前时间",
+    "apiTokenRevealDisabled": "系统已关闭完整 Token 显示",
+    "apiTokenSecretUnavailable": "完整 Token 不可用",
+    "webOnly": "该操作只能在网页中执行"
+  },
+  "auth": {
+    "login": "登录",
+    "logout": "退出登录",
+    "loggedOut": "{username} 已退出",
+    "registerAccount": "注册账号",
+    "submitRegister": "提交注册",
+    "backToLogin": "返回登录",
+    "forgotPassword": "忘记密码",
+    "forgotPasswordTip": "请联系管理员修改密码。",
+    "registerSubtitle": "提交后等待管理员审核",
+    "registerSubmitted": "注册申请已提交"
+  },
+  "install": {
+    "title": "初始化 {name}",
+    "subtitle": "选择网站数据库并创建初始管理员",
+    "databaseConfig": "数据库配置",
+    "adminInfo": "管理员信息",
+    "testConnection": "测试连接",
+    "emptySqlitePath": "留空使用 {path}",
+    "submit": "初始化",
+    "connectionOk": "数据库连接正常",
+    "finished": "初始化完成，请登录"
+  },
+  "dashboard": {
+    "announcements": "公告",
+    "emptyAnnouncements": "暂无公告"
+  },
+  "status": {
+    "read": "已读",
+    "unread": "未读",
+    "pending": "待审核",
+    "approved": "已通过",
+    "rejected": "已驳回"
+  },
+  "user": {
+    "searchPlaceholder": "搜索账号、姓名、手机、邮箱、公司、部门",
+    "add": "新增用户",
+    "edit": "编辑用户",
+    "approveTitle": "审核通过",
+    "rejectTitle": "驳回注册",
+    "assignRoles": "分配角色",
+    "resetPassword": "重置密码",
+    "pass": "通过",
+    "reject": "驳回",
+    "saved": "用户已保存",
+    "approved": "已审核通过",
+    "rejected": "已驳回",
+    "rolesUpdated": "角色已更新",
+    "passwordReset": "密码已重置",
+    "deleteTitle": "删除用户",
+    "deleteConfirm": "确认删除 {name}？",
+    "deleted": "用户已删除",
+    "cannotRemoveSelfAdmin": "不能移除自己的管理员角色",
+    "builtinCannotDelete": "内置用户不能删除"
+  },
+  "permission": {
+    "roles": "角色",
+    "assignment": "权限分配",
+    "savePermissions": "保存权限",
+    "selectRole": "请选择角色",
+    "addRole": "新增角色",
+    "editRole": "编辑角色",
+    "otherGroup": "其他",
+    "roleSaved": "角色已保存",
+    "deleteRoleTitle": "删除角色",
+    "deleteRoleConfirm": "确认删除角色 {name}？",
+    "roleDeleted": "角色已删除",
+    "saved": "权限已保存",
+    "group": {
+      "page": "页面",
+      "user": "用户",
+      "role": "角色",
+      "announcement": "公告",
+      "auditLog": "操作日志",
+      "setting": "系统设置",
+      "api": "API"
+    },
+    "route:dashboard": "首页",
+    "route:users": "用户管理",
+    "route:permissions": "权限管理",
+    "route:announcements": "公告管理",
+    "route:audit_logs": "操作日志",
+    "route:settings": "系统设置",
+    "route:tokens": "Token",
+    "route:api_docs": "API 文档",
+    "action:user:create": "新增用户",
+    "action:user:read": "查询用户",
+    "action:user:update": "修改用户",
+    "action:user:delete": "删除用户",
+    "action:user:operate": "操作用户",
+    "action:role:create": "新增角色",
+    "action:role:read": "查询角色",
+    "action:role:update": "修改角色",
+    "action:role:delete": "删除角色",
+    "action:role:operate": "操作角色",
+    "action:announcement:create": "新增公告",
+    "action:announcement:read": "查询公告",
+    "action:announcement:update": "修改公告",
+    "action:announcement:delete": "删除公告",
+    "action:announcement:manage_others": "操作他人公告",
+    "action:audit_log:read": "查询操作日志",
+    "action:audit_log:manage_others": "查看所有日志",
+    "action:setting:read": "查询系统设置",
+    "action:setting:update": "修改系统设置",
+    "action:setting:operate": "操作系统设置",
+    "action:api_token:read": "查询 Token",
+    "action:api_token:create": "创建 Token",
+    "action:api_token:delete": "删除 Token",
+    "action:api_docs:read": "查看 API 文档"
+  },
+  "role": {
+    "admin": {
+      "name": "超级管理员",
+      "description": "拥有全部权限"
+    },
+    "user": {
+      "name": "普通用户",
+      "description": "默认基础用户"
+    }
+  },
+  "announcement": {
+    "searchPlaceholder": "搜索标题、内容",
+    "add": "新增公告",
+    "edit": "编辑公告",
+    "batchDelete": "批量删除",
+    "batchDeleteCount": "批量删除 ({count})",
+    "permissionTargetPlaceholder": "多个权限用逗号分隔，如 route:users",
+    "userTargetPlaceholder": "多个账号用逗号或换行分隔",
+    "targetAll": "全平台",
+    "targetAuthenticated": "全部用户",
+    "targetPermission": "指定权限",
+    "targetCompany": "指定公司",
+    "targetCompanyDepartment": "指定公司-部门/职位",
+    "targetUser": "指定账号",
+    "targetPermissionShort": "权限",
+    "targetCompanyShort": "公司",
+    "targetCompanyDepartmentShort": "公司-部门/职位",
+    "targetUserShort": "账号",
+    "displayPopup": "弹窗",
+    "displayTicker": "滚动条",
+    "displaySidebar": "首页侧栏",
+    "creatorAll": "全部人",
+    "creatorMe": "仅自己",
+    "saved": "公告已保存",
+    "targetRequired": "请填写推送目标",
+    "deleteTitle": "删除公告",
+    "deleteConfirm": "确认删除公告 {title}？",
+    "deleted": "公告已删除",
+    "batchDeleted": "已删除 {count} 条公告",
+    "batchDeleteTitle": "批量删除公告",
+    "batchDeleteConfirm": "确认删除选中的 {count} 条公告？",
+    "closeTicker": "关闭公告"
+  },
+  "auditLog": {
+    "searchPlaceholder": "搜索账号、操作类型、目标、详情",
+    "scopeSelf": "仅自己",
+    "scopeAll": "全部账号",
+    "systemOperator": "系统",
+    "downloadCsv": "下载 CSV",
+    "source": {
+      "web": "网页",
+      "api": "API"
+    },
+    "detailTitle": "操作详情",
+    "viewDetail": "查看详情",
+    "targetName": "操作对象",
+    "changedFields": "变更字段",
+    "before": "变更前",
+    "after": "变更后",
+    "meta": "记录信息",
+    "noStructuredDetail": "暂无结构化详情",
+    "changeSummary": "变更 {count} 项：{fields}",
+    "auth": {
+      "login": "登录成功",
+      "login_failed": "登录失败",
+      "profile_update": "修改个人资料",
+      "change_password": "修改密码"
+    },
+    "user": "用户",
+    "role": "角色",
+    "announcement": "公告",
+    "settings": {
+      "update": "修改系统设置",
+      "backup": "备份数据"
+    },
+    "api_token": "Token",
+    "system_settings": "系统设置",
+    "field": {
+      "username": "账号",
+      "full_name": "姓名",
+      "phone": "手机号码",
+      "email": "邮箱",
+      "company": "公司",
+      "department": "部门/职位",
+      "approval_status": "审核状态",
+      "rejected_reason": "驳回原因",
+      "roles": "角色",
+      "is_active": "启用状态",
+      "code": "编码",
+      "name": "名称",
+      "description": "说明",
+      "is_builtin": "内置",
+      "permissions": "权限",
+      "title": "标题",
+      "content": "内容",
+      "target_type": "目标类型",
+      "target_value": "目标值",
+      "show_popup": "弹窗展示",
+      "show_ticker": "滚动条展示",
+      "show_sidebar": "首页侧栏展示",
+      "app_name": "平台名称",
+      "registration_enabled": "开放注册",
+      "registration_required_fields": "注册必填资料",
+      "log_retention_days": "日志保留时长",
+      "default_locale": "默认语言",
+      "api_enabled": "开放 API",
+      "api_token_reveal_enabled": "允许显示/复制 Token",
+      "token_prefix": "Token 前缀",
+      "expires_at": "过期时间",
+      "password_changed": "密码已修改",
+      "reason": "原因",
+      "tables": "备份表",
+      "database_type": "数据库类型"
+    }
+  },
+  "settings": {
+    "basic": "基础设置",
+    "backup": "数据备份",
+    "backupData": "一键备份所有数据",
+    "saved": "系统设置已保存",
+    "retention7": "最近 7 天",
+    "retention30": "最近 1 个月",
+    "retention90": "最近 3 个月",
+    "retention180": "最近 6 个月",
+    "retention365": "最近 1 年"
+  },
+  "token": {
+    "title": "API Token",
+    "create": "创建 Token",
+    "created": "Token 已创建",
+    "createdTip": "请立即复制保存，关闭后将无法再次查看完整 Token。",
+    "createdRevealTip": "请复制保存。系统当前允许后续在列表中再次显示或复制完整 Token。",
+    "neverExpires": "永不过期",
+    "customExpires": "自定义时间",
+    "fullToken": "完整 Token",
+    "copyFull": "复制完整 Token",
+    "deleteTitle": "删除 Token",
+    "deleteConfirm": "确认删除 Token {name}？",
+    "deleted": "Token 已删除"
+  },
+  "apiDocs": {
+    "searchPlaceholder": "搜索路径、方法、摘要或标签",
+    "empty": "暂无 API 文档",
+    "noMatch": "没有匹配的接口",
+    "defaultTag": "未分组",
+    "operationId": "操作 ID",
+    "detail": "详情",
+    "requestBody": "请求体",
+    "parameters": "参数",
+    "responses": "响应",
+    "parameterName": "名称",
+    "parameterIn": "位置",
+    "parameterType": "类型",
+    "required": "必填",
+    "optional": "可选",
+    "contentType": "内容类型",
+    "requestExample": "请求示例",
+    "responseExample": "响应示例",
+    "statusCode": "状态码",
+    "fieldName": "字段",
+    "testRequest": "发送的数据",
+    "test": "测试接口",
+    "testTokenPlaceholder": "填入 API Token 后测试接口",
+    "testResponse": "响应",
+    "httpStatus": "HTTP 状态",
+    "bodyPlaceholder": "JSON 请求体",
+    "tokenRequired": "请先填写 API Token",
+    "pathParamRequired": "请填写路径参数 {name}",
+    "invalidJson": "请求体不是有效 JSON",
+    "testSuccess": "接口测试完成"
+  },
+  "profile": {
+    "info": "个人信息",
+    "changePassword": "修改密码",
+    "saveProfile": "保存资料",
+    "profileSaved": "资料已保存",
+    "passwordChanged": "密码已修改"
+  },
+  "notFound": {
+    "description": "页面不存在，{seconds} 秒后返回主页",
+    "backHome": "返回主页"
+  },
+  "openapi": {
+    "tag": {
+      "auth": "认证",
+      "dashboard": "首页",
+      "announcements": "公告",
+      "audit": "操作日志",
+      "settings": "系统设置",
+      "users": "用户",
+      "roles": "角色权限"
+    },
+    "operation": {
+      "register_api_auth_register_post": {
+        "summary": "提交注册申请",
+        "description": "创建一个待审核账号。注册开关关闭或必填资料缺失时会返回业务错误。"
+      },
+      "login_api_auth_login_post": {
+        "summary": "账号密码登录",
+        "description": "使用账号和密码换取网页登录 Token，并返回当前用户资料和权限。"
+      },
+      "logout_api_auth_logout_post": {
+        "summary": "退出登录",
+        "description": "返回退出登录提示。当前版本不在服务端保存会话状态。"
+      },
+      "me_api_auth_me_get": {
+        "summary": "获取当前用户",
+        "description": "读取当前 Bearer 凭据对应的用户资料和权限，可用于验证网页登录 Token 或 API Token 是否有效。"
+      },
+      "update_profile_api_auth_profile_put": {
+        "summary": "修改个人资料",
+        "description": "修改当前登录账号自己的姓名、联系方式、公司和部门/职位。"
+      },
+      "change_password_api_auth_change_password_post": {
+        "summary": "修改密码",
+        "description": "校验旧密码后修改当前账号密码。"
+      },
+      "summary_api_dashboard_summary_get": {
+        "summary": "获取首页摘要",
+        "description": "读取首页需要的简要统计数据。"
+      },
+      "public_announcements_api_announcements_public_get": {
+        "summary": "获取公开公告",
+        "description": "获取面向所有访客展示的公开公告。"
+      },
+      "my_announcements_api_announcements_mine_get": {
+        "summary": "获取我的公告",
+        "description": "按当前用户资料、权限和公告目标规则返回可见公告。"
+      },
+      "mark_announcement_read_api_announcements__announcement_id__read_post": {
+        "summary": "标记公告已读",
+        "description": "将当前用户可见的一条公告标记为已读。"
+      },
+      "list_announcements_api_announcements_get": {
+        "summary": "查询公告列表",
+        "description": "分页查询公告，支持关键字、推送范围、展示方式、启用状态、创建人范围和创建时间筛选。"
+      },
+      "create_announcement_api_announcements_post": {
+        "summary": "创建公告",
+        "description": "创建一条公告，并按推送范围控制后续可见用户。"
+      },
+      "batch_delete_announcements_api_announcements_batch_delete_post": {
+        "summary": "批量删除公告",
+        "description": "按公告 ID 批量删除公告；没有操作他人公告权限时只能删除自己创建的公告。"
+      },
+      "update_announcement_api_announcements__announcement_id__put": {
+        "summary": "修改公告",
+        "description": "修改指定公告内容、推送范围、展示方式和启用状态。"
+      },
+      "delete_announcement_api_announcements__announcement_id__delete": {
+        "summary": "删除公告",
+        "description": "删除指定公告。"
+      },
+      "list_audit_logs_api_audit_logs_get": {
+        "summary": "查询操作日志",
+        "description": "分页查询操作日志，可区分 Web 页面操作和 API Token 调用。"
+      },
+      "export_audit_logs_api_audit_logs_export_get": {
+        "summary": "导出操作日志 CSV",
+        "description": "按当前筛选条件导出完整操作日志 CSV，不受当前分页限制。"
+      },
+      "public_settings_api_settings_public_get": {
+        "summary": "读取公开设置",
+        "description": "读取登录、注册和前端启动所需的公开系统设置。"
+      },
+      "get_system_settings_api_settings_get": {
+        "summary": "读取系统设置",
+        "description": "读取完整系统设置，需要系统设置查询权限。"
+      },
+      "update_system_settings_api_settings_put": {
+        "summary": "保存系统设置",
+        "description": "更新平台名称、注册规则、日志保留、默认语言、API 开关和 Token 显示开关。"
+      },
+      "backup_data_api_settings_backup_post": {
+        "summary": "备份全部数据",
+        "description": "生成包含用户、角色、权限、系统配置和日志等核心数据的 ZIP 备份。"
+      },
+      "list_users_api_users_get": {
+        "summary": "查询用户列表",
+        "description": "分页查询用户，支持关键字、审核状态、启用状态和创建时间筛选。"
+      },
+      "create_user_api_users_post": {
+        "summary": "创建用户",
+        "description": "管理员创建一个已审核用户，可同时分配角色。"
+      },
+      "list_role_options_api_users_role_options_get": {
+        "summary": "获取角色选项",
+        "description": "读取用户创建和角色分配弹窗所需的角色简要列表。"
+      },
+      "get_user_api_users__user_id__get": {
+        "summary": "获取用户详情",
+        "description": "按用户 ID 获取用户资料、状态和角色。"
+      },
+      "update_user_api_users__user_id__put": {
+        "summary": "修改用户",
+        "description": "修改指定用户的基本资料。"
+      },
+      "delete_user_api_users__user_id__delete": {
+        "summary": "删除用户",
+        "description": "删除指定用户，内置用户和最后一个管理员受保护。"
+      },
+      "enable_user_api_users__user_id__enable_post": {
+        "summary": "启用用户",
+        "description": "将指定用户恢复为可登录状态。"
+      },
+      "disable_user_api_users__user_id__disable_post": {
+        "summary": "禁用用户",
+        "description": "禁用指定用户，最后一个管理员受保护。"
+      },
+      "reset_password_api_users__user_id__reset_password_post": {
+        "summary": "重置密码",
+        "description": "管理员为指定用户设置新密码。"
+      },
+      "assign_roles_api_users__user_id__roles_put": {
+        "summary": "分配用户角色",
+        "description": "替换指定用户的角色列表，不能移除最后一个管理员或自己的管理员角色。"
+      },
+      "approve_user_api_users__user_id__approve_post": {
+        "summary": "审核通过用户",
+        "description": "将待审核注册用户改为已通过，并分配角色。"
+      },
+      "reject_user_api_users__user_id__reject_post": {
+        "summary": "驳回注册用户",
+        "description": "将待审核注册用户改为已驳回，可记录驳回原因。"
+      },
+      "list_roles_api_roles_get": {
+        "summary": "查询角色列表",
+        "description": "读取角色及其权限分配。"
+      },
+      "create_role_api_roles_post": {
+        "summary": "创建角色",
+        "description": "创建一个自定义角色。"
+      },
+      "update_role_api_roles__role_id__put": {
+        "summary": "修改角色",
+        "description": "修改角色名称和说明。"
+      },
+      "delete_role_api_roles__role_id__delete": {
+        "summary": "删除角色",
+        "description": "删除自定义角色，内置角色不可删除。"
+      },
+      "list_permissions_api_permissions_get": {
+        "summary": "查询权限字典",
+        "description": "读取平台内置权限字典，用于角色授权。"
+      },
+      "assign_permissions_api_roles__role_id__permissions_put": {
+        "summary": "分配角色权限",
+        "description": "替换指定角色的权限列表；超级管理员角色始终拥有全部权限。"
+      }
+    },
+    "parameter": {
+      "common": {
+        "actor_scope": "日志账号范围。self 表示只看自己，all 表示查看全部账号且需要额外权限。",
+        "approval_status": "审核状态，例如 pending、approved、rejected。",
+        "created_by": "公告创建人范围。me 表示自己，all 表示全部。",
+        "display_mode": "公告展示方式，例如 popup、ticker、sidebar。",
+        "end_time": "结束时间，ISO 8601 格式。",
+        "is_active": "是否启用。true 表示启用，false 表示禁用。",
+        "keyword": "关键字，按接口说明匹配账号、标题、内容或详情等字段。",
+        "page": "页码，从 1 开始。",
+        "page_size": "每页条数，最大 500。",
+        "sort_order": "创建时间排序。descend 为倒序，ascend 为正序。",
+        "start_time": "开始时间，ISO 8601 格式。",
+        "target_type": "目标类型或推送范围。",
+        "action": "操作类型编码，例如 auth.login、user.create。",
+        "announcement_id": "公告 ID。",
+        "role_id": "角色 ID。",
+        "user_id": "用户 ID。"
+      }
+    },
+    "schema": {
+      "property": {
+        "username": "账号，登录和权限审计使用的唯一标识。",
+        "password": "密码。",
+        "old_password": "当前旧密码。",
+        "new_password": "要设置的新密码。",
+        "full_name": "姓名。",
+        "phone": "手机号码。",
+        "email": "邮箱地址。",
+        "company": "公司。",
+        "department": "部门或职位。",
+        "role_ids": "角色 ID 列表。",
+        "reason": "驳回原因。",
+        "title": "标题。",
+        "content": "内容。",
+        "target_type": "推送范围。",
+        "target_value": "推送目标，多个值用逗号或换行分隔。",
+        "show_popup": "是否弹窗展示。",
+        "show_ticker": "是否在公告滚动条展示。",
+        "show_sidebar": "是否在首页侧栏展示。",
+        "is_active": "是否启用。",
+        "ids": "要操作的 ID 列表。",
+        "code": "稳定编码。",
+        "name": "名称。",
+        "description": "说明。",
+        "permission_ids": "权限 ID 列表。",
+        "app_name": "平台名称。",
+        "registration_enabled": "是否开放注册。",
+        "registration_required_fields": {
+          "phone": "注册时手机号码是否必填。",
+          "email": "注册时邮箱是否必填。",
+          "company": "注册时公司是否必填。",
+          "department": "注册时部门或职位是否必填。"
+        },
+        "log_retention_days": "日志保留天数。",
+        "default_locale": "默认语言。",
+        "api_enabled": "是否开放 API 功能。",
+        "api_token_reveal_enabled": "是否允许后续显示或复制完整 Token。"
+      }
+    },
+    "response": {
+      "200": "请求成功。具体响应结构见示例。",
+      "400": "请求不符合业务规则，响应体包含稳定错误 code。",
+      "401": "未登录、登录失效或 API Token 无效。",
+      "403": "权限不足、API 功能关闭或该接口仅允许网页登录态操作。",
+      "404": "目标资源不存在或当前用户不可见。",
+      "422": "请求参数校验失败，通常是字段类型、长度或必填规则不符合要求。",
+      "500": "服务端异常。请查看后端日志定位。"
+    }
+  }
+}

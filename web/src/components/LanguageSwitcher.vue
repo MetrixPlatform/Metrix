@@ -24,6 +24,6 @@ const options = computed(() =>
 );
 
 function setLocale(value: string | number) {
-  appStore.setLocale(value as Locale);
+  void appStore.setLocale(value as Locale);
 }
 </script>

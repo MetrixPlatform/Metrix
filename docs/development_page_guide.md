@@ -16,16 +16,20 @@
 
 前端文案统一通过 `web/src/i18n` 管理，底层使用本地依赖 `vue-i18n`，当前支持 `zh-CN` 和 `en-US`。新增页面、弹窗、按钮、表单提示、空状态、确认信息、表头、枚举显示和路由标题都不能在页面组件中直接硬编码展示文案。
 
-- 新增页面标题和菜单名称时，在语言包中新增 `route.*` key，并在 `page-registry.ts` 使用 `titleKey` 或 `labelKey`。
+- 语言资源按语言拆分到 `web/src/i18n/locales/<locale>.json`，JSON 内按 key 路径分组，例如 `common.save` 写成 `{ "common": { "save": "保存" } }`；不要再把多种语言的翻译集中写进同一个 TS 文件。
+- 默认语言 `zh-CN` 随首包加载，其他语言通过 `web/src/i18n/messages.ts` 按需动态加载；新增语言时同步扩展 `locales`、加载器、`localeOptions` 和 Naive UI 语言映射。
+- 新增页面标题和菜单名称时，在语言 JSON 中新增 `route.*` key，并在 `page-registry.ts` 使用 `titleKey` 或 `labelKey`。
 - 页面展示文案使用 `t("...")`，日期时间使用 `formatDateTime`，不要在页面里直接调用固定语言的格式化逻辑。
 - 表单校验规则需要使用 `computed` 生成，确保语言切换后校验提示同步更新。
-- 后端返回的内置角色、权限名称和权限分组通过 `web/src/i18n/builtins.ts` 做显示转换；新增内置权限时同步维护语言包和内置映射。
+- 后端返回的内置角色、权限名称和权限分组通过 `web/src/i18n/builtins.ts` 做显示转换；新增内置角色或权限时优先让后端返回稳定资源 key，并在语言 JSON 中补充对应翻译。
+- OpenAPI 专用翻译统一放在语言 JSON 的 `openapi.*` 分组中，页面继续通过 `openApiText("operation.xxx.summary")` 读取；不要在 `openapi.ts` 里维护按语言分开的翻译对象。
 - API 结构化校验错误由前端请求层按字段 key 翻译；后端自定义 Pydantic 校验错误使用稳定 `validation.*` 类型，不返回中文展示文案。
 - 后端业务成功或失败消息统一返回 `code`、`message`、`params`：`code` 是稳定资源 ID，`message` 只作为英文 fallback，`params` 存放插值变量。前端使用 `translateMessage(...)` 或 `messageText(...)` 翻译，找不到语言包 key 时才显示后端 fallback。
 - 需要变量插值的文案使用 `{name}`、`{count}` 这类命名参数，例如 `user.deleteConfirm` 或 `announcement.batchDeleted`；后端只传变量值，不拼接最终展示句子。
 - 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
-- 新增语言时只扩展 `locales`、Naive UI 语言映射和语言包，不要在各页面单独写语言切换逻辑。
+- 不要在各页面单独写语言加载或语言切换逻辑；切换语言统一调用 `appStore.setLocale(...)`，由 i18n 层负责动态加载资源。
 - 有明确 `label` 的普通表单字段不要使用“请输入”“请选择”“Please input”“Please select”这类泛化 placeholder；Naive UI 默认泛化 placeholder 已在 `web/src/i18n/naive.ts` 统一置空。
+- 普通 `n-input`、`n-input-number`、`n-select`、`n-date-picker` 如果没有业务提示，应显式设置 `placeholder=""`，避免组件默认占位符在局部页面或热更新场景漏出。
 - placeholder 只用于有信息增量的场景，例如搜索范围、日期范围、默认值说明、格式示例、批量输入分隔规则或 API 请求体提示；不要把字段名或必填校验文案重复写进输入框。
 - 左侧标签表单统一使用 `.inline-form`、`label-placement="left"` 和 `label-width="auto"`，不要写固定窄标签宽度；标签必须单行右对齐，输入框左边缘由自动标签列保持一致。
 - 表单控件必须撑满当前可用宽度，并保持宽度稳定；`n-input`、`n-input-number`、`n-select`、`n-date-picker` 等不能因为输入内容、密码显示图标、后缀按钮或校验状态出现宽度跳变。
@@ -72,7 +76,7 @@
 - 关闭 `api_token_reveal_enabled` 后，前端隐藏完整 Token 显示/复制入口，后端 secret 接口仍必须返回 403；关闭该开关不会删除已保存的完整值。
 - 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
 - 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary`、响应模型和必要的 `responses`，请求/响应 Pydantic schema 字段使用 `Field(...)` 描述和示例；API 文档页会自动从 `/openapi.json` 中展示，不要在前端 API 文档页手写接口清单。
-- OpenAPI 文档翻译集中维护在 `web/src/i18n/openapi.ts`，不要塞进通用页面语言包。翻译 key 约定为 `tag.<tag>`、`operation.<operationId>.summary`、`operation.<operationId>.description`、`parameter.<operationId>.<name>`、`parameter.common.<name>`、`schema.property.<field>`、`schema.property.<nested.field>` 和 `response.<status>`；页面优先取这些翻译，找不到时回退到 OpenAPI 原始说明。
+- OpenAPI 文档翻译集中维护在语言 JSON 的 `openapi.*` 分组中，`web/src/i18n/openapi.ts` 只保留读取辅助函数。翻译 key 约定为 `openapi.tag.<tag>`、`openapi.operation.<operationId>.summary`、`openapi.operation.<operationId>.description`、`openapi.parameter.<operationId>.<name>`、`openapi.parameter.common.<name>`、`openapi.schema.property.<field>`、`openapi.schema.property.<nested.field>` 和 `openapi.response.<status>`；页面继续通过 `openApiText(...)` 读取，找不到时回退到 OpenAPI 原始说明。
 - 若新增页面属于 API 功能整体开关管辖，在 `web/src/router/page-registry.ts` 的页面注册项中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
 - Vite 开发代理只匹配 `/api/` 和 `/openapi.json`。不要把代理前缀改回宽泛的 `/api`，否则前端页面路径 `/api-docs` 会被误转发到后端并在刷新时显示 404。
 

@@ -31,22 +31,22 @@
             <template v-else>
               <div class="install-field-row compact">
                 <n-form-item :label="t('field.mysqlHost')" path="mysql.host">
-                  <n-input v-model:value="form.mysql.host" />
+                  <n-input v-model:value="form.mysql.host" placeholder="" />
                 </n-form-item>
                 <n-form-item :label="t('field.mysqlPort')" path="mysql.port">
-                  <n-input-number v-model:value="form.mysql.port" class="full-width" :min="1" :max="65535" />
+                  <n-input-number v-model:value="form.mysql.port" class="full-width" placeholder="" :min="1" :max="65535" />
                 </n-form-item>
               </div>
               <div class="install-field-row">
                 <n-form-item :label="t('field.mysqlDatabase')" path="mysql.database">
-                  <n-input v-model:value="form.mysql.database" />
+                  <n-input v-model:value="form.mysql.database" placeholder="" />
                 </n-form-item>
                 <n-form-item :label="t('field.mysqlUsername')" path="mysql.username">
-                  <n-input v-model:value="form.mysql.username" />
+                  <n-input v-model:value="form.mysql.username" placeholder="" />
                 </n-form-item>
               </div>
               <n-form-item :label="t('field.mysqlPassword')" path="mysql.password">
-                <n-input v-model:value="form.mysql.password" type="password" show-password-on="click" />
+                <n-input v-model:value="form.mysql.password" type="password" show-password-on="click" placeholder="" />
               </n-form-item>
             </template>
           </section>
@@ -54,30 +54,30 @@
             <h2 class="install-section-title">{{ t("install.adminInfo") }}</h2>
             <div class="install-field-row">
               <n-form-item :label="t('field.adminUsername')" path="admin_username">
-                <n-input v-model:value="form.admin_username" />
+                <n-input v-model:value="form.admin_username" placeholder="" />
               </n-form-item>
               <n-form-item :label="t('field.adminPassword')" path="admin_password">
-                <n-input v-model:value="form.admin_password" type="password" show-password-on="click" />
+                <n-input v-model:value="form.admin_password" type="password" show-password-on="click" placeholder="" />
               </n-form-item>
             </div>
             <div class="install-field-row">
               <n-form-item :label="t('field.adminFullName')" path="admin_full_name">
-                <n-input v-model:value="form.admin_full_name" />
+                <n-input v-model:value="form.admin_full_name" placeholder="" />
               </n-form-item>
               <n-form-item :label="t('field.adminPhone')" path="admin_phone">
-                <n-input v-model:value="form.admin_phone" />
+                <n-input v-model:value="form.admin_phone" placeholder="" />
               </n-form-item>
             </div>
             <div class="install-field-row">
               <n-form-item :label="t('field.adminEmail')" path="admin_email">
-                <n-input v-model:value="form.admin_email" />
+                <n-input v-model:value="form.admin_email" placeholder="" />
               </n-form-item>
               <n-form-item :label="t('field.adminCompany')" path="admin_company">
-                <n-input v-model:value="form.admin_company" />
+                <n-input v-model:value="form.admin_company" placeholder="" />
               </n-form-item>
             </div>
             <n-form-item :label="t('field.adminDepartment')" path="admin_department">
-              <n-input v-model:value="form.admin_department" />
+              <n-input v-model:value="form.admin_department" placeholder="" />
             </n-form-item>
             <div class="install-submit">
               <n-button type="primary" block :loading="loading" @click="submit">{{ t("install.submit") }}</n-button>

@@ -496,3 +496,12 @@
 - 登录、公告管理、用户管理和 Token 管理页面移除手写的泛化 placeholder；有明确标签的普通字段只依赖 label 和校验提示表达字段含义。
 - 搜索框、时间范围、SQLite 默认路径、公告定向目标格式、API 测试输入等有信息增量的 placeholder 保留。
 - `docs/development_page_guide.md` 增加表单占位提示规则：不要重复字段名或必填校验文案，placeholder 只用于搜索、格式示例、默认值说明、批量输入规则等场景。
+
+## 2026-06-08：拆分前端语言资源
+- 前端语言资源改为按语言拆分到 `web/src/i18n/locales/zh-CN.json` 和 `web/src/i18n/locales/en-US.json`，JSON 内按 key 路径分组，避免继续在 TS 文件中维护多语言大对象。
+- `web/src/i18n/messages.ts` 改为语言类型、默认语言资源和动态加载器；默认 `zh-CN` 随首包加载，`en-US` 通过动态 import 按需拆成单独 chunk。
+- `web/src/i18n/index.ts` 新增 `setupI18n(...)`，应用启动前加载当前语言；`appStore.setLocale(...)` 改为异步加载语言资源后再切换，路由默认语言同步和系统设置保存均等待语言切换完成。
+- OpenAPI 翻译从 `openapi.ts` 的多语言对象迁移到语言 JSON 的 `openapi.*` 分组，`openApiText(...)` 继续保留原调用方式并走统一 i18n 查询。
+- `web/src/i18n/builtins.ts` 不再硬编码 `admin/user` 角色 key 映射，优先翻译后端返回的资源 key，并按 `role.<code>.*` 兜底，后续新增内置角色更少改代码。
+- 普通表单字段显式补充 `placeholder=""`，搜索、默认路径、格式示例和 API 请求体等有信息增量的 placeholder 保留，避免局部页面继续漏出 Naive UI 默认“请输入/请选择”。
+- `docs/development_page_guide.md` 补充语言 JSON、动态加载、OpenAPI 分组和语言切换统一入口规则。

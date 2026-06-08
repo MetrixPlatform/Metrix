@@ -47,7 +47,7 @@ router.beforeEach(async (to) => {
     try {
       const publicSettings = await settingsStore.loadPublic();
       if (!localStorage.getItem(LOCALE_KEY)) {
-        appStore.setLocale(publicSettings.default_locale);
+        await appStore.setLocale(publicSettings.default_locale);
       }
     } catch {
       // Keep bundled defaults if public settings are temporarily unavailable.

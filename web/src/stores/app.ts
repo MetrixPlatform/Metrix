@@ -16,17 +16,17 @@ export const appStore = reactive({
     localStorage.setItem(THEME_KEY, appStore.dark ? "1" : "0");
     applyTheme(appStore.dark);
   },
-  setLocale(locale: Locale) {
-    appStore.locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  async setLocale(locale: Locale) {
+    const nextLocale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+    await setI18nLocale(nextLocale);
+    appStore.locale = nextLocale;
     localStorage.setItem(LOCALE_KEY, appStore.locale);
     document.documentElement.lang = appStore.locale;
-    setI18nLocale(appStore.locale);
   }
 });
 
 applyTheme(appStore.dark);
 document.documentElement.lang = appStore.locale;
-setI18nLocale(appStore.locale);
 
 function applyTheme(dark: boolean) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";

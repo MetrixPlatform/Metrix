@@ -13,22 +13,12 @@ interface PermissionLike {
   group_name: string;
 }
 
-const roleNameKeys: Record<string, string> = {
-  admin: "role.admin.name",
-  user: "role.user.name"
-};
-
-const roleDescriptionKeys: Record<string, string> = {
-  admin: "role.admin.description",
-  user: "role.user.description"
-};
-
 export function roleName(role: RoleLike) {
-  return translateBuiltin(roleNameKeys[role.code] || role.name, role.name);
+  return translateBuiltin(role.name, translateBuiltin(`role.${role.code}.name`, role.name));
 }
 
 export function roleDescription(role: RoleLike) {
-  return translateBuiltin(roleDescriptionKeys[role.code] || role.description || "", role.description || "");
+  return translateBuiltin(role.description || "", translateBuiltin(`role.${role.code}.description`, role.description || ""));
 }
 
 export function permissionName(permission: PermissionLike) {

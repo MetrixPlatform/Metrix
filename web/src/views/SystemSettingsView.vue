@@ -5,10 +5,10 @@
         <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
         <n-form ref="formRef" class="inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
           <n-form-item :label="t('field.platformName')" path="app_name">
-            <n-input v-model:value="form.app_name" />
+            <n-input v-model:value="form.app_name" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.defaultLocale')" path="default_locale">
-            <n-select v-model:value="form.default_locale" :options="localeSelectOptions" />
+            <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
           </n-form-item>
           <n-form-item :label="t('field.registrationEnabled')" path="registration_enabled">
             <n-switch v-model:value="form.registration_enabled" />
@@ -28,7 +28,7 @@
             </div>
           </n-form-item>
           <n-form-item :label="t('field.logRetention')" path="log_retention_days">
-            <n-select v-model:value="form.log_retention_days" :options="retentionOptions" />
+            <n-select v-model:value="form.log_retention_days" :options="retentionOptions" placeholder="" />
           </n-form-item>
         </n-form>
         <div class="form-actions">
@@ -116,7 +116,7 @@ async function saveSettings() {
     const updated = await updateSystemSettings(form);
     assignSettings(updated);
     settingsStore.setPublic(updated);
-    appStore.setLocale(updated.default_locale);
+    await appStore.setLocale(updated.default_locale);
     message.success(t("settings.saved"));
   } catch (error) {
     showError(message, error);

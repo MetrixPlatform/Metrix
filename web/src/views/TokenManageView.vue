@@ -28,7 +28,7 @@
     <n-modal v-model:show="showCreateModal" preset="card" class="modal-card" :title="t('token.create')">
       <n-form ref="formRef" class="form-stack inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.tokenName')" path="name">
-          <n-input v-model:value="form.name" />
+          <n-input v-model:value="form.name" placeholder="" />
         </n-form-item>
         <n-form-item :label="t('field.expiresAt')" path="expires_at">
           <div class="token-expiry-control">
@@ -41,6 +41,7 @@
               v-model:value="form.expires_at"
               class="full-width"
               type="datetime"
+              placeholder=""
               clearable
             />
           </div>
