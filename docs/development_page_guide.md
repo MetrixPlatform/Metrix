@@ -70,17 +70,18 @@
 - API 文档页使用“接口列表 + 详情弹窗 + 测试弹窗”的布局：列表只展示方法、路径和摘要，参数、请求体字段、请求示例、响应说明、响应示例等放在详情中查看，避免大量说明直接铺在列表里。
 - API 文档页内置接口测试面板：开发者填入 API Token 后，可以按 OpenAPI 参数测试接口；测试面板必须展示实际发送的数据和返回结果，页面只自动处理常见 path/query 参数和 JSON 请求体，不在前端维护第二份接口清单。
 - 请求体和响应示例优先从 OpenAPI schema 的 `example`、`examples`、`default`、`enum` 中读取；未显式配置时由前端按 schema 类型生成可编辑示例，不能让测试请求体只显示空 `{}`。
-- `/openapi.json` 默认过滤安装、探活和 Token 管理接口，如 `/api/install*`、`/api/health*`、`/api/tokens*`，避免把初始化、探活和 Web-only 管理能力暴露给 API 调用者文档。
+- `/openapi.json` 只展示可由 API Token 调用的业务接口，默认过滤安装、探活、认证、系统设置、用户管理、角色权限和 Token 管理接口，如 `/api/install*`、`/api/health*`、`/api/auth*`、`/api/settings*`、`/api/users*`、`/api/roles*`、`/api/permissions*`、`/api/tokens*`，避免把初始化、账号体系和 Web-only 管理能力暴露给 API 调用者文档。
 - Token 页面使用 `/tokens`，权限为 `route:tokens`，授予后默认扩展 `action:api_token:read`；创建和删除分别使用 `action:api_token:create`、`action:api_token:delete`。
 - Token 管理只能通过网页登录态操作，后端 `/api/tokens*` 需要 `require_web_session` 强校验；API Token 即使拥有角色权限也不能调用 Token 创建、查询、显示完整值或删除接口。
-- API Token 是全平台鉴权入口，后续接口默认不需要额外适配 Token。只要接口继续使用 `get_current_user`、`require_permission(...)` 或 `require_any_permission(...)`，Bearer Token 与 API Token 都会进入同一套用户状态和角色权限校验。
+- 认证、个人资料、修改密码、系统设置、用户管理、角色权限和权限字典等后台管理接口都是 Web-only 能力，后端必须使用 `require_web_session` 强校验，不能只依赖前端隐藏按钮或菜单。
+- API Token 只用于明确开放给脚本或外部系统调用的业务接口。接口只要使用 `get_current_user`、`require_permission(...)` 或 `require_any_permission(...)`，Bearer 登录 Token 与 API Token 都会进入同一套用户状态和角色权限校验；因此 Web-only 接口必须额外加 `require_web_session`。
 - API Token 创建时 `expires_at = null` 表示永不过期；前端创建弹窗必须显式提供“永不过期”和“自定义时间”两种选择。
 - API Token 始终保存哈希和展示前缀；当系统设置 `api_token_reveal_enabled` 开启时，新创建 Token 还会保存可恢复的完整值，用户可在列表中通过专门的 `/api/tokens/{id}/secret` 接口显示或复制完整 Token。
 - API Token 是用户级资源，后端 repository/service 必须按当前用户 ID 查询；管理员也不跨用户查看、显示或删除他人的 Token。
 - 列表接口不得直接返回明文 Token，只能返回 `secret_available` 让前端判断是否显示“显示/复制”按钮；旧 Token 或未保存完整值的 Token 只能显示前缀。
 - 关闭 `api_token_reveal_enabled` 后，前端隐藏完整 Token 显示/复制入口，后端 secret 接口仍必须返回 403；关闭该开关不会删除已保存的完整值。
 - 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
-- 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary`、响应模型和必要的 `responses`，请求/响应 Pydantic schema 字段使用 `Field(...)` 描述和示例；API 文档页会自动从 `/openapi.json` 中展示，不要在前端 API 文档页手写接口清单。
+- 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary`、响应模型和必要的 `responses`，请求/响应 Pydantic schema 字段使用 `Field(...)` 描述和示例；API 文档页会自动从 `/openapi.json` 中展示，不要在前端 API 文档页手写接口清单。新增 Web-only 管理接口时，需要同步维护后端 OpenAPI 过滤规则，避免出现在 API 文档页。
 - OpenAPI 文档翻译集中维护在语言 JSON 的 `openapi.*` 分组中，`web/src/i18n/openapi.ts` 只保留读取辅助函数。翻译 key 约定为 `openapi.tag.<tag>`、`openapi.operation.<operationId>.summary`、`openapi.operation.<operationId>.description`、`openapi.parameter.<operationId>.<name>`、`openapi.parameter.common.<name>`、`openapi.schema.property.<field>`、`openapi.schema.property.<nested.field>` 和 `openapi.response.<status>`；页面继续通过 `openApiText(...)` 读取，找不到时回退到 OpenAPI 原始说明。
 - 若新增页面属于 API 功能整体开关管辖，在 `web/src/router/page-registry.ts` 的页面注册项中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
 - Vite 开发代理只匹配 `/api/` 和 `/openapi.json`。不要把代理前缀改回宽泛的 `/api`，否则前端页面路径 `/api-docs` 会被误转发到后端并在刷新时显示 404。

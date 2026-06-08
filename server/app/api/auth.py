@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_web_session
 from app.db.session import get_db
 from app.models import User
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, ProfileUpdateRequest, RegisterRequest
@@ -26,12 +26,18 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(user: User = Depends(get_current_user)) -> MessageResponse:
+def logout(
+    user: User = Depends(get_current_user),
+    _: None = Depends(require_web_session),
+) -> MessageResponse:
     return message_response("auth.loggedOut", "Logged out", username=user.username)
 
 
 @router.get("/me", response_model=LoginResponse)
-def me(user: User = Depends(get_current_user)) -> LoginResponse:
+def me(
+    user: User = Depends(get_current_user),
+    _: None = Depends(require_web_session),
+) -> LoginResponse:
     return LoginResponse(token="", user=UserProfile.model_validate(user), permissions=sorted(get_user_permission_codes(user)))
 
 
@@ -40,6 +46,7 @@ def update_profile(
     payload: ProfileUpdateRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: None = Depends(require_web_session),
 ) -> UserProfile:
     updated_user = AuthService(db).update_profile(user, payload)
     return UserProfile.model_validate(updated_user)
@@ -50,6 +57,7 @@ def change_password(
     payload: ChangePasswordRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: None = Depends(require_web_session),
 ) -> MessageResponse:
     AuthService(db).change_password(user, payload)
     return message_response("profile.passwordChanged", "Password changed")

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_permission
+from app.core.deps import require_permission, require_web_session
 from app.core.permissions import SETTING_OPERATE, SETTING_READ, SETTING_UPDATE
 from app.db.session import get_db
 from app.models import User
@@ -22,7 +22,8 @@ def public_settings(db: Session = Depends(get_db)) -> PublicSettings:
 @router.get("", response_model=SystemSettings)
 def get_system_settings(
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission(SETTING_READ)),
+    _: None = Depends(require_web_session),
+    __: User = Depends(require_permission(SETTING_READ)),
 ) -> SystemSettings:
     return SettingService(db).get_settings()
 
@@ -31,6 +32,7 @@ def get_system_settings(
 def update_system_settings(
     payload: SystemSettingsUpdate,
     db: Session = Depends(get_db),
+    _: None = Depends(require_web_session),
     actor: User = Depends(require_permission(SETTING_UPDATE)),
 ) -> SystemSettings:
     return SettingService(db).update_settings(actor, payload)
@@ -39,6 +41,7 @@ def update_system_settings(
 @router.post("/backup")
 def backup_data(
     db: Session = Depends(get_db),
+    _: None = Depends(require_web_session),
     actor: User = Depends(require_permission(SETTING_OPERATE)),
 ) -> Response:
     backup = SettingService(db).backup_data(actor)

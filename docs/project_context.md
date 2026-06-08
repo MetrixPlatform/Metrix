@@ -547,3 +547,8 @@
 - 登录页底部“注册账号/忘记密码”恢复横向居中排列，避免竖向堆叠占用卡片高度。
 - 注册页底部“提交注册/返回登录”合并到同一行，提交按钮占用主要宽度，返回登录保持紧凑文本入口。
 - `docs/development_page_guide.md` 补充认证页底部辅助操作优先横排的布局规则。
+## 2026-06-08：收紧 API Token 与 Web 管理能力边界
+- 后端 `/openapi.json` 过滤扩展到认证、系统设置、用户管理、角色权限和权限字典接口；API 文档页只展示可由 API Token 调用的业务接口，不再显示认证、系统设置、用户、角色权限分组。
+- `/api/auth/me`、个人资料、修改密码、系统设置、用户管理、角色和权限字典等 Web 管理接口增加 `require_web_session` 强校验，API Token 调用时返回 `error.webOnly`。
+- 后端测试补充断言：OpenAPI schema 不包含 `/api/auth*`、`/api/settings*`、`/api/users*`、`/api/roles*`、`/api/permissions*`、`/api/tokens*` 等 Web-only path，且 API Token 不能调用这些管理接口。
+- `docs/development_page_guide.md` 更新 API 与 Token 规则，明确后续新增 Web-only 管理接口必须同时做网页登录态强校验和 OpenAPI 过滤。

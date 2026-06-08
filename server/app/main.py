@@ -16,8 +16,17 @@ from app.core.permissions import API_DOCS_READ
 from app.models import User
 from app.services.maintenance import audit_log_prune_loop
 
-OPENAPI_HIDDEN_TAGS = {"api-tokens", "health", "install"}
-OPENAPI_HIDDEN_PATH_PREFIXES = ("/api/health", "/api/install", "/api/tokens")
+OPENAPI_HIDDEN_TAGS = {"api-tokens", "auth", "health", "install", "roles", "settings", "users"}
+OPENAPI_HIDDEN_PATH_PREFIXES = (
+    "/api/auth",
+    "/api/health",
+    "/api/install",
+    "/api/permissions",
+    "/api/roles",
+    "/api/settings",
+    "/api/tokens",
+    "/api/users",
+)
 OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head"}
 
 

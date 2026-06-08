@@ -242,9 +242,26 @@ def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch)
     assert openapi.status_code == 200
     openapi_schema = openapi.json()
     assert openapi_schema["openapi"].startswith("3.")
-    assert not any(path.startswith("/api/tokens") for path in openapi_schema["paths"])
-    assert not any(path.startswith("/api/install") for path in openapi_schema["paths"])
-    assert not any(path.startswith("/api/health") for path in openapi_schema["paths"])
+    hidden_prefixes = (
+        "/api/auth",
+        "/api/health",
+        "/api/install",
+        "/api/permissions",
+        "/api/roles",
+        "/api/settings",
+        "/api/tokens",
+        "/api/users",
+    )
+    for prefix in hidden_prefixes:
+        assert not any(path.startswith(prefix) for path in openapi_schema["paths"])
+    hidden_tags = {"api-tokens", "auth", "health", "install", "roles", "settings", "users"}
+    visible_tags = {
+        tag
+        for path_item in openapi_schema["paths"].values()
+        for operation in path_item.values()
+        for tag in operation.get("tags", [])
+    }
+    assert visible_tags.isdisjoint(hidden_tags)
 
 
 def test_mysql_install_runs_database_and_table_creation(monkeypatch):
@@ -629,11 +646,19 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
 
     api_headers = {"Authorization": f"Bearer {created_data['token']}"}
     assert client.get("/api/dashboard/summary", headers=api_headers).status_code == 200
-    assert client.get("/api/users", headers=api_headers).status_code == 403
+    web_only_paths = [
+        "/api/auth/me",
+        "/api/settings",
+        "/api/users",
+        "/api/roles",
+        "/api/permissions",
+        "/api/tokens",
+    ]
+    for path in web_only_paths:
+        response = client.get(path, headers=api_headers)
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "error.webOnly"
     assert client.get("/openapi.json", headers=api_headers).status_code == 200
-    api_token_manage_call = client.get("/api/tokens", headers=api_headers)
-    assert api_token_manage_call.status_code == 403
-    assert api_token_manage_call.json()["detail"]["code"] == "error.webOnly"
 
     api_announcement = client.post(
         "/api/announcements",

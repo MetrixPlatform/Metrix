@@ -473,39 +473,11 @@
   },
   "openapi": {
     "tag": {
-      "auth": "Auth",
       "dashboard": "Dashboard",
       "announcements": "Announcements",
-      "audit": "Audit logs",
-      "settings": "Settings",
-      "users": "Users",
-      "roles": "Roles and permissions"
+      "audit": "Audit logs"
     },
     "operation": {
-      "register_api_auth_register_post": {
-        "summary": "Submit registration",
-        "description": "Create a pending account. The request fails when registration is disabled or required profile fields are missing."
-      },
-      "login_api_auth_login_post": {
-        "summary": "Log in with password",
-        "description": "Exchange username and password for a web session token, user profile, and permissions."
-      },
-      "logout_api_auth_logout_post": {
-        "summary": "Log out",
-        "description": "Return a logout message. The current version does not store server-side sessions."
-      },
-      "me_api_auth_me_get": {
-        "summary": "Get current user",
-        "description": "Read the user profile and permissions for the current bearer credential."
-      },
-      "update_profile_api_auth_profile_put": {
-        "summary": "Update profile",
-        "description": "Update the current user's profile and contact information."
-      },
-      "change_password_api_auth_change_password_post": {
-        "summary": "Change password",
-        "description": "Validate the old password and set a new password for the current user."
-      },
       "summary_api_dashboard_summary_get": {
         "summary": "Get dashboard summary",
         "description": "Read concise statistics used by the dashboard."
@@ -549,94 +521,6 @@
       "export_audit_logs_api_audit_logs_export_get": {
         "summary": "Export audit logs as CSV",
         "description": "Export all audit logs matching the current filters."
-      },
-      "public_settings_api_settings_public_get": {
-        "summary": "Get public settings",
-        "description": "Read public settings used by login, registration, and app startup."
-      },
-      "get_system_settings_api_settings_get": {
-        "summary": "Get system settings",
-        "description": "Read full system settings."
-      },
-      "update_system_settings_api_settings_put": {
-        "summary": "Update system settings",
-        "description": "Update platform name, registration rules, retention, locale, API switch, and token reveal switch."
-      },
-      "backup_data_api_settings_backup_post": {
-        "summary": "Back up all data",
-        "description": "Create a ZIP backup containing core data."
-      },
-      "list_users_api_users_get": {
-        "summary": "List users",
-        "description": "Query users with pagination and filters."
-      },
-      "create_user_api_users_post": {
-        "summary": "Create user",
-        "description": "Create an approved user and optionally assign roles."
-      },
-      "list_role_options_api_users_role_options_get": {
-        "summary": "List role options",
-        "description": "Read brief roles for user creation and role assignment."
-      },
-      "get_user_api_users__user_id__get": {
-        "summary": "Get user",
-        "description": "Read one user's profile, status, and roles."
-      },
-      "update_user_api_users__user_id__put": {
-        "summary": "Update user",
-        "description": "Update one user's profile."
-      },
-      "delete_user_api_users__user_id__delete": {
-        "summary": "Delete user",
-        "description": "Delete one user. Built-in users and the last administrator are protected."
-      },
-      "enable_user_api_users__user_id__enable_post": {
-        "summary": "Enable user",
-        "description": "Enable one user account."
-      },
-      "disable_user_api_users__user_id__disable_post": {
-        "summary": "Disable user",
-        "description": "Disable one user account. The last administrator is protected."
-      },
-      "reset_password_api_users__user_id__reset_password_post": {
-        "summary": "Reset password",
-        "description": "Set a new password for one user."
-      },
-      "assign_roles_api_users__user_id__roles_put": {
-        "summary": "Assign user roles",
-        "description": "Replace one user's role list."
-      },
-      "approve_user_api_users__user_id__approve_post": {
-        "summary": "Approve user",
-        "description": "Approve a pending registered user and assign roles."
-      },
-      "reject_user_api_users__user_id__reject_post": {
-        "summary": "Reject user",
-        "description": "Reject a pending registered user with an optional reason."
-      },
-      "list_roles_api_roles_get": {
-        "summary": "List roles",
-        "description": "Read roles and their permissions."
-      },
-      "create_role_api_roles_post": {
-        "summary": "Create role",
-        "description": "Create a custom role."
-      },
-      "update_role_api_roles__role_id__put": {
-        "summary": "Update role",
-        "description": "Update role name and description."
-      },
-      "delete_role_api_roles__role_id__delete": {
-        "summary": "Delete role",
-        "description": "Delete a custom role. Built-in roles cannot be deleted."
-      },
-      "list_permissions_api_permissions_get": {
-        "summary": "List permissions",
-        "description": "Read the platform permission dictionary."
-      },
-      "assign_permissions_api_roles__role_id__permissions_put": {
-        "summary": "Assign role permissions",
-        "description": "Replace one role's permissions. The super admin role always has all permissions."
       }
     },
     "parameter": {
@@ -654,9 +538,7 @@
         "start_time": "Start time in ISO 8601 format.",
         "target_type": "Target type or audience.",
         "action": "Audit action code, such as auth.login or user.create.",
-        "announcement_id": "Announcement ID.",
-        "role_id": "Role ID.",
-        "user_id": "User ID."
+        "announcement_id": "Announcement ID."
       }
     },
     "schema": {

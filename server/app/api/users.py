@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_any_permission, require_permission
+from app.core.deps import require_any_permission, require_permission, require_web_session
 from app.core.permissions import USER_CREATE, USER_DELETE, USER_OPERATE, USER_READ, USER_UPDATE
 from app.db.session import get_db
 from app.models import Role, User
@@ -20,7 +20,7 @@ from app.schemas.user import (
 )
 from app.services.users import UserService
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/api/users", tags=["users"], dependencies=[Depends(require_web_session)])
 
 
 @router.get("", response_model=UserListResponse)

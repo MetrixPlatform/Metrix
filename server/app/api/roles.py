@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_permission
+from app.core.deps import require_permission, require_web_session
 from app.core.permissions import ROLE_CREATE, ROLE_DELETE, ROLE_OPERATE, ROLE_READ, ROLE_UPDATE
 from app.db.session import get_db
 from app.models import Permission, Role, User
@@ -9,7 +9,7 @@ from app.schemas.common import MessageResponse, message_response
 from app.schemas.role import AssignPermissionsRequest, PermissionItem, RoleCreateRequest, RoleItem, RoleUpdateRequest
 from app.services.roles import RoleService
 
-router = APIRouter(prefix="/api", tags=["roles"])
+router = APIRouter(prefix="/api", tags=["roles"], dependencies=[Depends(require_web_session)])
 
 
 @router.get("/roles", response_model=list[RoleItem])

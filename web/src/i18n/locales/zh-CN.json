@@ -473,39 +473,11 @@
   },
   "openapi": {
     "tag": {
-      "auth": "认证",
       "dashboard": "首页",
       "announcements": "公告",
-      "audit": "操作日志",
-      "settings": "系统设置",
-      "users": "用户",
-      "roles": "角色权限"
+      "audit": "操作日志"
     },
     "operation": {
-      "register_api_auth_register_post": {
-        "summary": "提交注册申请",
-        "description": "创建一个待审核账号。注册开关关闭或必填资料缺失时会返回业务错误。"
-      },
-      "login_api_auth_login_post": {
-        "summary": "账号密码登录",
-        "description": "使用账号和密码换取网页登录 Token，并返回当前用户资料和权限。"
-      },
-      "logout_api_auth_logout_post": {
-        "summary": "退出登录",
-        "description": "返回退出登录提示。当前版本不在服务端保存会话状态。"
-      },
-      "me_api_auth_me_get": {
-        "summary": "获取当前用户",
-        "description": "读取当前 Bearer 凭据对应的用户资料和权限，可用于验证网页登录 Token 或 API Token 是否有效。"
-      },
-      "update_profile_api_auth_profile_put": {
-        "summary": "修改个人资料",
-        "description": "修改当前登录账号自己的姓名、联系方式、公司和部门/职位。"
-      },
-      "change_password_api_auth_change_password_post": {
-        "summary": "修改密码",
-        "description": "校验旧密码后修改当前账号密码。"
-      },
       "summary_api_dashboard_summary_get": {
         "summary": "获取首页摘要",
         "description": "读取首页需要的简要统计数据。"
@@ -549,94 +521,6 @@
       "export_audit_logs_api_audit_logs_export_get": {
         "summary": "导出操作日志 CSV",
         "description": "按当前筛选条件导出完整操作日志 CSV，不受当前分页限制。"
-      },
-      "public_settings_api_settings_public_get": {
-        "summary": "读取公开设置",
-        "description": "读取登录、注册和前端启动所需的公开系统设置。"
-      },
-      "get_system_settings_api_settings_get": {
-        "summary": "读取系统设置",
-        "description": "读取完整系统设置，需要系统设置查询权限。"
-      },
-      "update_system_settings_api_settings_put": {
-        "summary": "保存系统设置",
-        "description": "更新平台名称、注册规则、日志保留、默认语言、API 开关和 Token 显示开关。"
-      },
-      "backup_data_api_settings_backup_post": {
-        "summary": "备份全部数据",
-        "description": "生成包含用户、角色、权限、系统配置和日志等核心数据的 ZIP 备份。"
-      },
-      "list_users_api_users_get": {
-        "summary": "查询用户列表",
-        "description": "分页查询用户，支持关键字、审核状态、启用状态和创建时间筛选。"
-      },
-      "create_user_api_users_post": {
-        "summary": "创建用户",
-        "description": "管理员创建一个已审核用户，可同时分配角色。"
-      },
-      "list_role_options_api_users_role_options_get": {
-        "summary": "获取角色选项",
-        "description": "读取用户创建和角色分配弹窗所需的角色简要列表。"
-      },
-      "get_user_api_users__user_id__get": {
-        "summary": "获取用户详情",
-        "description": "按用户 ID 获取用户资料、状态和角色。"
-      },
-      "update_user_api_users__user_id__put": {
-        "summary": "修改用户",
-        "description": "修改指定用户的基本资料。"
-      },
-      "delete_user_api_users__user_id__delete": {
-        "summary": "删除用户",
-        "description": "删除指定用户，内置用户和最后一个管理员受保护。"
-      },
-      "enable_user_api_users__user_id__enable_post": {
-        "summary": "启用用户",
-        "description": "将指定用户恢复为可登录状态。"
-      },
-      "disable_user_api_users__user_id__disable_post": {
-        "summary": "禁用用户",
-        "description": "禁用指定用户，最后一个管理员受保护。"
-      },
-      "reset_password_api_users__user_id__reset_password_post": {
-        "summary": "重置密码",
-        "description": "管理员为指定用户设置新密码。"
-      },
-      "assign_roles_api_users__user_id__roles_put": {
-        "summary": "分配用户角色",
-        "description": "替换指定用户的角色列表，不能移除最后一个管理员或自己的管理员角色。"
-      },
-      "approve_user_api_users__user_id__approve_post": {
-        "summary": "审核通过用户",
-        "description": "将待审核注册用户改为已通过，并分配角色。"
-      },
-      "reject_user_api_users__user_id__reject_post": {
-        "summary": "驳回注册用户",
-        "description": "将待审核注册用户改为已驳回，可记录驳回原因。"
-      },
-      "list_roles_api_roles_get": {
-        "summary": "查询角色列表",
-        "description": "读取角色及其权限分配。"
-      },
-      "create_role_api_roles_post": {
-        "summary": "创建角色",
-        "description": "创建一个自定义角色。"
-      },
-      "update_role_api_roles__role_id__put": {
-        "summary": "修改角色",
-        "description": "修改角色名称和说明。"
-      },
-      "delete_role_api_roles__role_id__delete": {
-        "summary": "删除角色",
-        "description": "删除自定义角色，内置角色不可删除。"
-      },
-      "list_permissions_api_permissions_get": {
-        "summary": "查询权限字典",
-        "description": "读取平台内置权限字典，用于角色授权。"
-      },
-      "assign_permissions_api_roles__role_id__permissions_put": {
-        "summary": "分配角色权限",
-        "description": "替换指定角色的权限列表；超级管理员角色始终拥有全部权限。"
       }
     },
     "parameter": {
@@ -654,9 +538,7 @@
         "start_time": "开始时间，ISO 8601 格式。",
         "target_type": "目标类型或推送范围。",
         "action": "操作类型编码，例如 auth.login、user.create。",
-        "announcement_id": "公告 ID。",
-        "role_id": "角色 ID。",
-        "user_id": "用户 ID。"
+        "announcement_id": "公告 ID。"
       }
     },
     "schema": {
