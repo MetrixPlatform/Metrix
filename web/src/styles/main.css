@@ -235,6 +235,7 @@ a {
 }
 
 .install-section {
+  width: 100%;
   min-width: 0;
 }
 
@@ -266,7 +267,7 @@ a {
 }
 
 .install-field-row.compact {
-  grid-template-columns: minmax(0, 1.6fr) minmax(112px, 0.8fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(150px, 0.75fr);
 }
 
 .install-submit {
@@ -347,6 +348,56 @@ a {
 
 .inline-form .n-form-item-blank {
   min-width: 0;
+}
+
+.inline-form .n-form-item {
+  min-width: 0;
+}
+
+.inline-form .n-input,
+.inline-form .n-input-number,
+.inline-form .n-select,
+.inline-form .n-date-picker {
+  width: 100%;
+  min-width: 0;
+}
+
+.inline-form .n-input-wrapper {
+  min-width: 0;
+}
+
+.inline-form .n-input__input,
+.inline-form .n-input__input-el {
+  min-width: 0;
+}
+
+.inline-form .n-input__suffix {
+  flex: 0 0 auto;
+}
+
+.inline-form .n-input--password .n-input__suffix {
+  min-width: 22px;
+}
+
+.install-section .n-form-item--left-labelled {
+  grid-template-areas:
+    "label"
+    "blank"
+    "feedback";
+  grid-template-columns: minmax(0, 100%);
+  grid-template-rows: minmax(var(--n-label-height), auto) auto auto;
+}
+
+.install-section .n-form-item--left-labelled .n-form-item-label {
+  width: auto !important;
+  min-height: var(--n-label-height);
+  padding: 0 0 6px;
+  text-align: left;
+}
+
+.install-section .inline-form .n-form-item-label__text,
+.install-section .n-form-item-label__text {
+  text-align: left;
 }
 
 .form-actions {
