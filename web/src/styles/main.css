@@ -127,7 +127,8 @@ a {
 }
 
 .auth-card {
-  width: min(440px, 100%);
+  position: relative;
+  width: min(360px, 100%);
   padding: 30px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -136,7 +137,17 @@ a {
 }
 
 .login-card {
-  width: min(440px, 100%);
+  width: min(360px, 100%);
+}
+
+.auth-card-actions {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .login-form-links {
@@ -153,7 +164,7 @@ a {
 }
 
 .register-card {
-  width: min(680px, 100%);
+  width: min(520px, 100%);
   height: min(680px, calc(max(100dvh, var(--app-min-height)) - 116px));
   max-height: calc(max(100dvh, var(--app-min-height)) - 116px);
   display: flex;
@@ -165,7 +176,7 @@ a {
 .register-card .auth-brand {
   flex: 0 0 auto;
   margin-bottom: 0;
-  padding: 30px 60px 18px;
+  padding: 30px 112px 18px 60px;
 }
 
 .register-form {
@@ -206,7 +217,7 @@ a {
 }
 
 .register-page .auth-top-actions {
-  width: min(680px, 100%);
+  width: min(520px, 100%);
 }
 
 .install-page .auth-top-actions {
@@ -218,9 +229,34 @@ a {
   margin-top: 0;
 }
 
-.auth-top-actions .n-button {
+.auth-top-actions .n-button,
+.auth-card-actions .n-button {
   border: 1px solid var(--border-color);
   background: var(--panel-bg);
+}
+
+.auth-card-actions .n-button {
+  --n-width: 26px;
+  --n-height: 26px;
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  padding: 0;
+}
+
+.auth-card-actions .n-button__icon,
+.auth-card-actions .n-icon {
+  margin: 0;
+  font-size: 16px;
+}
+
+.auth-card-actions .language-switcher-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.auth-top-actions .n-button {
   box-shadow: 0 8px 24px var(--shadow-color);
 }
 
@@ -239,7 +275,7 @@ a {
 }
 
 .auth-wordmark {
-  margin: 0 0 28px;
+  margin: 18px 0 28px;
   color: transparent;
   font-size: 44px;
   font-weight: 700;
@@ -1897,7 +1933,7 @@ a {
   }
 
   .register-card {
-    width: min(100%, calc(max(100vw, var(--app-min-width)) - 28px));
+    width: min(520px, calc(max(100vw, var(--app-min-width)) - 28px));
     height: min(680px, calc(max(100dvh, var(--app-min-height)) - 116px));
     max-height: calc(max(100dvh, var(--app-min-height)) - 116px);
   }
@@ -1994,7 +2030,6 @@ a {
   }
 
   .auth-top-actions,
-  .login-card,
   .register-page .auth-top-actions,
   .install-page .auth-top-actions {
     width: 100%;

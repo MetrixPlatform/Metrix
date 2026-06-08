@@ -1,11 +1,11 @@
 <template>
   <div class="auth-page login-page" :class="{ 'has-announcement': publicAnnouncements.length > 0 }">
-    <div class="auth-top-actions">
-      <LanguageSwitcher />
-      <ThemeToggleButton />
-    </div>
     <announcement-ticker v-if="publicAnnouncements.length > 0" class="auth-announcement-ticker" :items="publicAnnouncements" />
     <div class="auth-card login-card">
+      <div class="auth-card-actions">
+        <LanguageSwitcher />
+        <ThemeToggleButton />
+      </div>
       <h1 class="auth-wordmark">{{ appName }}</h1>
       <n-form
         ref="formRef"

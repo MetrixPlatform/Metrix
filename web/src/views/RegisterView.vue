@@ -1,10 +1,10 @@
 <template>
   <div class="auth-page register-page">
-    <div class="auth-top-actions">
-      <LanguageSwitcher />
-      <ThemeToggleButton />
-    </div>
     <div class="auth-card register-card">
+      <div class="auth-card-actions">
+        <LanguageSwitcher />
+        <ThemeToggleButton />
+      </div>
       <div class="auth-brand">
         <BrandMark />
         <div>
