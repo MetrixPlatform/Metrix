@@ -558,3 +558,9 @@
 - 默认开启审核时，注册接口继续创建 `pending` 用户并返回 `auth.registerSubmitted`；注册页不再显示固定副标题，改为注册成功后弹窗提示等待管理员审核，确认后返回登录页。
 - 关闭审核时，注册接口直接创建 `approved` 用户、写入 `approved_at` 并授予默认 `user` 角色，返回 `auth.registerSuccess`；前端仅显示普通成功提示后返回登录页。
 - 开发文档补充注册审核规则：后端返回稳定 message code，前端 i18n 负责展示；调整系统设置 schema 时必须同步前端类型、store 默认值、设置表单和测试 payload。
+
+## 2026-06-08：全量复查与完整功能回归
+- 重新检查前后端源码、路由注册、权限种子、API 客户端、store、页面组件、i18n、CSS、后端 schema/service/repository/model 和测试用例；未发现新的可确认冗余代码、死代码、调试残留或不兼容实现。保留的废弃权限清理逻辑仍用于开发库同步迁移和前端过滤，不作为死代码删除。
+- Browser 完整模拟回归覆盖登录、忘记密码弹窗、语言/主题切换、首页粒子和公告侧栏、用户新增/校验/编辑/禁用启用/重置密码/角色分配/删除、普通用户菜单权限、角色新增/授权/删除、公告新增/展示方式校验/筛选/批量删除/已读状态/操作他人权限边界、操作日志筛选和详情、系统设置保存、Token 创建/显示/删除、API 文档过滤和测试请求、个人信息保存、注册审核开启/关闭两条路径、404 自动返回主页。
+- 测试过程中创建的 `codex_` 前缀临时用户、角色、公告和 Token 已通过页面操作清理；系统设置恢复为注册开启、注册需管理员审核开启、API 开启、Token 显示开启，管理员账号 `admin` 密码保持 `123456`。审计日志作为真实操作记录保留。
+- 最终验证：`python -m compileall -q server\app server\tests` 通过；`python -m pytest server\tests -q` 通过 21 passed，仅有 FastAPI/Starlette TestClient 与当前 httpx 的第三方提示；`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；`npm run build` 通过；`git diff --check` 通过；Browser 控制台无项目 error。
