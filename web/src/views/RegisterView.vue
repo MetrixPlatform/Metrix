@@ -9,7 +9,6 @@
         <BrandMark />
         <div>
           <h1 class="auth-title">{{ t("auth.registerAccount") }}</h1>
-          <p class="auth-subtitle">{{ t("auth.registerSubtitle") }}</p>
         </div>
       </div>
       <n-form
@@ -61,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { NButton, NForm, NFormItem, NInput, useMessage } from "naive-ui";
+import { NButton, NForm, NFormItem, NInput, useDialog, useMessage } from "naive-ui";
 import type { FormInst, FormItemRule, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
@@ -77,6 +76,7 @@ import { messageText, showError } from "../utils/message";
 import { emailRule, maxLengthRule, minLengthRule, phoneRule, requiredRule, validateForm } from "../utils/validation";
 
 const router = useRouter();
+const dialog = useDialog();
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
@@ -120,7 +120,20 @@ async function submit() {
       department: form.department,
       full_name: form.full_name
     });
-    message.success(messageText(result, "auth.registerSubmitted"));
+    if (result.code === "auth.registerSubmitted") {
+      dialog.success({
+        title: messageText(result, "auth.registerSubmitted"),
+        content: t("auth.registerApprovalTip"),
+        positiveText: t("common.ok"),
+        closable: false,
+        maskClosable: false,
+        onPositiveClick: () => {
+          void router.push("/login");
+        }
+      });
+      return;
+    }
+    message.success(messageText(result, "auth.registerSuccess"));
     await router.push("/login");
   } catch (error) {
     showError(message, error);

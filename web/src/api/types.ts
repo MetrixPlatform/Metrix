@@ -136,6 +136,7 @@ export interface RegistrationRequiredFields {
 export interface PublicSettings {
   app_name: string;
   registration_enabled: boolean;
+  registration_approval_required: boolean;
   registration_required_fields: RegistrationRequiredFields;
   default_locale: "zh-CN" | "en-US";
   api_enabled: boolean;

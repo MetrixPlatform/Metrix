@@ -15,7 +15,9 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=MessageResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> MessageResponse:
-    AuthService(db).register(payload)
+    user = AuthService(db).register(payload)
+    if user.approval_status == "approved":
+        return message_response("auth.registerSuccess", "Registration completed")
     return message_response("auth.registerSubmitted", "Registration request submitted")
 
 

@@ -431,6 +431,7 @@ def test_register_approve_and_user_login(tmp_path, monkeypatch):
         },
     )
     assert register_response.status_code == 200
+    assert register_response.json()["code"] == "auth.registerSubmitted"
     assert client.post("/api/auth/login", json={"username": "user01", "password": "UserPass123"}).status_code == 400
 
     pending = client.get("/api/users", params={"approval_status": "pending"}, headers=admin_headers)
@@ -441,6 +442,40 @@ def test_register_approve_and_user_login(tmp_path, monkeypatch):
 
     user_headers = login(client, "user01", "UserPass123")
     assert client.get("/api/users", headers=user_headers).status_code == 403
+    assert client.get("/api/dashboard/summary", headers=user_headers).status_code == 200
+
+
+def test_register_without_approval_can_login(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    settings_payload = client.get("/api/settings", headers=admin_headers).json()
+    settings_payload["registration_approval_required"] = False
+    assert client.put("/api/settings", json=settings_payload, headers=admin_headers).status_code == 200
+
+    register_response = client.post(
+        "/api/auth/register",
+        json={
+            "username": "direct_user",
+            "password": "UserPass123",
+            "phone": "13800000004",
+            "email": "direct_user@example.com",
+            "company": "公司",
+            "department": "部门",
+            "full_name": "免审用户",
+        },
+    )
+    assert register_response.status_code == 200
+    assert register_response.json()["code"] == "auth.registerSuccess"
+
+    users = client.get("/api/users", params={"keyword": "direct_user"}, headers=admin_headers)
+    assert users.status_code == 200
+    user = page_items(users)[0]
+    assert user["approval_status"] == "approved"
+    assert {role["code"] for role in user["roles"]} == {"user"}
+
+    user_headers = login(client, "direct_user", "UserPass123")
     assert client.get("/api/dashboard/summary", headers=user_headers).status_code == 200
 
 
@@ -1081,12 +1116,14 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     public_defaults = client.get("/api/settings/public")
     assert public_defaults.status_code == 200
     assert public_defaults.json()["app_name"] == "Metrix"
+    assert public_defaults.json()["registration_approval_required"] is True
     assert public_defaults.json()["api_enabled"] is True
     assert public_defaults.json()["api_token_reveal_enabled"] is True
 
     settings_payload = {
         "app_name": "Data Portal",
         "registration_enabled": False,
+        "registration_approval_required": True,
         "registration_required_fields": {
             "phone": False,
             "email": False,
@@ -1105,6 +1142,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
 
     public_updated = client.get("/api/settings/public").json()
     assert public_updated["registration_enabled"] is False
+    assert public_updated["registration_approval_required"] is True
     assert public_updated["default_locale"] == "en-US"
     assert public_updated["api_token_reveal_enabled"] is False
     disabled_register = client.post(

@@ -100,6 +100,7 @@
     "platformName": "平台名称",
     "defaultLocale": "默认语言",
     "registrationEnabled": "开放注册",
+    "registrationApprovalRequired": "注册需管理员审核",
     "registrationRequired": "注册必填资料",
     "logRetention": "日志保留时长",
     "apiEnabled": "开放 API",
@@ -188,8 +189,9 @@
     "backToLogin": "返回登录",
     "forgotPassword": "忘记密码",
     "forgotPasswordTip": "请联系管理员修改密码。",
-    "registerSubtitle": "提交后等待管理员审核",
-    "registerSubmitted": "注册申请已提交"
+    "registerSubmitted": "注册申请已提交",
+    "registerApprovalTip": "请等待管理员审核通过后登录。",
+    "registerSuccess": "注册成功"
   },
   "install": {
     "title": "初始化 {name}",
@@ -391,6 +393,7 @@
       "show_sidebar": "首页侧栏展示",
       "app_name": "平台名称",
       "registration_enabled": "开放注册",
+      "registration_approval_required": "注册需管理员审核",
       "registration_required_fields": "注册必填资料",
       "log_retention_days": "日志保留时长",
       "default_locale": "默认语言",
@@ -569,6 +572,7 @@
         "permission_ids": "权限 ID 列表。",
         "app_name": "平台名称。",
         "registration_enabled": "是否开放注册。",
+        "registration_approval_required": "注册后是否需要管理员审核。",
         "registration_required_fields": {
           "phone": "注册时手机号码是否必填。",
           "email": "注册时邮箱是否必填。",

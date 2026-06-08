@@ -17,6 +17,7 @@ from app.services.audit import audit_changes, audit_detail, record_audit
 
 SETTING_APP_NAME = "app_name"
 SETTING_REGISTRATION_ENABLED = "registration_enabled"
+SETTING_REGISTRATION_APPROVAL_REQUIRED = "registration_approval_required"
 SETTING_REQUIRED_FIELDS = "registration_required_fields"
 SETTING_LOG_RETENTION_DAYS = "log_retention_days"
 SETTING_DEFAULT_LOCALE = "default_locale"
@@ -47,6 +48,7 @@ class SettingService:
         return PublicSettings(
             app_name=data.app_name,
             registration_enabled=data.registration_enabled,
+            registration_approval_required=data.registration_approval_required,
             registration_required_fields=data.registration_required_fields,
             default_locale=data.default_locale,
             api_enabled=data.api_enabled,
@@ -62,6 +64,7 @@ class SettingService:
             {
                 SETTING_APP_NAME: payload.app_name.strip(),
                 SETTING_REGISTRATION_ENABLED: _dump_bool(payload.registration_enabled),
+                SETTING_REGISTRATION_APPROVAL_REQUIRED: _dump_bool(payload.registration_approval_required),
                 SETTING_REQUIRED_FIELDS: payload.registration_required_fields.model_dump_json(),
                 SETTING_LOG_RETENTION_DAYS: str(payload.log_retention_days),
                 SETTING_DEFAULT_LOCALE: payload.default_locale,
@@ -121,6 +124,9 @@ class SettingService:
         return SystemSettings(
             app_name=_clean_text(raw.get(SETTING_APP_NAME), defaults.app_name),
             registration_enabled=_parse_bool(raw.get(SETTING_REGISTRATION_ENABLED), defaults.registration_enabled),
+            registration_approval_required=_parse_bool(
+                raw.get(SETTING_REGISTRATION_APPROVAL_REQUIRED), defaults.registration_approval_required
+            ),
             registration_required_fields=_parse_required_fields(raw.get(SETTING_REQUIRED_FIELDS), defaults.registration_required_fields),
             log_retention_days=_parse_retention_days(raw.get(SETTING_LOG_RETENTION_DAYS), defaults.log_retention_days),
             default_locale=_parse_locale(raw.get(SETTING_DEFAULT_LOCALE), defaults.default_locale),
@@ -168,6 +174,7 @@ def _default_settings() -> SystemSettings:
     return SystemSettings(
         app_name=get_settings().app_name,
         registration_enabled=True,
+        registration_approval_required=True,
         registration_required_fields=RegistrationRequiredFields(),
         log_retention_days=DEFAULT_LOG_RETENTION_DAYS,
         default_locale="zh-CN",
@@ -180,6 +187,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
     return {
         "app_name": settings.app_name,
         "registration_enabled": settings.registration_enabled,
+        "registration_approval_required": settings.registration_approval_required,
         "registration_required_fields": settings.registration_required_fields.model_dump(),
         "log_retention_days": settings.log_retention_days,
         "default_locale": settings.default_locale,

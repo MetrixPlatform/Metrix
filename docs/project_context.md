@@ -552,3 +552,9 @@
 - `/api/auth/me`、个人资料、修改密码、系统设置、用户管理、角色和权限字典等 Web 管理接口增加 `require_web_session` 强校验，API Token 调用时返回 `error.webOnly`。
 - 后端测试补充断言：OpenAPI schema 不包含 `/api/auth*`、`/api/settings*`、`/api/users*`、`/api/roles*`、`/api/permissions*`、`/api/tokens*` 等 Web-only path，且 API Token 不能调用这些管理接口。
 - `docs/development_page_guide.md` 更新 API 与 Token 规则，明确后续新增 Web-only 管理接口必须同时做网页登录态强校验和 OpenAPI 过滤。
+
+## 2026-06-08：添加注册审核开关
+- 系统设置新增 `registration_approval_required`，默认开启；公共设置、系统设置保存、审计快照、前端类型和设置页表单同步支持该字段。
+- 默认开启审核时，注册接口继续创建 `pending` 用户并返回 `auth.registerSubmitted`；注册页不再显示固定副标题，改为注册成功后弹窗提示等待管理员审核，确认后返回登录页。
+- 关闭审核时，注册接口直接创建 `approved` 用户、写入 `approved_at` 并授予默认 `user` 角色，返回 `auth.registerSuccess`；前端仅显示普通成功提示后返回登录页。
+- 开发文档补充注册审核规则：后端返回稳定 message code，前端 i18n 负责展示；调整系统设置 schema 时必须同步前端类型、store 默认值、设置表单和测试 payload。

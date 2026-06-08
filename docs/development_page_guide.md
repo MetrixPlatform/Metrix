@@ -50,6 +50,15 @@
 - 页面内部可以保留必要的内容内边距和工具栏间距，但不要让最外层工作区从主框架边界内缩。
 - 只有用户明确要求浮动布局、留白布局或特殊展示页时，才允许偏离贴边工作区规则，并需要在对应实现或项目记忆中记录原因。
 
+## 注册审核
+
+系统设置通过 `registration_enabled` 控制是否开放注册，通过 `registration_approval_required` 控制注册后是否需要管理员审核。默认开放注册且需要管理员审核。
+
+- `registration_approval_required = true` 时，注册接口创建 `pending` 用户，前端注册成功后用弹窗提示等待管理员审核，用户确认后返回登录页。
+- `registration_approval_required = false` 时，注册接口直接创建 `approved` 用户并授予默认 `user` 角色，前端只显示普通注册成功提示，不再弹出审核等待提示。
+- 注册接口仍只返回稳定消息 code，例如 `auth.registerSubmitted` 或 `auth.registerSuccess`，展示文案由前端 i18n 处理。
+- 调整系统设置 schema 时，前端 `PublicSettings`、`SystemSettings`、`settingsStore` 默认值、系统设置表单和后端测试 payload 必须同步更新，避免保存设置时丢字段。
+
 ## 新增权限
 
 1. 在 `server/app/core/permissions.py` 使用 `route_code(page)` 定义页面路由权限。

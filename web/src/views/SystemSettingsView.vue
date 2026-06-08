@@ -13,6 +13,9 @@
           <n-form-item :label="t('field.registrationEnabled')" path="registration_enabled">
             <n-switch v-model:value="form.registration_enabled" />
           </n-form-item>
+          <n-form-item :label="t('field.registrationApprovalRequired')" path="registration_approval_required">
+            <n-switch v-model:value="form.registration_approval_required" />
+          </n-form-item>
           <n-form-item :label="t('field.apiEnabled')" path="api_enabled">
             <n-switch v-model:value="form.api_enabled" />
           </n-form-item>
@@ -73,6 +76,7 @@ const backingUp = ref(false);
 const form = reactive<SystemSettings>({
   app_name: "",
   registration_enabled: true,
+  registration_approval_required: true,
   registration_required_fields: {
     phone: true,
     email: true,
@@ -140,6 +144,7 @@ async function downloadBackup() {
 function assignSettings(settings: SystemSettings) {
   form.app_name = settings.app_name;
   form.registration_enabled = settings.registration_enabled;
+  form.registration_approval_required = settings.registration_approval_required;
   form.registration_required_fields.phone = settings.registration_required_fields.phone;
   form.registration_required_fields.email = settings.registration_required_fields.email;
   form.registration_required_fields.company = settings.registration_required_fields.company;

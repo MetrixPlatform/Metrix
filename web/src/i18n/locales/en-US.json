@@ -100,6 +100,7 @@
     "platformName": "Platform name",
     "defaultLocale": "Default language",
     "registrationEnabled": "Registration",
+    "registrationApprovalRequired": "Require admin approval",
     "registrationRequired": "Required registration fields",
     "logRetention": "Log retention",
     "apiEnabled": "API access",
@@ -188,8 +189,9 @@
     "backToLogin": "Back to login",
     "forgotPassword": "Forgot password",
     "forgotPasswordTip": "Contact an administrator to reset your password.",
-    "registerSubtitle": "Wait for administrator approval after submission",
-    "registerSubmitted": "Registration request submitted"
+    "registerSubmitted": "Registration request submitted",
+    "registerApprovalTip": "Wait for an administrator to approve your account before logging in.",
+    "registerSuccess": "Registration completed"
   },
   "install": {
     "title": "Initialize {name}",
@@ -391,6 +393,7 @@
       "show_sidebar": "Show home sidebar",
       "app_name": "Platform name",
       "registration_enabled": "Registration enabled",
+      "registration_approval_required": "Require admin approval",
       "registration_required_fields": "Required registration fields",
       "log_retention_days": "Log retention",
       "default_locale": "Default language",
@@ -569,6 +572,7 @@
         "permission_ids": "Permission ID list.",
         "app_name": "Platform name.",
         "registration_enabled": "Whether registration is open.",
+        "registration_approval_required": "Whether registration requires administrator approval.",
         "registration_required_fields": {
           "phone": "Whether phone is required during registration.",
           "email": "Whether email is required during registration.",

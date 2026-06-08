@@ -17,6 +17,7 @@ class RegistrationRequiredFields(BaseModel):
 class PublicSettings(BaseModel):
     app_name: str
     registration_enabled: bool
+    registration_approval_required: bool
     registration_required_fields: RegistrationRequiredFields
     default_locale: LocaleCode
     api_enabled: bool
@@ -30,6 +31,7 @@ class SystemSettings(PublicSettings):
 class SystemSettingsUpdate(BaseModel):
     app_name: str = Field(min_length=1, max_length=80)
     registration_enabled: bool
+    registration_approval_required: bool
     registration_required_fields: RegistrationRequiredFields
     log_retention_days: LogRetentionDays
     default_locale: LocaleCode

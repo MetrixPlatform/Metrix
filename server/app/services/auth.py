@@ -1,11 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import bad_request
+from app.core.permissions import USER_ROLE
 from app.core.security import create_access_token, hash_password, verify_password
 from app.core.time import utc_now
-from app.models import User
+from app.models import Role, User
+from app.repositories.roles import RoleRepository
 from app.repositories.users import UserRepository
 from app.schemas.auth import ChangePasswordRequest, LoginRequest, ProfileUpdateRequest, RegisterRequest
+from app.schemas.settings import PublicSettings
 from app.services.audit import audit_changes, audit_detail, record_audit
 from app.services.permissions import get_user_permission_codes
 from app.services.settings import SettingService
@@ -17,9 +20,11 @@ class AuthService:
         self.users = UserRepository(db)
 
     def register(self, payload: RegisterRequest) -> User:
-        self._guard_registration(payload)
+        settings = self._guard_registration(payload)
         if self.users.get_by_username(payload.username):
             raise bad_request("error.usernameExists", "Username already exists")
+        approval_required = settings.registration_approval_required
+        approval_status = "pending" if approval_required else "approved"
         user = User(
             username=payload.username,
             full_name=payload.full_name,
@@ -28,9 +33,11 @@ class AuthService:
             company=payload.company,
             department=payload.department,
             password_hash=hash_password(payload.password),
-            approval_status="pending",
+            approval_status=approval_status,
+            approved_at=None if approval_required else utc_now(),
             is_active=True,
             is_builtin=False,
+            roles=[] if approval_required else self._default_user_roles(),
         )
         self.users.create(user)
         record_audit(
@@ -50,13 +57,14 @@ class AuthService:
                     "company": user.company,
                     "department": user.department,
                     "approval_status": user.approval_status,
+                    "registration_approval_required": approval_required,
                 },
             ),
         )
         self.db.commit()
         return user
 
-    def _guard_registration(self, payload: RegisterRequest) -> None:
+    def _guard_registration(self, payload: RegisterRequest) -> PublicSettings:
         settings = SettingService(self.db).public_settings()
         if not settings.registration_enabled:
             raise bad_request("error.registrationDisabled", "Registration is disabled")
@@ -73,6 +81,11 @@ class AuthService:
         ]
         if missing_fields:
             raise bad_request("error.registrationFieldRequired", "Required registration field is missing", field=missing_fields[0])
+        return settings
+
+    def _default_user_roles(self) -> list[Role]:
+        role = RoleRepository(self.db).get_by_code(USER_ROLE)
+        return [role] if role else []
 
     def login(self, payload: LoginRequest) -> tuple[str, User, list[str]]:
         user = self.users.get_by_username(payload.username)

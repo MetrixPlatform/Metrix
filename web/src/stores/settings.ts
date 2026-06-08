@@ -10,6 +10,7 @@ export const settingsStore = reactive({
   publicSettings: {
     app_name: APP_NAME,
     registration_enabled: true,
+    registration_approval_required: true,
     registration_required_fields: {
       phone: true,
       email: true,
