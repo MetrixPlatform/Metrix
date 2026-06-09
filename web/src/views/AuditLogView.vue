@@ -16,7 +16,7 @@
       <div class="toolbar-group audit-log-actions">
         <n-button :loading="downloading" @click="downloadLogs">
           <template #icon><n-icon :component="ArrowDownload20Regular" /></template>
-          {{ t("auditLog.downloadCsv") }}
+          {{ t("common.download") }}
         </n-button>
       </div>
     </div>
@@ -94,9 +94,10 @@ import { computed, h, onMounted, reactive, ref } from "vue";
 import { NButton, NDataTable, NDatePicker, NDescriptions, NDescriptionsItem, NIcon, NInput, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
-import { downloadAuditLogs, listAuditLogs, type AuditLogFilters } from "../api/audit";
+import { listAuditLogs, type AuditLogFilters } from "../api/audit";
 import type { AuditLogDetailChange, AuditLogItem } from "../api/types";
 import { ensureLocaleNames, formatDateTime, hasI18nKey, localeOptions, t } from "../i18n";
+import { defaultMessages } from "../i18n/messages";
 import { authStore } from "../stores/auth";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
@@ -104,6 +105,7 @@ import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableCol
 
 type AuditActorScope = "self" | "all";
 
+const EXPORT_PAGE_SIZE = 500;
 const message = useMessage();
 const loading = ref(false);
 const downloading = ref(false);
@@ -154,42 +156,16 @@ const auditLogColumnWidthKeys: Record<string, string> = {
   created_at: "createdAt"
 };
 const tableScrollX = computed(() => sumColumnWidths(auditLogColumnWidths));
-const auditActionCodes = [
-  "auth.login",
-  "auth.login_failed",
-  "auth.profile_update",
-  "auth.change_password",
-  "user.register",
-  "user.create",
-  "user.update",
-  "user.delete",
-  "user.approve",
-  "user.reject",
-  "user.enable",
-  "user.disable",
-  "user.reset_password",
-  "user.assign_roles",
-  "role.create",
-  "role.update",
-  "role.delete",
-  "role.assign_permissions",
-  "announcement.create",
-  "announcement.update",
-  "announcement.delete",
-  "settings.update",
-  "settings.backup",
-  "api_token.create",
-  "api_token.delete"
-];
-const auditTargetTypes = ["user", "role", "announcement", "system_settings", "api_token"];
+const auditActionCodes = messagePathKeys(defaultMessages.auditLog.action);
+const auditTargetTypes = Object.keys(defaultMessages.auditLog.target);
 const auditSources = ["web", "api"];
 const canViewAllLogs = computed(() => authStore.has("action:audit_log:manage_others"));
 const actorScopeOptions = computed(() => [
   { label: t("auditLog.scopeSelf"), value: "self" },
   ...(canViewAllLogs.value ? [{ label: t("auditLog.scopeAll"), value: "all" }] : [])
 ]);
-const actionOptions = computed(() => distinctOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
-const targetTypeOptions = computed(() => distinctOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
+const actionOptions = computed(() => distinctActionOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
+const targetTypeOptions = computed(() => distinctTargetOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
 const sourceOptions = computed(() => distinctSourceOptions([...auditSources, ...logs.value.map((item) => item.source)]));
 const localeLabelMap = computed(() => Object.fromEntries(localeOptions.value.map((option) => [option.value, option.label])));
 const selectedChanges = computed(() => (selectedLog.value ? detailChanges(selectedLog.value) : []));
@@ -293,13 +269,51 @@ async function loadLogs() {
 async function downloadLogs() {
   downloading.value = true;
   try {
-    const blob = await downloadAuditLogs(buildFilters(false));
+    const blob = new Blob([auditLogsCsv(await loadExportLogs())], { type: "text/csv;charset=utf-8" });
     saveBlob(blob, `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`);
   } catch (error) {
     showError(message, error);
   } finally {
     downloading.value = false;
   }
+}
+
+async function loadExportLogs() {
+  const items: AuditLogItem[] = [];
+  let page = 1;
+  let total = 0;
+  do {
+    const result = await listAuditLogs({ ...buildFilters(false), page, page_size: EXPORT_PAGE_SIZE });
+    items.push(...result.items);
+    total = result.total;
+    page += 1;
+    if (result.items.length === 0) break;
+  } while (items.length < total);
+  return items;
+}
+
+function auditLogsCsv(items: AuditLogItem[]) {
+  const rows = [
+    [t("field.auditSource"), t("field.operator"), t("field.action"), t("field.auditTargetType"), t("field.targetId"), t("field.detail"), t("field.createdAt")],
+    ...items.map((item) => [
+      sourceLabel(item.source),
+      item.actor_username || t("auditLog.systemOperator"),
+      actionLabel(item.action),
+      targetTypeLabel(item.target_type),
+      item.target_id || t("common.none"),
+      detailSummary(item),
+      excelText(formatTime(item.created_at))
+    ])
+  ];
+  return `\ufeff${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
+}
+
+function csvCell(value: unknown) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function excelText(value: string) {
+  return `\t${value}`;
 }
 
 function buildFilters(withPagination: boolean): AuditLogFilters {
@@ -366,8 +380,17 @@ function isActorScope(value: unknown): value is AuditActorScope {
   return value === "self" || value === "all";
 }
 
-function distinctOptions(values: string[]) {
-  return Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: actionOrTargetLabel(value), value }));
+function messagePathKeys(value: unknown, prefix = ""): string[] {
+  if (!isRecord(value)) return prefix ? [prefix] : [];
+  return Object.entries(value).flatMap(([key, item]) => messagePathKeys(item, prefix ? `${prefix}.${key}` : key));
+}
+
+function distinctActionOptions(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: actionLabel(value), value }));
+}
+
+function distinctTargetOptions(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).map((value) => ({ label: targetTypeLabel(value), value }));
 }
 
 function distinctSourceOptions(values: string[]) {
@@ -375,21 +398,19 @@ function distinctSourceOptions(values: string[]) {
 }
 
 function actionLabel(action: string) {
-  return actionOrTargetLabel(action);
+  const key = `auditLog.action.${action}`;
+  return hasI18nKey(key) ? t(key) : action;
 }
 
 function targetTypeLabel(targetType: string) {
-  return targetType ? actionOrTargetLabel(targetType) : t("common.none");
+  if (!targetType) return t("common.none");
+  const key = `auditLog.target.${targetType}`;
+  return hasI18nKey(key) ? t(key) : targetType;
 }
 
 function sourceLabel(source: string) {
   const key = `auditLog.source.${source}`;
   return hasI18nKey(key) ? t(key) : source || t("common.none");
-}
-
-function actionOrTargetLabel(value: string) {
-  const key = `auditLog.${value}`;
-  return hasI18nKey(key) ? t(key) : value;
 }
 
 function detailSummary(row: AuditLogItem) {

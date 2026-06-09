@@ -341,7 +341,6 @@
     "scopeSelf": "仅自己",
     "scopeAll": "全部账号",
     "systemOperator": "系统",
-    "downloadCsv": "下载 CSV",
     "source": {
       "web": "网页",
       "api": "API"
@@ -355,21 +354,53 @@
     "meta": "记录信息",
     "noStructuredDetail": "暂无结构化详情",
     "changeSummary": "变更 {count} 项：{fields}",
-    "auth": {
-      "login": "登录成功",
-      "login_failed": "登录失败",
-      "profile_update": "修改个人资料",
-      "change_password": "修改密码"
+    "action": {
+      "auth": {
+        "login": "登录成功",
+        "login_failed": "登录失败",
+        "profile_update": "修改个人资料",
+        "change_password": "修改密码"
+      },
+      "user": {
+        "register": "注册账号",
+        "create": "新增用户",
+        "update": "修改用户",
+        "delete": "删除用户",
+        "approve": "审核通过用户",
+        "reject": "驳回用户",
+        "enable": "启用用户",
+        "disable": "禁用用户",
+        "reset_password": "重置用户密码",
+        "assign_roles": "分配用户角色"
+      },
+      "role": {
+        "create": "新增角色",
+        "update": "修改角色",
+        "delete": "删除角色",
+        "assign_permissions": "分配角色权限"
+      },
+      "announcement": {
+        "create": "新增公告",
+        "update": "修改公告",
+        "delete": "删除公告"
+      },
+      "settings": {
+        "update": "修改系统设置",
+        "backup": "备份数据"
+      },
+      "api_token": {
+        "create": "创建 Token",
+        "delete": "删除 Token"
+      }
     },
-    "user": "用户",
-    "role": "角色",
-    "announcement": "公告",
-    "settings": {
-      "update": "修改系统设置",
-      "backup": "备份数据"
+    "target": {
+      "user": "用户",
+      "role": "角色",
+      "announcement": "公告",
+      "settings": "系统设置",
+      "system_settings": "系统设置",
+      "api_token": "Token"
     },
-    "api_token": "Token",
-    "system_settings": "系统设置",
     "field": {
       "username": "账号",
       "full_name": "姓名",

@@ -341,7 +341,6 @@
     "scopeSelf": "Only me",
     "scopeAll": "All accounts",
     "systemOperator": "System",
-    "downloadCsv": "Download CSV",
     "source": {
       "web": "Web",
       "api": "API"
@@ -355,21 +354,53 @@
     "meta": "Record data",
     "noStructuredDetail": "No structured detail",
     "changeSummary": "{count} changes: {fields}",
-    "auth": {
-      "login": "Login succeeded",
-      "login_failed": "Login failed",
-      "profile_update": "Updated profile",
-      "change_password": "Changed password"
+    "action": {
+      "auth": {
+        "login": "Login succeeded",
+        "login_failed": "Login failed",
+        "profile_update": "Updated profile",
+        "change_password": "Changed password"
+      },
+      "user": {
+        "register": "Registered account",
+        "create": "Created user",
+        "update": "Updated user",
+        "delete": "Deleted user",
+        "approve": "Approved user",
+        "reject": "Rejected user",
+        "enable": "Enabled user",
+        "disable": "Disabled user",
+        "reset_password": "Reset user password",
+        "assign_roles": "Assigned user roles"
+      },
+      "role": {
+        "create": "Created role",
+        "update": "Updated role",
+        "delete": "Deleted role",
+        "assign_permissions": "Assigned role permissions"
+      },
+      "announcement": {
+        "create": "Created announcement",
+        "update": "Updated announcement",
+        "delete": "Deleted announcement"
+      },
+      "settings": {
+        "update": "Updated settings",
+        "backup": "Backed up data"
+      },
+      "api_token": {
+        "create": "Created token",
+        "delete": "Deleted token"
+      }
     },
-    "user": "User",
-    "role": "Role",
-    "announcement": "Announcement",
-    "settings": {
-      "update": "Updated settings",
-      "backup": "Backed up data"
+    "target": {
+      "user": "User",
+      "role": "Role",
+      "announcement": "Announcement",
+      "settings": "Settings",
+      "system_settings": "Settings",
+      "api_token": "Token"
     },
-    "api_token": "Token",
-    "system_settings": "Settings",
     "field": {
       "username": "Username",
       "full_name": "Name",

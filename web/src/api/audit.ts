@@ -1,4 +1,4 @@
-import { download, queryString, request } from "./client";
+import { queryString, request } from "./client";
 import type { AuditLogItem, PageResult } from "./types";
 
 export interface AuditLogFilters {
@@ -16,8 +16,4 @@ export interface AuditLogFilters {
 
 export function listAuditLogs(filters: AuditLogFilters = {}) {
   return request<PageResult<AuditLogItem>>(`/audit-logs${queryString(filters)}`);
-}
-
-export function downloadAuditLogs(filters: AuditLogFilters = {}) {
-  return download(`/audit-logs/export${queryString(filters, ["page", "page_size"])}`);
 }
