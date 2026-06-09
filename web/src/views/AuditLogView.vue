@@ -101,7 +101,7 @@ import { defaultMessages } from "../i18n/messages";
 import { authStore } from "../stores/auth";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
-import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
+import { filterValues, singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 
 type AuditActorScope = "self" | "all";
 
@@ -115,17 +115,17 @@ const selectedLog = ref<AuditLogItem | null>(null);
 const filters = reactive<{
   keyword: string;
   actor_scope: AuditActorScope;
-  action: string | null;
-  target_type: string | null;
-  source: string | null;
+  action: string[];
+  target_type: string[];
+  source: string[];
   sort_order: "ascend" | "descend";
   time_range: [number, number] | null;
 }>({
   keyword: "",
   actor_scope: "self",
-  action: null,
-  target_type: null,
-  source: null,
+  action: [],
+  target_type: [],
+  source: [],
   sort_order: "descend",
   time_range: null
 });
@@ -164,9 +164,9 @@ const actorScopeOptions = computed(() => [
   { label: t("auditLog.scopeSelf"), value: "self" },
   ...(canViewAllLogs.value ? [{ label: t("auditLog.scopeAll"), value: "all" }] : [])
 ]);
-const actionOptions = computed(() => distinctActionOptions([...auditActionCodes, ...logs.value.map((item) => item.action)]));
-const targetTypeOptions = computed(() => distinctTargetOptions([...auditTargetTypes, ...logs.value.map((item) => item.target_type)]));
-const sourceOptions = computed(() => distinctSourceOptions([...auditSources, ...logs.value.map((item) => item.source)]));
+const actionOptions = computed(() => distinctActionOptions([...auditActionCodes, ...filters.action, ...logs.value.map((item) => item.action)]));
+const targetTypeOptions = computed(() => distinctTargetOptions([...auditTargetTypes, ...filters.target_type, ...logs.value.map((item) => item.target_type)]));
+const sourceOptions = computed(() => distinctSourceOptions([...auditSources, ...filters.source, ...logs.value.map((item) => item.source)]));
 const localeLabelMap = computed(() => Object.fromEntries(localeOptions.value.map((option) => [option.value, option.label])));
 const selectedChanges = computed(() => (selectedLog.value ? detailChanges(selectedLog.value) : []));
 const selectedMetaEntries = computed(() => (selectedLog.value ? detailMetaEntries(selectedLog.value) : []));
@@ -182,8 +182,8 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
       key: "source",
       width: auditLogColumnWidths.source,
       filter: (value, row) => row.source === value,
-      filterMultiple: false,
-      filterOptionValue: filters.source,
+      filterMultiple: true,
+      filterOptionValues: filters.source,
       filterOptions: sourceOptions.value,
       render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
     },
@@ -202,8 +202,8 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
       key: "action",
       width: auditLogColumnWidths.action,
       filter: (value, row) => row.action === value,
-      filterMultiple: false,
-      filterOptionValue: filters.action,
+      filterMultiple: true,
+      filterOptionValues: filters.action,
       filterOptions: actionOptions.value,
       render: (row) => h(NTag, { size: "small", round: true }, { default: () => actionLabel(row.action) })
     },
@@ -212,8 +212,8 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
       key: "target_type",
       width: auditLogColumnWidths.targetType,
       filter: (value, row) => row.target_type === value,
-      filterMultiple: false,
-      filterOptionValue: filters.target_type,
+      filterMultiple: true,
+      filterOptionValues: filters.target_type,
       filterOptions: targetTypeOptions.value,
       render: (row) => targetTypeLabel(row.target_type)
     },
@@ -320,9 +320,9 @@ function buildFilters(withPagination: boolean): AuditLogFilters {
   return {
     keyword: filters.keyword,
     actor_scope: filters.actor_scope,
-    action: filters.action || "",
-    target_type: filters.target_type || "",
-    source: filters.source || "",
+    action: filters.action,
+    target_type: filters.target_type,
+    source: filters.source,
     sort_order: filters.sort_order,
     start_time: filters.time_range ? new Date(filters.time_range[0]).toISOString() : "",
     end_time: filters.time_range ? new Date(filters.time_range[1]).toISOString() : "",
@@ -349,13 +349,10 @@ function handlePageSizeChange(pageSize: number) {
 
 function handleTableFilters(filterState: DataTableFilterState) {
   const actorScope = singleFilterValue(filterState, "actor_scope");
-  const action = singleFilterValue(filterState, "action");
-  const targetType = singleFilterValue(filterState, "target_type");
-  const source = singleFilterValue(filterState, "source");
   filters.actor_scope = isActorScope(actorScope) && (actorScope === "self" || canViewAllLogs.value) ? actorScope : "self";
-  filters.action = typeof action === "string" ? action : null;
-  filters.target_type = typeof targetType === "string" ? targetType : null;
-  filters.source = typeof source === "string" ? source : null;
+  filters.action = filterValues(filterState, "action");
+  filters.target_type = filterValues(filterState, "target_type");
+  filters.source = filterValues(filterState, "source");
   pagination.page = 1;
   void loadLogs();
 }

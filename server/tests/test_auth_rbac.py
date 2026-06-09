@@ -732,6 +732,40 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     web_login_logs = client.get("/api/audit-logs", params={"actor_scope": "all", "action": "auth.login"}, headers=admin_headers)
     assert web_login_logs.status_code == 200
     assert all(item["source"] == "web" for item in page_items(web_login_logs))
+    multi_action_logs = client.get(
+        "/api/audit-logs",
+        params=[
+            ("actor_scope", "all"),
+            ("action", "announcement.create"),
+            ("action", "auth.login"),
+            ("page_size", "500"),
+        ],
+        headers=admin_headers,
+    )
+    assert multi_action_logs.status_code == 200
+    multi_action_items = page_items(multi_action_logs)
+    assert {"announcement.create", "auth.login"}.issubset({item["action"] for item in multi_action_items})
+    assert all(item["action"] in {"announcement.create", "auth.login"} for item in multi_action_items)
+
+    combined_multi_logs = client.get(
+        "/api/audit-logs",
+        params=[
+            ("actor_scope", "all"),
+            ("source", "api"),
+            ("source", "web"),
+            ("action", "announcement.create"),
+            ("target_type", "announcement"),
+            ("target_type", "user"),
+            ("page_size", "500"),
+        ],
+        headers=admin_headers,
+    )
+    assert combined_multi_logs.status_code == 200
+    combined_items = page_items(combined_multi_logs)
+    assert any(item["source"] == "api" and item["action"] == "announcement.create" for item in combined_items)
+    assert all(item["source"] in {"api", "web"} for item in combined_items)
+    assert all(item["action"] == "announcement.create" for item in combined_items)
+    assert all(item["target_type"] in {"announcement", "user"} for item in combined_items)
 
     deleted = client.delete(f"/api/tokens/{created_data['id']}", headers=user_headers)
     assert deleted.status_code == 200

@@ -1,5 +1,6 @@
-from datetime import datetime
+from collections.abc import Sequence
 import csv
+from datetime import datetime
 import json
 from io import StringIO
 from typing import Any, Mapping
@@ -70,9 +71,9 @@ class AuditService:
         actor: User,
         actor_scope: str = "self",
         keyword: str = "",
-        action: str = "",
-        target_type: str = "",
-        source: str = "",
+        action: Sequence[str] | None = None,
+        target_type: Sequence[str] | None = None,
+        source: Sequence[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         sort_order: str = "descend",
@@ -100,9 +101,9 @@ class AuditService:
         actor: User,
         actor_scope: str = "self",
         keyword: str = "",
-        action: str = "",
-        target_type: str = "",
-        source: str = "",
+        action: Sequence[str] | None = None,
+        target_type: Sequence[str] | None = None,
+        source: Sequence[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         sort_order: str = "descend",

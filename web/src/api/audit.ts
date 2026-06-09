@@ -4,9 +4,9 @@ import type { AuditLogItem, PageResult } from "./types";
 export interface AuditLogFilters {
   keyword?: string;
   actor_scope?: "self" | "all" | "";
-  action?: string;
-  target_type?: string;
-  source?: string;
+  action?: string | string[];
+  target_type?: string | string[];
+  source?: string | string[];
   sort_order?: "ascend" | "descend";
   start_time?: string;
   end_time?: string;

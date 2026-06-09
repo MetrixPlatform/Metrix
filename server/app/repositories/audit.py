@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import or_
@@ -41,9 +42,9 @@ class AuditRepository:
         self,
         actor_user_id: int | None = None,
         keyword: str = "",
-        action: str = "",
-        target_type: str = "",
-        source: str = "",
+        action: Sequence[str] | None = None,
+        target_type: Sequence[str] | None = None,
+        source: Sequence[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         created_at_order: str = "descend",
@@ -60,9 +61,9 @@ class AuditRepository:
         self,
         actor_user_id: int | None = None,
         keyword: str = "",
-        action: str = "",
-        target_type: str = "",
-        source: str = "",
+        action: Sequence[str] | None = None,
+        target_type: Sequence[str] | None = None,
+        source: Sequence[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
         created_at_order: str = "descend",
@@ -80,9 +81,9 @@ class AuditRepository:
         self,
         actor_user_id: int | None = None,
         keyword: str = "",
-        action: str = "",
-        target_type: str = "",
-        source: str = "",
+        action: Sequence[str] | None = None,
+        target_type: Sequence[str] | None = None,
+        source: Sequence[str] | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
     ):
@@ -101,12 +102,15 @@ class AuditRepository:
                     AuditLog.detail_data.ilike(pattern),
                 )
             )
-        if action:
-            query = query.filter(AuditLog.action == action)
-        if target_type:
-            query = query.filter(AuditLog.target_type == target_type)
-        if source:
-            query = query.filter(AuditLog.source == source)
+        actions = _normalized_values(action)
+        target_types = _normalized_values(target_type)
+        sources = _normalized_values(source)
+        if actions:
+            query = query.filter(AuditLog.action.in_(actions))
+        if target_types:
+            query = query.filter(AuditLog.target_type.in_(target_types))
+        if sources:
+            query = query.filter(AuditLog.source.in_(sources))
         if start_time:
             query = query.filter(AuditLog.created_at >= start_time)
         if end_time:
@@ -117,3 +121,7 @@ class AuditRepository:
         if created_at_order == "ascend":
             return query.order_by(AuditLog.created_at.asc(), AuditLog.id.asc())
         return query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+
+
+def _normalized_values(values: Sequence[str] | None) -> list[str]:
+    return [item.strip() for item in values or [] if item and item.strip()]

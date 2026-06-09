@@ -91,9 +91,16 @@ export function queryString(filters: object = {}, ignoredKeys: string[] = []) {
   const ignored = new Set(ignoredKeys);
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (!ignored.has(key) && value !== undefined && value !== null && value !== "") {
-      params.set(key, String(value));
+    if (ignored.has(key) || value === undefined || value === null || value === "") {
+      return;
     }
+    if (Array.isArray(value)) {
+      value
+        .filter((item) => item !== undefined && item !== null && item !== "")
+        .forEach((item) => params.append(key, String(item)));
+      return;
+    }
+    params.set(key, String(value));
   });
   return params.size ? `?${params}` : "";
 }

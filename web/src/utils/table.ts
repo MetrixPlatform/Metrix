@@ -21,6 +21,12 @@ export function singleFilterValue(filterState: DataTableFilterState, key: string
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
+export function filterValues(filterState: DataTableFilterState, key: string) {
+  const value = filterState[key];
+  const values = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value];
+  return values.map(String).filter(Boolean);
+}
+
 export function withResizableColumns<T>(
   columns: DataTableColumns<T>,
   options: ResizableColumnOptions = {}
