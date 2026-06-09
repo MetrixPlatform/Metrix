@@ -1962,6 +1962,28 @@ a {
   gap: 10px;
 }
 
+.api-detail-empty.n-empty {
+  min-height: 72px;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg);
+}
+
+.api-detail-empty .n-empty__icon {
+  margin: 0;
+  font-size: 28px;
+}
+
+.api-detail-empty .n-empty__description {
+  margin-top: 0;
+  color: var(--muted-color);
+  font-size: 13px;
+}
+
 .api-schema-card,
 .api-response-card {
   display: grid;

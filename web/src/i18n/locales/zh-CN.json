@@ -451,6 +451,8 @@
     "detail": "详情",
     "requestBody": "请求体",
     "parameters": "参数",
+    "noParameters": "无需参数",
+    "noRequestBody": "无需请求体",
     "responses": "响应",
     "parameterName": "名称",
     "parameterIn": "位置",

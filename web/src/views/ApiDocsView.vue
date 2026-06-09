@@ -106,7 +106,7 @@
 
         <section class="api-detail-section">
           <h4>{{ t("apiDocs.parameters") }}</h4>
-          <n-empty v-if="!selectedOperation.operation.parameters?.length" :description="t('common.none')" />
+          <n-empty v-if="!selectedOperation.operation.parameters?.length" class="api-detail-empty" size="small" :description="t('apiDocs.noParameters')" />
           <n-data-table
             v-else
             size="small"
@@ -120,7 +120,7 @@
 
         <section class="api-detail-section">
           <h4>{{ t("apiDocs.requestBody") }}</h4>
-          <n-empty v-if="!hasRequestBody(selectedOperation)" :description="t('common.none')" />
+          <n-empty v-if="!hasRequestBody(selectedOperation)" class="api-detail-empty" size="small" :description="t('apiDocs.noRequestBody')" />
           <div v-else class="api-schema-card">
             <div class="api-schema-head">
               <span>{{ t("apiDocs.contentType") }}{{ t("common.labelSeparator") }}{{ requestContentType(selectedOperation) }}</span>

@@ -451,6 +451,8 @@
     "detail": "Details",
     "requestBody": "Request body",
     "parameters": "Parameters",
+    "noParameters": "No parameters required",
+    "noRequestBody": "No request body required",
     "responses": "Responses",
     "parameterName": "Name",
     "parameterIn": "In",
