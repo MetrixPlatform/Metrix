@@ -34,7 +34,9 @@
     "startTime": "开始时间",
     "endTime": "结束时间",
     "total": "共 {count} 条",
-    "moreActions": "更多操作"
+    "moreActions": "更多操作",
+    "expandAll": "全部展开",
+    "collapseAll": "全部收缩"
   },
   "route": {
     "group": {

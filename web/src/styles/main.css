@@ -1437,26 +1437,125 @@ a {
   background: var(--primary-soft);
 }
 
-.permission-grid {
+.permission-tree {
   min-height: 0;
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 2px 4px 2px 0;
 }
 
-.permission-group {
-  padding: 12px;
-  border: 1px solid var(--border-color);
+.permission-tree-group {
+  min-width: 0;
+}
+
+.permission-tree-parent {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
   border-radius: 6px;
 }
 
-.permission-group-title {
-  margin-bottom: 10px;
+.permission-tree-parent:hover {
+  border-color: var(--border-color);
+  background: var(--panel-bg-hover);
+}
+
+.permission-tree-toggle {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted-color);
+  background: transparent;
+  cursor: pointer;
+}
+
+.permission-tree-toggle:hover {
+  color: var(--text-color);
+  background: var(--primary-soft);
+}
+
+.permission-tree-checkbox,
+.permission-tree-checkbox .n-checkbox__label {
+  min-width: 0;
+}
+
+.permission-tree-title,
+.permission-tree-leaf-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.permission-tree-title {
   font-weight: 700;
+}
+
+.permission-tree-count {
+  min-width: 42px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--muted-color);
+  background: var(--primary-soft);
+  font-size: 12px;
+  text-align: center;
+}
+
+.permission-tree-children {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  margin-left: 23px;
+  padding: 2px 0 8px 24px;
+}
+
+.permission-tree-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 8px;
+  left: 7px;
+  width: 1px;
+  background: var(--border-color);
+}
+
+.permission-tree-leaf {
+  position: relative;
+  min-width: 0;
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.permission-tree-leaf::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -17px;
+  width: 14px;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.permission-tree-leaf:hover {
+  background: var(--panel-bg-hover);
 }
 
 .settings-card {

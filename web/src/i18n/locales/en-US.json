@@ -34,7 +34,9 @@
     "startTime": "Start time",
     "endTime": "End time",
     "total": "{count} items",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
   },
   "route": {
     "group": {
