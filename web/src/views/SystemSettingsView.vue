@@ -1,54 +1,97 @@
 <template>
   <section class="work-card settings-card">
-    <div class="settings-grid">
-      <section class="settings-section">
-        <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
-        <n-form ref="formRef" class="inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
-          <n-form-item :label="t('field.platformName')" path="app_name">
-            <n-input v-model:value="form.app_name" placeholder="" />
-          </n-form-item>
-          <n-form-item :label="t('field.defaultLocale')" path="default_locale">
-            <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
-          </n-form-item>
-          <n-form-item :label="t('field.registrationEnabled')" path="registration_enabled">
-            <n-switch v-model:value="form.registration_enabled" />
-          </n-form-item>
-          <n-form-item :label="t('field.registrationApprovalRequired')" path="registration_approval_required">
-            <n-switch v-model:value="form.registration_approval_required" />
-          </n-form-item>
-          <n-form-item :label="t('field.apiEnabled')" path="api_enabled">
-            <n-switch v-model:value="form.api_enabled" />
-          </n-form-item>
-          <n-form-item :label="t('field.apiTokenRevealEnabled')" path="api_token_reveal_enabled">
-            <n-switch v-model:value="form.api_token_reveal_enabled" :disabled="!form.api_enabled" />
-          </n-form-item>
-          <n-form-item :label="t('field.registrationRequired')" path="registration_required_fields">
-            <div class="settings-checks">
-              <n-checkbox v-model:checked="form.registration_required_fields.phone">{{ t("field.phone") }}</n-checkbox>
-              <n-checkbox v-model:checked="form.registration_required_fields.email">{{ t("field.email") }}</n-checkbox>
-              <n-checkbox v-model:checked="form.registration_required_fields.company">{{ t("field.company") }}</n-checkbox>
-              <n-checkbox v-model:checked="form.registration_required_fields.department">{{ t("field.departmentOrPosition") }}</n-checkbox>
+    <div class="settings-layout">
+      <n-form ref="formRef" class="settings-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
+        <section class="settings-section settings-section-main">
+          <div class="settings-section-head">
+            <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
+            <p>{{ t("settings.basicDesc") }}</p>
+          </div>
+          <div class="settings-fields settings-fields-two">
+            <n-form-item :label="t('field.platformName')" path="app_name">
+              <n-input v-model:value="form.app_name" placeholder="" />
+            </n-form-item>
+            <n-form-item :label="t('field.defaultLocale')" path="default_locale">
+              <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
+            </n-form-item>
+          </div>
+        </section>
+
+        <div class="settings-section-grid">
+          <section class="settings-section">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.registration") }}</h2>
+              <p>{{ t("settings.registrationDesc") }}</p>
             </div>
-          </n-form-item>
-          <n-form-item :label="t('field.logRetention')" path="log_retention_days">
-            <n-select v-model:value="form.log_retention_days" :options="retentionOptions" placeholder="" />
-          </n-form-item>
-        </n-form>
+            <div class="settings-switch-list">
+              <div class="settings-switch-row">
+                <span>{{ t("field.registrationEnabled") }}</span>
+                <n-switch v-model:value="form.registration_enabled" />
+              </div>
+              <div class="settings-switch-row">
+                <span>{{ t("field.registrationApprovalRequired") }}</span>
+                <n-switch v-model:value="form.registration_approval_required" />
+              </div>
+            </div>
+            <n-form-item class="settings-check-form-item" :label="t('field.registrationRequired')" path="registration_required_fields">
+              <div class="settings-checks">
+                <n-checkbox v-model:checked="form.registration_required_fields.phone">{{ t("field.phone") }}</n-checkbox>
+                <n-checkbox v-model:checked="form.registration_required_fields.email">{{ t("field.email") }}</n-checkbox>
+                <n-checkbox v-model:checked="form.registration_required_fields.company">{{ t("field.company") }}</n-checkbox>
+                <n-checkbox v-model:checked="form.registration_required_fields.department">{{ t("field.departmentOrPosition") }}</n-checkbox>
+              </div>
+            </n-form-item>
+          </section>
+
+          <section class="settings-section">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.api") }}</h2>
+              <p>{{ t("settings.apiDesc") }}</p>
+            </div>
+            <div class="settings-switch-list">
+              <div class="settings-switch-row">
+                <span>{{ t("field.apiEnabled") }}</span>
+                <n-switch v-model:value="form.api_enabled" />
+              </div>
+              <div class="settings-switch-row">
+                <span>{{ t("field.apiTokenRevealEnabled") }}</span>
+                <n-switch v-model:value="form.api_token_reveal_enabled" :disabled="!form.api_enabled" />
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.audit") }}</h2>
+              <p>{{ t("settings.auditDesc") }}</p>
+            </div>
+            <n-form-item :label="t('field.logRetention')" path="log_retention_days">
+              <n-select v-model:value="form.log_retention_days" :options="retentionOptions" placeholder="" />
+            </n-form-item>
+          </section>
+        </div>
+
         <div class="form-actions">
           <permission-button permission="action:setting:update" type="primary" :loading="saving" @click="saveSettings">
             {{ t("common.save") }}
           </permission-button>
         </div>
-      </section>
-      <section class="settings-section">
-        <h2 class="settings-section-title">{{ t("settings.backup") }}</h2>
-        <div class="settings-backup-panel">
-          <permission-button permission="action:setting:operate" type="primary" :loading="backingUp" @click="downloadBackup">
-            <template #icon><n-icon :component="Archive20Regular" /></template>
-            {{ t("settings.backupData") }}
-          </permission-button>
-        </div>
-      </section>
+      </n-form>
+
+      <aside class="settings-side">
+        <section class="settings-section settings-backup-section">
+          <div class="settings-section-head">
+            <h2 class="settings-section-title">{{ t("settings.backup") }}</h2>
+            <p>{{ t("settings.backupDesc") }}</p>
+          </div>
+          <div class="settings-backup-panel">
+            <permission-button permission="action:setting:operate" type="primary" :loading="backingUp" @click="downloadBackup">
+              <template #icon><n-icon :component="Archive20Regular" /></template>
+              {{ t("settings.backupData") }}
+            </permission-button>
+          </div>
+        </section>
+      </aside>
     </div>
   </section>
 </template>
