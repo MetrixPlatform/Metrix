@@ -285,7 +285,7 @@
     "action:audit_log:manage_others": "查看所有日志",
     "action:setting:read": "查询系统设置",
     "action:setting:update": "修改系统设置",
-    "action:setting:operate": "操作系统设置",
+    "action:setting:operate": "系统备份权限",
     "action:api_token:read": "查询 Token",
     "action:api_token:create": "创建 Token",
     "action:api_token:delete": "删除 Token",

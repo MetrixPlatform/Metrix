@@ -564,3 +564,7 @@
 - Browser 完整模拟回归覆盖登录、忘记密码弹窗、语言/主题切换、首页粒子和公告侧栏、用户新增/校验/编辑/禁用启用/重置密码/角色分配/删除、普通用户菜单权限、角色新增/授权/删除、公告新增/展示方式校验/筛选/批量删除/已读状态/操作他人权限边界、操作日志筛选和详情、系统设置保存、Token 创建/显示/删除、API 文档过滤和测试请求、个人信息保存、注册审核开启/关闭两条路径、404 自动返回主页。
 - 测试过程中创建的 `codex_` 前缀临时用户、角色、公告和 Token 已通过页面操作清理；系统设置恢复为注册开启、注册需管理员审核开启、API 开启、Token 显示开启，管理员账号 `admin` 密码保持 `123456`。审计日志作为真实操作记录保留。
 - 最终验证：`python -m compileall -q server\app server\tests` 通过；`python -m pytest server\tests -q` 通过 21 passed，仅有 FastAPI/Starlette TestClient 与当前 httpx 的第三方提示；`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；`npm run build` 通过；`git diff --check` 通过；Browser 控制台无项目 error。
+
+## 2026-06-09：调整系统设置操作权限展示
+- 权限码 `action:setting:operate` 继续保持不变，避免影响现有数据库授权关系和后端校验逻辑。
+- 前端权限页展示文案从“操作系统设置”调整为“系统备份权限”，英文同步为 `System backup permission`，明确该权限当前用于系统设置页的数据备份操作。

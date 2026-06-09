@@ -285,7 +285,7 @@
     "action:audit_log:manage_others": "View all logs",
     "action:setting:read": "View settings",
     "action:setting:update": "Update settings",
-    "action:setting:operate": "Operate settings",
+    "action:setting:operate": "System backup permission",
     "action:api_token:read": "View tokens",
     "action:api_token:create": "Create tokens",
     "action:api_token:delete": "Delete tokens",
