@@ -39,17 +39,38 @@
 
     <n-modal v-model:show="showDetailModal" preset="card" class="audit-log-detail-modal" :title="t('auditLog.detailTitle')">
       <div v-if="selectedLog" class="audit-log-detail">
-        <n-descriptions bordered size="small" :column="2">
-          <n-descriptions-item :label="t('field.auditSource')">{{ sourceLabel(selectedLog.source) }}</n-descriptions-item>
-          <n-descriptions-item :label="t('field.operator')">
-            {{ selectedLog.actor_username || t("auditLog.systemOperator") }}
-          </n-descriptions-item>
-          <n-descriptions-item :label="t('field.action')">{{ actionLabel(selectedLog.action) }}</n-descriptions-item>
-          <n-descriptions-item :label="t('field.auditTargetType')">{{ targetTypeLabel(selectedLog.target_type) }}</n-descriptions-item>
-          <n-descriptions-item :label="t('field.targetId')">{{ selectedLog.target_id || t("common.none") }}</n-descriptions-item>
-          <n-descriptions-item :label="t('field.createdAt')">{{ formatTime(selectedLog.created_at) }}</n-descriptions-item>
-          <n-descriptions-item :label="t('auditLog.targetName')" :span="2">{{ selectedTargetName }}</n-descriptions-item>
-        </n-descriptions>
+        <dl class="audit-log-summary-list">
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.auditSource") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="sourceLabel(selectedLog.source)">{{ sourceLabel(selectedLog.source) }}</dd>
+          </div>
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.operator") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="selectedLog.actor_username || t('auditLog.systemOperator')">
+              {{ selectedLog.actor_username || t("auditLog.systemOperator") }}
+            </dd>
+          </div>
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.action") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="actionLabel(selectedLog.action)">{{ actionLabel(selectedLog.action) }}</dd>
+          </div>
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.auditTargetType") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="targetTypeLabel(selectedLog.target_type)">{{ targetTypeLabel(selectedLog.target_type) }}</dd>
+          </div>
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.targetId") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="selectedLog.target_id || t('common.none')">{{ selectedLog.target_id || t("common.none") }}</dd>
+          </div>
+          <div class="audit-log-summary-item">
+            <dt>{{ t("field.createdAt") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="formatTime(selectedLog.created_at)">{{ formatTime(selectedLog.created_at) }}</dd>
+          </div>
+          <div class="audit-log-summary-item audit-log-summary-item-wide">
+            <dt>{{ t("auditLog.targetName") }}{{ t("common.labelSeparator") }}</dt>
+            <dd :title="selectedTargetName">{{ selectedTargetName }}</dd>
+          </div>
+        </dl>
 
         <section class="audit-log-detail-section">
           <h3>{{ t("auditLog.changedFields") }}</h3>
@@ -91,7 +112,7 @@
 <script setup lang="ts">
 import { ArrowDownload20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NDatePicker, NDescriptions, NDescriptionsItem, NIcon, NInput, NModal, NTag, useMessage } from "naive-ui";
+import { NButton, NDataTable, NDatePicker, NIcon, NInput, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
 import { listAuditLogs, type AuditLogFilters } from "../api/audit";

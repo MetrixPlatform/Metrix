@@ -1236,6 +1236,46 @@ a {
   gap: 16px;
 }
 
+.audit-log-summary-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg-hover);
+}
+
+.audit-log-summary-item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+  line-height: 1.5;
+}
+
+.audit-log-summary-item-wide {
+  grid-column: 1 / -1;
+}
+
+.audit-log-summary-item dt {
+  flex: 0 0 auto;
+  color: var(--muted-color);
+  white-space: nowrap;
+}
+
+.audit-log-summary-item dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-color);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .audit-log-detail-section {
   display: grid;
   gap: 10px;
@@ -2105,6 +2145,10 @@ a {
 }
 
 @media (max-width: 760px) {
+  .audit-log-summary-list {
+    grid-template-columns: 1fr;
+  }
+
   .app-sider {
     width: 64px !important;
     min-width: 64px !important;
