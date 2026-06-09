@@ -602,3 +602,12 @@
 - 操作日志详情弹窗顶部摘要从 `n-descriptions` 表格布局改为自定义 `dl` 键值列表，显示为“标签: 内容”的同行形式。
 - 摘要值统一使用单行省略号处理并保留 `title` 悬停完整内容，避免窗口缩小时账号、时间、目标对象等字符串换行撑乱弹窗。
 - 摘要区默认两列展示，窄屏下自动切为一列；样式集中放在 `web/src/styles/main.css`，页面组件只保留结构和数据绑定。
+
+## 2026-06-09：全量复查与完整功能回归
+- 第一轮和第二轮重新检查前后端源码、权限种子、路由注册、API 封装、store、页面组件、i18n、CSS、后端 schema/service/repository/model 和测试用例；未发现可安全删除的源码冗余、死代码、调试输出、废弃组件引用或不兼容实现。
+- 静态扫描确认后端业务源码没有中文展示文案残留，前端源码除语言 JSON 外没有中文硬编码命中；调试残留扫描仅命中文档历史记录和开发规则，未命中源码。
+- Browser 回归覆盖登录、退出、忘记密码弹窗、首页公告侧栏、普通用户权限边界、用户新增/编辑/禁用启用/重置密码/注册审批通过/删除、权限角色新增/授权保存/删除、公告展示方式校验/新增/首页已读/批量删除、操作日志列表/详情/下载入口、系统设置分页/保存/备份入口、Token 创建明文展示/删除、API 文档过滤和详情空状态、注册提交等待审核弹窗、404 自动返回。
+- 内置浏览器对下载接收、页面脚本构造事件和部分 Teleport 弹层 click 偶发受限；已用页面可见状态、真实坐标点击、后端 401 响应和前端登录失效事件代码路径补齐验证。无效 Token 调用 `/api/auth/me` 返回 401 和 `error.authExpired`，前端 `client.ts` 会清理登录态并派发 `metrix.auth-expired`，路由监听后跳回 `/login`。
+- 测试过程中创建的临时用户、角色、公告和 Token 均已清理；最终用户列表仅保留内置管理员，`codex*` 用户剩余 0 个。系统设置保持注册开启、注册需管理员审核开启、API 开启、Token 显示开启，管理员账号 `admin` 密码保持 `123456`。
+- 第二轮验证：后端 `..\.venv\Scripts\python.exe -m pytest tests -q` 通过 21 passed，仅有 FastAPI/Starlette TestClient 与当前 httpx 的第三方提示；`..\.venv\Scripts\python.exe -m compileall -q app tests` 通过；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过。
+- 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache`、源码目录 `__pycache__` 和本轮 `runtime/codex-logs`；`.gitignore` 仍覆盖构建产物、运行时库、缓存、日志、临时目录、本地依赖和敏感配置。
