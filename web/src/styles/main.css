@@ -1561,50 +1561,62 @@ a {
 .settings-card {
   height: 100%;
   min-height: 0;
-  padding: 18px;
-  overflow: hidden;
-}
-
-.settings-layout {
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-  gap: 18px;
-  align-items: start;
+  padding: 0;
   overflow: hidden;
 }
 
 .settings-form {
-  min-width: 0;
+  height: 100%;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  padding-right: 4px;
+  overflow: hidden;
 }
 
-.settings-section-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
-  gap: 14px;
-  align-items: stretch;
+.settings-tabs {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-tabs > .n-tabs-nav {
+  flex: 0 0 auto;
+  padding: 0 18px;
+}
+
+.settings-tabs .n-tabs-pane-wrapper,
+.settings-tabs .n-tabs-pane-wrapper .n-tab-pane {
+  min-height: 0;
+}
+
+.settings-tabs .n-tabs-pane-wrapper {
+  flex: 1;
+  overflow: hidden;
+}
+
+.settings-tabs .n-tabs-pane-wrapper .n-tab-pane {
+  height: 100%;
+  overflow-y: auto;
 }
 
 .settings-section {
+  width: min(760px, 100%);
   min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  background: var(--panel-bg);
+  margin: 0 auto;
+  padding: 22px 24px;
 }
 
-.settings-section-main {
-  padding-bottom: 10px;
+.settings-section-compact {
+  width: min(680px, 100%);
 }
 
 .settings-section-head {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .settings-section-title {
@@ -1624,10 +1636,10 @@ a {
   min-width: 0;
 }
 
-.settings-fields-two {
+.settings-basic-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 12px 18px;
+  gap: 14px;
+  max-width: 560px;
 }
 
 .settings-switch-list {
@@ -1672,24 +1684,26 @@ a {
   overflow-wrap: anywhere;
 }
 
-.settings-side {
-  min-width: 0;
-  min-height: 0;
-}
-
-.settings-backup-section {
-  position: sticky;
-  top: 0;
-}
-
 .settings-backup-panel {
   display: flex;
   align-items: center;
 }
 
 .settings-backup-panel .n-button:not(.n-button--circle) {
-  width: 100%;
+  width: min(220px, 100%);
   justify-content: center;
+}
+
+.settings-footer {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-color);
+  background: var(--panel-bg);
+}
+
+.settings-footer .form-actions {
+  width: min(680px, 100%);
+  margin: 0 auto;
 }
 
 .token-toolbar {
@@ -2202,25 +2216,6 @@ a {
   .permission-layout {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(180px, 0.38fr) minmax(0, 1fr);
-  }
-
-  .settings-layout {
-    grid-template-columns: 1fr;
-    overflow: auto;
-  }
-
-  .settings-form {
-    overflow: visible;
-    padding-right: 0;
-  }
-
-  .settings-section-grid,
-  .settings-fields-two {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-backup-section {
-    position: static;
   }
 
   .api-docs-layout {

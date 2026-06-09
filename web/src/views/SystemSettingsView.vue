@@ -1,24 +1,26 @@
 <template>
   <section class="work-card settings-card">
-    <div class="settings-layout">
-      <n-form ref="formRef" class="settings-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
-        <section class="settings-section settings-section-main">
-          <div class="settings-section-head">
-            <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
-            <p>{{ t("settings.basicDesc") }}</p>
-          </div>
-          <div class="settings-fields settings-fields-two">
-            <n-form-item :label="t('field.platformName')" path="app_name">
-              <n-input v-model:value="form.app_name" placeholder="" />
-            </n-form-item>
-            <n-form-item :label="t('field.defaultLocale')" path="default_locale">
-              <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
-            </n-form-item>
-          </div>
-        </section>
+    <n-form ref="formRef" class="settings-form inline-form" :model="form" :rules="rules" label-placement="left" label-width="auto">
+      <n-tabs v-model:value="activeTab" class="settings-tabs" type="line" animated>
+        <n-tab-pane name="basic" :tab="t('settings.basic')" display-directive="show">
+          <section class="settings-section settings-section-compact">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.basic") }}</h2>
+              <p>{{ t("settings.basicDesc") }}</p>
+            </div>
+            <div class="settings-fields settings-basic-fields">
+              <n-form-item :label="t('field.platformName')" path="app_name">
+                <n-input v-model:value="form.app_name" placeholder="" />
+              </n-form-item>
+              <n-form-item :label="t('field.defaultLocale')" path="default_locale">
+                <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
+              </n-form-item>
+            </div>
+          </section>
+        </n-tab-pane>
 
-        <div class="settings-section-grid">
-          <section class="settings-section">
+        <n-tab-pane name="registration" :tab="t('settings.registration')" display-directive="show">
+          <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
               <h2 class="settings-section-title">{{ t("settings.registration") }}</h2>
               <p>{{ t("settings.registrationDesc") }}</p>
@@ -42,8 +44,10 @@
               </div>
             </n-form-item>
           </section>
+        </n-tab-pane>
 
-          <section class="settings-section">
+        <n-tab-pane name="api" :tab="t('settings.api')" display-directive="show">
+          <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
               <h2 class="settings-section-title">{{ t("settings.api") }}</h2>
               <p>{{ t("settings.apiDesc") }}</p>
@@ -59,8 +63,10 @@
               </div>
             </div>
           </section>
+        </n-tab-pane>
 
-          <section class="settings-section">
+        <n-tab-pane name="audit" :tab="t('settings.audit')" display-directive="show">
+          <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
               <h2 class="settings-section-title">{{ t("settings.audit") }}</h2>
               <p>{{ t("settings.auditDesc") }}</p>
@@ -69,36 +75,38 @@
               <n-select v-model:value="form.log_retention_days" :options="retentionOptions" placeholder="" />
             </n-form-item>
           </section>
-        </div>
+        </n-tab-pane>
 
+        <n-tab-pane name="backup" :tab="t('settings.backup')" display-directive="show">
+          <section class="settings-section settings-section-compact">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.backup") }}</h2>
+              <p>{{ t("settings.backupDesc") }}</p>
+            </div>
+            <div class="settings-backup-panel">
+              <permission-button permission="action:setting:operate" type="primary" :loading="backingUp" @click="downloadBackup">
+                <template #icon><n-icon :component="Archive20Regular" /></template>
+                {{ t("settings.backupData") }}
+              </permission-button>
+            </div>
+          </section>
+        </n-tab-pane>
+      </n-tabs>
+
+      <div v-if="activeTab !== 'backup'" class="settings-footer">
         <div class="form-actions">
           <permission-button permission="action:setting:update" type="primary" :loading="saving" @click="saveSettings">
             {{ t("common.save") }}
           </permission-button>
         </div>
-      </n-form>
-
-      <aside class="settings-side">
-        <section class="settings-section settings-backup-section">
-          <div class="settings-section-head">
-            <h2 class="settings-section-title">{{ t("settings.backup") }}</h2>
-            <p>{{ t("settings.backupDesc") }}</p>
-          </div>
-          <div class="settings-backup-panel">
-            <permission-button permission="action:setting:operate" type="primary" :loading="backingUp" @click="downloadBackup">
-              <template #icon><n-icon :component="Archive20Regular" /></template>
-              {{ t("settings.backupData") }}
-            </permission-button>
-          </div>
-        </section>
-      </aside>
-    </div>
+      </div>
+    </n-form>
   </section>
 </template>
 
 <script setup lang="ts">
 import { Archive20Regular } from "@vicons/fluent";
-import { NCheckbox, NForm, NFormItem, NIcon, NInput, NSelect, NSwitch, useMessage } from "naive-ui";
+import { NCheckbox, NForm, NFormItem, NIcon, NInput, NSelect, NSwitch, NTabPane, NTabs, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 
@@ -112,8 +120,11 @@ import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
+type SettingsTab = "basic" | "registration" | "api" | "audit" | "backup";
+
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
+const activeTab = ref<SettingsTab>("basic");
 const saving = ref(false);
 const backingUp = ref(false);
 const form = reactive<SystemSettings>({

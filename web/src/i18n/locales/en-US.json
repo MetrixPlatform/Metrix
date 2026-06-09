@@ -451,7 +451,7 @@
     "auditDesc": "Configure operation log retention.",
     "backup": "Data backup",
     "backupDesc": "Export current core data for development migration or records.",
-    "backupData": "Back up all data",
+    "backupData": "Back up data",
     "saved": "Settings saved",
     "retention7": "Last 7 days",
     "retention30": "Last 1 month",
