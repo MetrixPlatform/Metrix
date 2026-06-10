@@ -611,3 +611,8 @@
 - 测试过程中创建的临时用户、角色、公告和 Token 均已清理；最终用户列表仅保留内置管理员，`codex*` 用户剩余 0 个。系统设置保持注册开启、注册需管理员审核开启、API 开启、Token 显示开启，管理员账号 `admin` 密码保持 `123456`。
 - 第二轮验证：后端 `..\.venv\Scripts\python.exe -m pytest tests -q` 通过 21 passed，仅有 FastAPI/Starlette TestClient 与当前 httpx 的第三方提示；`..\.venv\Scripts\python.exe -m compileall -q app tests` 通过；前端 `npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters` 通过；前端 `npm run build` 通过。
 - 清理验证生成的 `web/dist`、`.pytest_cache`、`server/.pytest_cache`、源码目录 `__pycache__` 和本轮 `runtime/codex-logs`；`.gitignore` 仍覆盖构建产物、运行时库、缓存、日志、临时目录、本地依赖和敏感配置。
+
+## 2026-06-10：新增框架产品化待处理清单
+- 新增 `docs/framework_open_items.md`，记录当前框架从内部平台开发底座升级为通用后台 Web 框架所需补齐的事项。
+- 待处理清单覆盖 README/快速启动/初始化/部署说明、标准 `demo-crud` 示例模块、权限/路由/菜单/i18n 模块化注册、数据库迁移策略、submodule 业务模块接入机制和前后端测试覆盖。
+- 当前建议保持轻量演进：优先通过模块 manifest、示例模板和清晰文档减少新增模块时对核心文件的分散修改，暂不引入复杂插件系统。
