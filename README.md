@@ -19,7 +19,8 @@ server/                      Python 后端
   app/modules/               后端业务模块自动发现入口
   app/api/                   内置 Web/API 接口
   app/db/                    数据库连接、建表和同步
-docs/                        设计、开发指南和项目记忆
+DEVELOPMENT_GUIDE.md         开发指南
+docs/project_context.md      项目上下文和变更记录
 runtime/                     本地运行时目录，默认不提交
 ```
 
@@ -29,9 +30,13 @@ runtime/                     本地运行时目录，默认不提交
 - 后端：`server/app/modules/demo_crud`
 - 测试：`server/tests/test_auth_rbac.py` 中的 demo CRUD 用例
 
+文档入口：
+
+- `DEVELOPMENT_GUIDE.md`：新增模块、页面、权限、迁移和交互规范。
+- `docs/project_context.md`：项目上下文、历史决策和变更记录。
+
 ## 环境要求
 
-- Windows 开发环境
 - Python 3.11 或兼容版本
 - Node.js 20 或兼容版本
 - 可选：MySQL 8.x
@@ -40,16 +45,16 @@ runtime/                     本地运行时目录，默认不提交
 
 后端：
 
-```powershell
+```bash
+python -m venv .venv
+python -m pip install -r server/requirements.txt
 cd server
-python -m venv ..\.venv
-..\.venv\Scripts\python.exe -m pip install -r requirements.txt
 python main.py
 ```
 
 前端：
 
-```powershell
+```bash
 cd web
 npm install
 npm run dev
@@ -57,7 +62,7 @@ npm run dev
 
 访问 `http://127.0.0.1:5173/install` 初始化系统。安装页会选择 SQLite 或 MySQL，并创建第一个管理员账号；项目没有硬编码默认管理员账号。
 
-SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `python main.py`，启动入口会默认把 `METRIX_RUNTIME_DIR` 指向项目根目录下的 `runtime/`，避免写入 `server/runtime/`。
+SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `python main.py`，启动入口会默认把 `METRIX_RUNTIME_DIR` 指向项目根目录下的 `runtime/`，避免写入 `server/runtime/`。如果使用虚拟环境，请先按当前系统和 shell 的标准方式激活，或直接使用对应环境中的 `python`。
 
 ## 常用配置
 
@@ -88,16 +93,16 @@ SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `p
 
 数据迁移辅助脚本：
 
-```powershell
+```bash
 cd server
-..\.venv\Scripts\python.exe tools\migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "..\runtime\backup.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "..\runtime\backup.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "sqlite:///../runtime/metrix-new.db" --backup "..\runtime\rollback.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-new "add task indexes"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py module-uninstall --url "sqlite:///../runtime/metrix.db" --module demo_crud --backup "..\runtime\before-demo-uninstall.zip"
+python tools/migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "../runtime/backup.zip"
+python tools/migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "../runtime/backup.zip"
+python tools/migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "sqlite:///../runtime/metrix-new.db" --backup "../runtime/rollback.zip"
+python tools/migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
+python tools/migrate_database.py schema-new "add task indexes"
+python tools/migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
+python tools/migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
+python tools/migrate_database.py module-uninstall --url "sqlite:///../runtime/metrix.db" --module demo_crud --backup "../runtime/before-demo-uninstall.zip"
 ```
 
 `copy` 会先导出源库并保留 `--backup` 指定的便携包，再导入目标库；如果目标库迁移失败，保留的 zip 就是回滚依据。MySQL URL 使用 SQLAlchemy 格式，例如 `mysql+pymysql://user:pass@127.0.0.1:3306/metrix?charset=utf8mb4`。
@@ -119,7 +124,7 @@ cd server
 
 生成完整 CRUD 模块骨架：
 
-```powershell
+```bash
 node scripts/create-module.mjs task "任务管理" "Tasks"
 ```
 
@@ -149,7 +154,7 @@ server/app/modules/<module>/
 
 模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
 
-脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `docs/development_page_guide.md`。
+脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `DEVELOPMENT_GUIDE.md`。
 
 模块启停保持轻量：后端通过 `METRIX_ENABLED_MODULES` / `METRIX_DISABLED_MODULES` 控制，前端通过 `app.config.json` 的 `enabledModules` / `disabledModules` 或 `VITE_ENABLED_MODULES` / `VITE_DISABLED_MODULES` 控制。前端模块 key 使用短横线，后端模块 key 使用下划线。
 
@@ -159,15 +164,15 @@ server/app/modules/<module>/
 
 后端：
 
-```powershell
+```bash
 cd server
-..\.venv\Scripts\python.exe -m compileall -q app tests
-..\.venv\Scripts\python.exe -m pytest tests -q --basetemp .pytest-temp
+python -m compileall -q app tests
+python -m pytest tests -q --basetemp .pytest-temp
 ```
 
 前端：
 
-```powershell
+```bash
 cd web
 npm run test:regression:install
 npm run test:smoke
@@ -176,7 +181,7 @@ npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters
 npm run build
 ```
 
-如果 Windows 用户临时目录没有访问权限，pytest 使用 `--basetemp .pytest-temp`。
+如果系统临时目录没有访问权限，pytest 使用 `--basetemp .pytest-temp`。
 
 前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
 

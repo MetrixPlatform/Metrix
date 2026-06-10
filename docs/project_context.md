@@ -685,3 +685,8 @@
 - `docs/development_page_guide.md` 的迁移辅助命令补充 `module-uninstall --backup`；`docs/framework_open_items.md` 的生命周期描述同步为 install/upgrade/disable/uninstall，`module_states` 状态同步为 enabled/disabled/missing/uninstalled。
 - `README.md` 收敛 Playwright 回归覆盖描述，明确当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404，不再夸大为完整权限菜单覆盖。
 - `web/src/styles/main.css` 中 404 页面样式从全视口高度调整为填满主框架内容区，避免 `NotFoundView` 嵌入 `AppShell` 后产生多余滚动或居中偏差。
+
+## 2026-06-10：文档入口收敛
+- 原 `docs/development_page_guide.md` 迁移到仓库根目录并改名为 `DEVELOPMENT_GUIDE.md`，标题改为“开发指南”，用于承载新增页面、模块、权限、迁移、API 和前端交互规范。
+- `docs` 目录只保留 `project_context.md`，删除已不作为当前入口维护的 open items 与早期设计文档；当前开发者入口由 `README.md` 和 `DEVELOPMENT_GUIDE.md` 承担。
+- `README.md` 更新目录结构和文档入口说明，移除平台限定描述，命令示例改为更通用的 `python` / `npm` 写法，并把开发规范引用指向 `DEVELOPMENT_GUIDE.md`。
