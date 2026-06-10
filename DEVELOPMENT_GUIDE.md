@@ -1,26 +1,31 @@
 # 开发指南
 
-文档记录 Metrix 新增页面、模块、权限、迁移、API 和前端交互的开发约定。
+这份指南只说明新增页面和业务功能的常用路径。优先使用脚手架生成模块，再按业务需要修改生成代码；不要为了新增业务分散修改框架核心注册文件。
 
-## 新增页面
+## 1. 生成模块
 
-可以先用脚手架生成完整 CRUD 模块骨架：
+新增普通业务功能时，先生成一套完整 CRUD 骨架：
 
-```powershell
+```bash
 node scripts/create-module.mjs task "任务管理" "Tasks"
 ```
 
-脚手架会生成前端模块入口、API、权限常量、CRUD 页面、模块语言包，以及后端模块入口、API、model、schema、repository、service 和 pytest 模板。生成结果遵循 `demo-crud` 的分页、筛选、审计、本人/他人权限和 i18n 约定；复杂业务字段继续在生成骨架上扩展。
+脚手架会生成：
 
-1. 在 `web/src/modules/<module>` 新建前端模块目录，模块入口固定为 `index.ts`。
-2. 页面组件优先放在模块目录内的 `views` 子目录；仍需复用现有基础页面时，也可以指向 `web/src/views` 中的组件。
-3. 在模块入口中使用 `defineModule(...)`、`definePage(...)` 和 `defineMenuGroup(...)` 声明页面、菜单分组、路由权限、菜单位置、功能开关和 fallback 顺序。
-4. 需要显示到侧边栏时配置页面 `menu`；不需要显示菜单的页面不配置 `menu`。
-5. 需要收纳到二级菜单时使用已有 `group`；新增分组时在当前模块的 `menuGroups` 中声明，不要回到主框架组件里手写菜单。
+- 前端：模块入口、API 封装、权限常量、CRUD 页面、`zh-CN` / `en-US` 语言包。
+- 后端：模块入口、API、model、schema、repository、service 和 pytest 模板。
 
-`web/src/modules/registry.ts` 会自动发现 `web/src/modules/*/index.ts` 并交给 `page-registry.ts` 生成主框架子路由、页面标题、侧边栏菜单、父级展开状态和无权限 fallback。后续新增页面不要修改 `router/index.ts`、`AppShell.vue` 或手工维护第二份菜单。
+标准示例参考：
 
-模块入口示例：
+- 前端：`web/src/modules/demo-crud`
+- 后端：`server/app/modules/demo_crud`
+- 测试：`server/tests/test_auth_rbac.py` 中的 demo CRUD 用例
+
+## 2. 前端页面
+
+前端业务模块放在 `web/src/modules/<module>`，入口固定为 `index.ts`。页面组件优先放在模块内的 `views` 目录。
+
+模块入口声明页面、菜单、权限和加载组件：
 
 ```ts
 import { Board20Regular } from "@vicons/fluent";
@@ -46,64 +51,18 @@ export default defineModule({
 });
 ```
 
-## 多语言
+注意：
 
-前端文案统一通过 `web/src/i18n` 管理，底层使用本地依赖 `vue-i18n`，当前支持 `zh-CN` 和 `en-US`。新增页面、弹窗、按钮、表单提示、空状态、确认信息、表头、枚举显示和路由标题都不能在页面组件中直接硬编码展示文案。
+- 新页面不要手工修改 `web/src/router/index.ts`、`AppShell.vue` 或主菜单。
+- 需要显示到侧边栏才配置 `menu`；不需要菜单入口的页面可以只声明路由。
+- 列表页优先沿用 `demo-crud` 的分页、筛选、固定操作列和表格布局。
+- 按钮权限优先复用 `PermissionButton`，不要只靠前端隐藏保护接口。
 
-- 公共语言资源按语言拆分到 `web/src/i18n/locales/<locale>.json`，模块自己的语言资源放到 `web/src/modules/<module>/i18n/<locale>.json`。JSON 内按 key 路径分组，例如 `common.save` 写成 `{ "common": { "save": "保存" } }`；不要再把多种语言的翻译集中写进同一个 TS 文件。
-- 每个语言 JSON 顶层必须提供自己的语言显示名，例如 `"language": "简体中文"` 或 `"language": "English"`；不要在每个语言文件里维护其他语言名称列表。
-- 默认语言 `zh-CN` 随首包加载，其他语言由 `web/src/i18n/messages.ts` 自动发现并按需动态加载；加载时会自动合并公共语言包和所有模块语言包。新增语言时至少新增公共 `locales/<locale>.json`，模块有独立文案时再新增对应模块的 `i18n/<locale>.json`。只有 Naive UI 已有对应组件语言包且需要适配日期、组件内置文案时，才扩展 `web/src/i18n/naive.ts` 映射。
-- 新增页面标题和菜单名称时，在模块语言 JSON 中新增 `route.*` key，并在模块入口使用 `titleKey` 或 `labelKey`。
-- 页面展示文案使用 `t("...")`，日期时间使用 `formatDateTime`，不要在页面里直接调用固定语言的格式化逻辑。
-- 表单校验规则需要使用 `computed` 生成，确保语言切换后校验提示同步更新。
-- 后端返回的内置角色、权限名称和权限分组通过 `web/src/i18n/builtins.ts` 做显示转换；新增内置角色或权限时优先让后端返回稳定资源 key，并在语言 JSON 中补充对应翻译。
-- OpenAPI 专用翻译统一放在语言 JSON 的 `openapi.*` 分组中，页面继续通过 `openApiText("operation.xxx.summary")` 读取；不要在 `openapi.ts` 里维护按语言分开的翻译对象。
-- API 结构化校验错误由前端请求层按字段 key 翻译；后端自定义 Pydantic 校验错误使用稳定 `validation.*` 类型，不返回中文展示文案。
-- 后端业务成功或失败消息统一返回 `code`、`message`、`params`：`code` 是稳定资源 ID，`message` 只作为英文 fallback，`params` 存放插值变量。前端使用 `translateMessage(...)` 或 `messageText(...)` 翻译，找不到语言包 key 时才显示后端 fallback。
-- 需要变量插值的文案使用 `{name}`、`{count}` 这类命名参数，例如 `user.deleteConfirm` 或 `announcement.batchDeleted`；后端只传变量值，不拼接最终展示句子。
-- 后端禁止返回中文 `detail`、中文 `MessageResponse.message` 或拼接后的中文业务提示；新增异常使用 `bad_request(...)`、`forbidden(...)`、`not_found(...)` 等统一 helper。
-- 不要在各页面单独写语言加载或语言切换逻辑；切换语言统一调用 `appStore.setLocale(...)`，由 i18n 层负责动态加载资源。
-- 登录和注册页的语言切换、主题切换按钮放在卡片内右上角，使用小尺寸固定图标按钮，不单独占用页面顶部布局行；按钮不得遮挡标题或表单内容。
-- 安装页表单内容更高，语言切换、主题切换等顶部工具按钮继续放在 `.auth-top-actions` 独立顶部工具行；窗口高度不足时允许页面整体滚动，不要把主卡片放进可压缩网格行导致页脚、链接或工具按钮与表单重叠。
-- 登录、注册和安装页的版权页脚必须固定在视口底部，页面底部需要预留安全间距，避免页脚跟随卡片高度变化或遮挡表单内容。
-- 登录和注册页底部的辅助操作优先横向排列，例如注册/忘记密码、提交注册/返回登录；宽度不足时可以自然换行，但不要默认纵向堆叠占用卡片高度。
-- 有明确 `label` 的普通表单字段不要使用“请输入”“请选择”“Please input”“Please select”这类泛化 placeholder；Naive UI 默认泛化 placeholder 已在 `web/src/i18n/naive.ts` 统一置空。
-- 普通 `n-input`、`n-input-number`、`n-select`、`n-date-picker` 如果没有业务提示，应显式设置 `placeholder=""`，避免组件默认占位符在局部页面或热更新场景漏出。
-- placeholder 只用于有信息增量的场景，例如搜索范围、日期范围、默认值说明、格式示例、批量输入分隔规则或 API 请求体提示；不要把字段名或必填校验文案重复写进输入框。
-- 左侧标签表单统一使用 `.inline-form`、`label-placement="left"` 和 `label-width="auto"`，不要写固定窄标签宽度；标签必须单行右对齐，输入框左边缘由自动标签列保持一致。
-- 表单控件必须撑满当前可用宽度，并保持宽度稳定；`n-input`、`n-input-number`、`n-select`、`n-date-picker` 等不能因为输入内容、密码显示图标、后缀按钮或校验状态出现宽度跳变。
-- 两列或紧凑表单中，如果标签会挤压输入框宽度，应在局部使用“标签在上、控件在下”的布局或调整网格列宽，不能牺牲输入框可用宽度。
-- 长文案按钮、复选框、单选按钮和工具栏操作需要允许换行或自适应宽度，不能因为翻译变长而裁切、重叠或遮挡其他控件。
-- 窄容器和移动宽度下，左侧标签表单可以切成“标签在上、控件在下”的布局，此时标签文字必须左对齐，且不能换行或遮挡输入框；标签本身不要使用会填满整行的 `auto` 宽度，避免组件自动测量把整行宽度缓存为桌面标签列宽。新增语言后至少验证登录、注册、系统设置和常用弹窗。
+## 3. 后端模块
 
-## 主框架布局
+后端业务模块放在 `server/app/modules/<module>`，模块入口暴露 `APP_MODULE`。框架会自动扫描模块，不要在 `server/app/main.py` 手工注册 router。
 
-后台主框架页面默认使用贴边工作区布局：内容区不得额外留出外边距或外层内边距，页面最外层工作区边框必须贴合侧边栏右边、顶部标题栏底边和底部页脚边界，形成 100% 宽高的工作面。
-
-- 新增主框架页面优先使用现有 `.work-card`、`.table-page-card`、`.list-page-card` 等全局样式，不要在页面组件里重新添加外层圆角、阴影、外边距或浮动卡片效果。
-- 页面内部可以保留必要的内容内边距和工具栏间距，但不要让最外层工作区从主框架边界内缩。
-- 只有用户明确要求浮动布局、留白布局或特殊展示页时，才允许偏离贴边工作区规则，并需要在对应实现或项目记忆中记录原因。
-
-## 注册审核
-
-系统设置通过 `registration_enabled` 控制是否开放注册，通过 `registration_approval_required` 控制注册后是否需要管理员审核。默认开放注册且需要管理员审核。
-
-- `registration_approval_required = true` 时，注册接口创建 `pending` 用户，前端注册成功后用弹窗提示等待管理员审核，用户确认后返回登录页。
-- `registration_approval_required = false` 时，注册接口直接创建 `approved` 用户并授予默认 `user` 角色，前端只显示普通注册成功提示，不再弹出审核等待提示。
-- 注册接口仍只返回稳定消息 code，例如 `auth.registerSubmitted` 或 `auth.registerSuccess`，展示文案由前端 i18n 处理。
-- 调整系统设置 schema 时，前端 `PublicSettings`、`SystemSettings`、`settingsStore` 默认值、系统设置表单和后端测试 payload 必须同步更新，避免保存设置时丢字段。
-
-## 新增权限
-
-1. 在 `server/app/modules/<module>.py` 或 `server/app/modules/<module>/__init__.py` 中声明 `APP_MODULE`。
-2. 页面路由权限使用 `page_permission(page, resource, sort_order, read_permission)` 声明。
-3. 业务资源需要增删改查操作时，使用 `resource_permissions(...)` 和 `resource_action(...)` 声明功能权限。
-4. 路由权限授予后需要默认拥有查询能力时，在 `page_permission(...)` 的 `read_permission` 中填写对应 `action:<resource>:read` 权限。
-5. 权限 code 仍然使用稳定规则：路由权限为 `route:<page>`，功能权限为 `action:<resource>:<action>`。
-
-后端模块由 `server/app/modules/registry.py` 自动扫描 `server/app/modules` 下暴露 `APP_MODULE` 的模块，并统一收集页面权限、功能权限、API router 和 OpenAPI 过滤规则。`server/app/core/permissions.py` 只保留稳定权限常量和兼容导出，不再作为新增权限的手工注册入口。
-
-后端模块入口示例：
+常用入口结构：
 
 ```python
 from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
@@ -131,7 +90,7 @@ APP_MODULE = define_module(
                     resource_action("read", 20),
                     resource_action("update", 30),
                     resource_action("delete", 40),
-                    resource_action("operate", 50),
+                    resource_action("manage_others", 50),
                 ),
             ),
         ),
@@ -139,199 +98,103 @@ APP_MODULE = define_module(
 )
 ```
 
-后端内置权限和内置角色种子只保存稳定 key 或编码，不保存中文、英文等展示文案。权限种子的 `name`、`group_name`、`description` 使用 `permission.*` 这类资源 key，内置角色使用 `role.*` key；页面展示统一由前端 i18n 根据权限 `code`、分组 key 或角色 key 翻译。
+建议按生成骨架保持分层：
 
-权限管理页面读取后端权限字典，不需要在前端再维护一份权限列表。受保护 API 必须在后端使用权限依赖做强校验，前端按钮只负责显示体验。
+- `api.py`：FastAPI router、权限依赖、请求响应模型绑定。
+- `models.py`：SQLAlchemy model。
+- `schemas.py`：Pydantic schema。
+- `repositories.py`：数据库查询和持久化。
+- `services.py`：业务规则、审计、权限范围判断。
 
-权限分配区使用可展开/收起的树形节点展示权限分组和权限项，默认保持全部收缩，并在工具栏提供一键展开/收缩图标按钮；后续新增权限只维护后端权限规格和语言包翻译，不要在权限页继续增加独立卡片、手写分栏或额外权限清单。
+## 4. 权限和数据范围
 
-系统设置页使用标签分页承载不同类型设置，当前包括基础设置、注册与账号、API 与 Token、日志策略和数据备份；后续新增设置优先放入已有标签页，确实独立时再新增同级标签页，不要再使用左右大卡片、单页堆叠或大面积留白布局。设置表单宽度需要受控，不能让少量字段横向撑满整个工作区。
+权限 code 使用固定规则：
 
-## 后端模块与 API 注册
+- 页面权限：`route:<page>`
+- 功能权限：`action:<resource>:<action>`
+- 操作他人数据：`action:<resource>:manage_others`
 
-后端业务模块的注册入口是 `server/app/modules`，框架启动时会自动扫描该目录下暴露 `APP_MODULE` 的模块。
+后端接口必须做权限校验。前端按钮只负责体验，不能作为唯一保护。
 
-- 模块需要声明稳定 `key` 和语义化 `version`；业务模块依赖内置能力时声明 `dependencies=("core",)`，注册器会检查依赖是否存在。
-- `router_paths` 使用字符串形式，例如 `"app.modules.task.api:router"`，避免模块注册阶段和权限常量、API 文件之间形成循环 import。
-- 新增 API router 后，只需要把 router 路径写入所属模块的 `router_paths`，不要在 `server/app/main.py` 手工 `include_router(...)`。
-- 模块自带 SQLAlchemy model 时，在 `model_paths` 中声明模型模块路径；框架建表前会自动导入这些模块，确保 `Base.metadata` 包含业务表。
-- 需要可回放的一次性 SQL 迁移时，在模块声明中使用 `migration_step(key, statements, description)` 声明迁移步骤。框架安装初始化和已安装库同步时都会执行未记录过的迁移，成功后写入 `migration_records`，同一模块同一 key 不会重复执行。
-- 需要模块安装、升级、禁用或卸载时执行小型 SQL 步骤时，在模块声明中使用 `module_lifecycle_hook(event, key, statements, description)`；`event` 仅允许 `install`、`upgrade`、`disable`、`uninstall`。安装、升级和卸载钩子会按模块版本记录执行历史，禁用钩子在模块从 enabled 变为 disabled 时执行。
-- 框架会把已发现模块写入 `module_states`，记录模块 key、version、status 和 dependencies。`status` 当前为 `enabled`、`disabled`、`missing` 或 `uninstalled`；它用于追踪源码模块状态，不代表数据表或权限会被自动删除。
-- 开发期需要轻量补字段时，在模块声明中使用 `table_column_sync(table, columns)` 声明字段同步 SQL；该机制只用于开发期自动同步和小步补字段，不替代正式生产迁移脚本。
-- Web-only 管理接口仍然需要在 router 或接口依赖中使用 `require_web_session` 强校验，不能只依赖前端隐藏入口。
-- 需要从 API 文档隐藏的 Web-only tag 或 path prefix，放入模块声明的 `openapi_hidden_tags` 和 `openapi_hidden_path_prefixes`；`/openapi.json` 会统一读取模块声明做过滤。
-- 模块可以是单文件，也可以是包目录；复杂业务优先使用包目录，把 API、schema、service、repository、model 和测试按现有后端分层拆开。
-- 模块注册器会校验模块 key、版本格式、依赖、生命周期事件、router path、model path、迁移 key、字段同步声明、页面权限 code 和功能权限 code 的重复项；新增模块如果启动时报重复或格式错误，需要先修正命名，不要绕开校验。
+如果业务数据区分本人和他人，默认只能操作本人数据；需要操作他人数据时，同时校验基础动作权限和 `manage_others`。新增业务表建议保留 `created_by` 或类似归属字段，便于后续做范围控制和审计。
 
-## 标准 CRUD 示例
+## 5. 多语言和提示
 
-`demo-crud` 是当前项目的标准最小业务示例，后续新增普通业务页面优先参考它，而不是从用户管理、公告管理这类较复杂功能复制。
+页面展示文案不要硬编码。公共文案放在 `web/src/i18n/locales/<locale>.json`，模块文案放在 `web/src/modules/<module>/i18n/<locale>.json`。
 
-- 前端入口：`web/src/modules/demo-crud/index.ts`
-- 前端 API：`web/src/modules/demo-crud/api.ts`
-- 前端权限：`web/src/modules/demo-crud/permissions.ts`
-- 前端页面：`web/src/modules/demo-crud/views/DemoCrudView.vue`
-- 前端语言包：`web/src/modules/demo-crud/i18n/zh-CN.json` 和 `en-US.json`
-- 后端入口：`server/app/modules/demo_crud/__init__.py`
-- 后端分层：`api.py`、`models.py`、`schemas.py`、`repositories.py`、`services.py`
-- 后端测试：`server/tests/test_auth_rbac.py` 中 `test_demo_crud_module_covers_permissions_audit_and_owner_scope`
+基本要求：
 
-示例模块覆盖以下约定：
+- 页面标题、菜单、按钮、表单校验、空状态、确认弹窗和枚举展示都使用语言包。
+- 页面中使用 `t("...")`；日期时间使用 `formatDateTime`。
+- 后端业务响应返回稳定 `code`、英文 fallback `message` 和插值 `params`，不要返回中文业务提示。
+- 新增权限、审计动作、OpenAPI 文案时，同步补齐语言包。
 
-- 前端模块声明自动生成路由、菜单和 fallback。
-- 模块语言包自动并入公共 i18n。
-- 后端模块声明自动注册 API router、权限种子和 model。
-- 列表使用后端分页，分页大小为 `20 / 50 / 100 / 500`。
-- 表格使用 `work-card table-page-card`、`page-data-table`、`flex-height`、内部数据滚动和固定操作列。
-- 写操作记录审计日志，动作 code 使用 `demo_item.create`、`demo_item.update`、`demo_item.delete`。
-- 业务表记录 `created_by`，默认只能修改和删除本人数据；需要操作他人数据时额外授予 `action:demo_item:manage_others`。
+## 6. API、Token 和审计
 
-## 数据库迁移策略
+新增业务 API 时：
 
-当前仍处于开发期，框架默认采用“启动时自动建表 + 模块一次性迁移 + 模块字段同步 + 权限种子同步”的轻量策略提升开发速度；生产结构变更使用显式 schema migration。
+- 在 router 上设置清晰的 `tags`、`summary`、响应模型和必要错误响应。
+- Web-only 管理接口必须使用 `require_web_session`，不能被 API Token 调用。
+- 可开放给外部调用的业务接口使用正常权限依赖，API Token 会复用用户角色权限。
+- 写操作和高风险操作使用 `record_audit(...)` 记录审计日志，动作 code 保持稳定，例如 `task.create`、`task.update`、`task.delete`。
+- 审计详情不要记录密码、完整 Token、密钥等敏感值。
 
-- 开发期：可以新增 model、权限和少量字段同步声明，后端启动或首次访问数据库时自动同步。
-- 一次性迁移：适合新增索引、初始化辅助表、轻量数据修正等可用 SQL 表达且可重复跳过的升级步骤；迁移 key 一旦发布不要改名，SQL 不要依赖用户交互。
-- 自动补字段成功后会写入 `migration_records`，记录同步 key、类型、目标和 SQL 内容，便于追踪开发库结构变化；重复补同一字段时不会因为历史记录阻断同步。
-- 生产期：上线前必须备份数据库，并为结构变更准备明确升级记录；涉及删字段、改类型、拆表、数据转换、跨库迁移时，必须使用 `server/app/migrations/versions` 下的显式 schema migration。
-- SQLite/MySQL 切换：不要直接复用另一个数据库的安装配置；使用 `server/tools/migrate_database.py` 导出便携 zip，再导入目标库。
-- 权限种子：权限 code 必须稳定，删除权限时先加入废弃清单并清理授权关系，避免旧角色保留不可见权限。
-- 回滚：生产变更需要同时准备数据库备份、应用版本回退方式和失败处理步骤。`copy` 命令保留的 `--backup` zip 是数据回滚依据，目标库失败时优先用该 zip 导回旧版本或临时库核验。
+## 7. 数据库变更
 
-迁移辅助命令：
+开发期可以通过 model、模块迁移和字段同步快速迭代：
 
-```powershell
+- 新表：在 `models.py` 中定义，并把模块路径写入 `model_paths`。
+- 小型一次性 SQL：在模块中声明 `migration_step(...)`。
+- 开发期补字段：使用 `table_column_sync(...)`。
+
+生产结构变更使用显式 schema migration：
+
+```bash
 cd server
-..\.venv\Scripts\python.exe tools\migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "..\runtime\backup.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "..\runtime\backup.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "mysql+pymysql://user:pass@127.0.0.1:3306/metrix?charset=utf8mb4" --backup "..\runtime\rollback.zip"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-new "add task indexes"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
-..\.venv\Scripts\python.exe tools\migrate_database.py module-uninstall --url "sqlite:///../runtime/metrix.db" --module demo_crud --backup "..\runtime\before-demo-uninstall.zip"
+python tools/migrate_database.py schema-new "add task indexes"
+python tools/migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
+python tools/migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
+python tools/migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
 ```
 
-显式 schema migration 当前保持单线性链，只允许回滚最新已应用修订，避免迁移记录和真实结构不一致。后续如果生产部署和升级频率继续增加，再评估是否引入 Alembic 等正式迁移框架；当前阶段不为了假设场景提前增加复杂依赖。
+上线前必须先备份数据库。显式 migration 当前保持单线性链，只允许回滚最新已应用修订。
 
-## Submodule 业务模块接入
+## 8. 测试和检查
 
-业务模块可以先作为普通目录开发，稳定后再拆成独立仓库并通过 submodule 放入对应前后端模块目录。
+新增或修改功能后至少运行：
 
-- 前端 submodule 放在 `web/src/modules/<module>`，必须提供 `index.ts`。
-- 后端 submodule 放在 `server/app/modules/<module>`，必须提供 `APP_MODULE`。
-- 前后端模块名保持可读且稳定；前端目录可用短横线，后端 Python 包使用下划线。
-- 模块内自带语言包、API 封装、页面、schema、service、repository、model 和测试；主项目只负责扫描，不回到核心文件分散注册。
-- 模块依赖优先使用主项目已有依赖和公共工具，不在业务模块中自行引入重复框架。
-- 删除模块前需要确认菜单、路由、权限、数据库表、审计 code 和角色授权的处理方式；不要只删除前端页面留下后端权限或数据表。
-- 模块可以通过配置轻量启停：后端使用 `METRIX_ENABLED_MODULES` 和 `METRIX_DISABLED_MODULES`，前端使用 `app.config.json` 的 `enabledModules` / `disabledModules` 或构建环境变量 `VITE_ENABLED_MODULES` / `VITE_DISABLED_MODULES`。前端模块 key 使用短横线，例如 `demo-crud`；后端模块 key 使用下划线，例如 `demo_crud`。
-- `core` 是基础模块，前后端都不能禁用；配置里引用不存在的模块时，启动、构建或 smoke 检查必须失败，不能静默忽略。
+```bash
+cd server
+python -m compileall -q app tests
+python -m pytest tests -q --basetemp .pytest-temp
+```
 
-当前阶段不做复杂插件系统。模块启停只控制模块是否参与注册和构建，并通过 `module_states` 留痕；禁用时只执行模块显式声明的轻量 `disable` 钩子，不自动清理已有权限、数据表或审计记录。等模块数量和升级流程明显复杂后，再评估完整插件化。
+```bash
+cd web
+npm run test:smoke
+npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters
+npm run build
+```
 
-## API 与 Token
+涉及路由守卫、登录态、页面访问或关键交互时，再运行：
 
-平台 API 功能由系统设置 `api_enabled` 总开关控制。关闭后 Token 页面、API 文档页面、`/openapi.json` 和 API Token 调用都必须不可用；前端只负责隐藏入口，后端必须继续强校验。
+```bash
+cd web
+npm run test:regression
+```
 
-- API 文档页面使用前端 `/api-docs`，读取受保护的 `/openapi.json` 并按 OpenAPI/Swagger 结构展示接口；`/docs` 和 `/openapi.json` 都需要登录且拥有 `action:api_docs:read`。
-- API 文档页使用“接口列表 + 详情弹窗 + 测试弹窗”的布局：列表只展示方法、路径和摘要，参数、请求体字段、请求示例、响应说明、响应示例等放在详情中查看，避免大量说明直接铺在列表里。
-- API 文档页内置接口测试面板：开发者填入 API Token 后，可以按 OpenAPI 参数测试接口；测试面板必须展示实际发送的数据和返回结果，页面只自动处理常见 path/query 参数和 JSON 请求体，不在前端维护第二份接口清单。
-- 请求体和响应示例优先从 OpenAPI schema 的 `example`、`examples`、`default`、`enum` 中读取；未显式配置时由前端按 schema 类型生成可编辑示例，不能让测试请求体只显示空 `{}`。
-- `/openapi.json` 只展示可由 API Token 调用的业务接口，默认过滤安装、探活、认证、系统设置、用户管理、角色权限和 Token 管理接口，如 `/api/install*`、`/api/health*`、`/api/auth*`、`/api/settings*`、`/api/users*`、`/api/roles*`、`/api/permissions*`、`/api/tokens*`，避免把初始化、账号体系和 Web-only 管理能力暴露给 API 调用者文档。
-- Token 页面使用 `/tokens`，权限为 `route:tokens`，授予后默认扩展 `action:api_token:read`；创建和删除分别使用 `action:api_token:create`、`action:api_token:delete`。
-- Token 管理只能通过网页登录态操作，后端 `/api/tokens*` 需要 `require_web_session` 强校验；API Token 即使拥有角色权限也不能调用 Token 创建、查询、显示完整值或删除接口。
-- 认证、个人资料、修改密码、系统设置、用户管理、角色权限和权限字典等后台管理接口都是 Web-only 能力，后端必须使用 `require_web_session` 强校验，不能只依赖前端隐藏按钮或菜单。
-- API Token 只用于明确开放给脚本或外部系统调用的业务接口。接口只要使用 `get_current_user`、`require_permission(...)` 或 `require_any_permission(...)`，Bearer 登录 Token 与 API Token 都会进入同一套用户状态和角色权限校验；因此 Web-only 接口必须额外加 `require_web_session`。
-- API Token 创建时 `expires_at = null` 表示永不过期；前端创建弹窗必须显式提供“永不过期”和“自定义时间”两种选择。
-- API Token 始终保存哈希和展示前缀；当系统设置 `api_token_reveal_enabled` 开启时，新创建 Token 还会保存可恢复的完整值，用户可在列表中通过专门的 `/api/tokens/{id}/secret` 接口显示或复制完整 Token。
-- API Token 是用户级资源，后端 repository/service 必须按当前用户 ID 查询；管理员也不跨用户查看、显示或删除他人的 Token。
-- 列表接口不得直接返回明文 Token，只能返回 `secret_available` 让前端判断是否显示“显示/复制”按钮；旧 Token 或未保存完整值的 Token 只能显示前缀。
-- 关闭 `api_token_reveal_enabled` 后，前端隐藏完整 Token 显示/复制入口，后端 secret 接口仍必须返回 403；关闭该开关不会删除已保存的完整值。
-- 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
-- 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary`、响应模型和必要的 `responses`，请求/响应 Pydantic schema 字段使用 `Field(...)` 描述和示例；API 文档页会自动从 `/openapi.json` 中展示，不要在前端 API 文档页手写接口清单。新增 Web-only 管理接口时，需要同步维护后端 OpenAPI 过滤规则，避免出现在 API 文档页。
-- OpenAPI 文档翻译集中维护在语言 JSON 的 `openapi.*` 分组中，`web/src/i18n/openapi.ts` 只保留读取辅助函数。翻译 key 约定为 `openapi.tag.<tag>`、`openapi.operation.<operationId>.summary`、`openapi.operation.<operationId>.description`、`openapi.parameter.<operationId>.<name>`、`openapi.parameter.common.<name>`、`openapi.schema.property.<field>`、`openapi.schema.property.<nested.field>` 和 `openapi.response.<status>`；页面继续通过 `openApiText(...)` 读取，找不到时回退到 OpenAPI 原始说明。
-- 若新增页面属于 API 功能整体开关管辖，在前端模块页面声明中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
-- Vite 开发代理只匹配 `/api/` 和 `/openapi.json`。不要把代理前缀改回宽泛的 `/api`，否则前端页面路径 `/api-docs` 会被误转发到后端并在刷新时显示 404。
+首次运行 Playwright 前先执行：
 
-## 页面内按钮
+```bash
+cd web
+npm run test:regression:install
+```
 
-页面内新增、删除、修改、操作按钮优先复用 `PermissionButton`。按钮权限编码使用后端同一套 `action:<resource>:<action>` 规则，避免页面里发明临时权限名。
+## 9. 提交前自查
 
-后续如果接入数据级权限，前端按钮先按功能权限显示，再叠加接口返回的行级能力字段；页面组件不要自行硬编码公司、部门、本人等数据范围规则。
-
-## 本人和他人数据权限
-
-功能权限只表达用户能否执行某类动作，不直接代表可以操作他人创建或上传的数据。没有额外授权时，`update`、`delete`、`operate` 默认只允许作用于当前用户本人创建、上传、负责或归属的数据。
-
-- 需要允许操作他人数据时，按资源增加范围提升权限 `action:<resource>:manage_others`，例如 `action:announcement:manage_others` 表示可以操作他人公告。
-- 操作他人数据必须同时满足基础动作权限和范围提升权限。例如修改他人公告需要 `action:announcement:update` 加 `action:announcement:manage_others`；删除他人公告需要 `action:announcement:delete` 加 `action:announcement:manage_others`。
-- 未拥有范围提升权限时，后端遇到他人数据的编辑、删除、启停、发布、下载等受控动作必须返回权限不足，不能只依赖前端隐藏按钮。
-- 前端行操作按钮先按基础功能权限显示，再根据后端返回的行级能力决定是否显示或禁用；不要在页面里自行比较账号、公司、部门来判断能否操作。
-- 新增业务表默认保留创建人或归属人字段，优先使用用户 ID，如 `created_by`、`owner_user_id`；接口需要展示时再返回账号、姓名等冗余展示字段。
-- 上传、导入、手工新增、脚本生成等会产生业务数据的入口，都要记录操作账号，便于审计和后续本人/他人权限划分。
-
-## 操作日志
-
-关键写操作和高风险操作需要通过 `record_audit(...)` 记录操作日志，至少包含当前操作人、动作编码、目标类型、目标 ID 和必要详情。动作编码保持稳定，例如 `user.create`、`role.assign_permissions`、`announcement.delete`，前端展示名通过语言包映射，后端不返回中文展示文案。
-
-- 操作日志页面使用 `route:audit_logs` 控制菜单和页面进入，授予该路由后默认扩展 `action:audit_log:read`。
-- 审计动作 code 使用稳定的 `<resource>.<action>` 形式，例如 `user.register`、`settings.backup`；前端翻译路径固定为 `auditLog.action.<resource>.<action>`。目标类型使用稳定 snake_case 编码，前端翻译路径固定为 `auditLog.target.<target_type>`。
-- 新增写操作时，后端只记录稳定 code，不拼接最终展示文案；前端操作日志筛选会从默认语言包自动派生已知动作和目标类型。新增 code 后必须同步补充所有语言 JSON，未补时页面和下载会兜底显示原始 code，作为待补翻译提示。
-- 只有 `action:audit_log:read` 时，日志查询默认且只能查看当前登录账号自己的日志。
-- 需要查看所有账号日志时，额外授予范围提升权限 `action:audit_log:manage_others`；后端接口必须强校验该权限，不能只依赖前端隐藏筛选项。
-- 鉴权依赖会把请求来源写入当前数据库会话上下文，`record_audit(...)` 自动记录 `source = web/api` 和 API Token 前缀；业务 service 不要自己猜来源，也不要手写第二套审计逻辑。
-- 新增或修改写操作时，优先使用 `audit_detail(...)` 和 `audit_changes(...)` 传入结构化详情，记录操作对象名、字段变更前后值和必要 `meta`；旧的 `detail` 只作为列表摘要和旧日志兜底。
-- 结构化详情不得记录密码明文、完整 API Token、Token hash、系统密钥等敏感值；涉及密码或 Token 时只记录是否变更、Token 前缀、名称、过期时间等可审计但不泄密的信息。
-- 操作日志页面表格只展示来源，不展示 Token 前缀；来源列需要支持表头筛选，详情列保持紧凑摘要，完整字段变化、对象信息和附加记录放在详情弹窗内查看。
-- 操作日志 Web 页面下载由前端按当前筛选、排序和页面展示逻辑生成 CSV，表头、来源、操作类型、目标类型、详情和时间必须与页面展示语义一致；后端 `/api/audit-logs/export` 仅作为 API 原始导出能力保留，未授权查看所有账号时仍只能导出本人日志。
-- 面向用户的后台列表下载优先导出页面展示值，不要直接导出数据库原始 code、未翻译枚举或容易被 Excel 误判格式的时间字段；必要时使用文本保护，避免时间被截断成 `28:35.2` 这类非预期格式。
-- 操作日志列表继续遵守后台表格规则：后端分页、顶部保留关键字和时间范围，操作类型、目标类型、账号范围等枚举条件优先放表头筛选。
-- 操作日志的来源、操作类型、目标类型等普通枚举筛选需要支持同字段多选，并与其他字段筛选做组合查询；前端用数组状态和重复 query key 传参，后端统一用 `IN` 条件处理，Web 下载和原始导出接口都必须复用同一套筛选语义。
-
-## 列表滚动
-
-后台主框架内的列表页必须保持页面标题、筛选区、操作区和表头固定，不允许因为数据过多让外层页面滚动并把这些区域顶走。
-
-- 表格页使用 `work-card table-page-card` 作为页面卡片，`n-data-table` 使用 `class="page-data-table"` 和 `flex-height`。
-- 表格只允许数据区在表格内部滚动，表头必须固定在表格顶部；不要用外层 `.app-content` 或 `.work-card` 承担表格数据滚动。
-- 非表格列表页使用 `work-card list-page-card`，工具栏放在卡片顶部，实际列表容器设置 `min-height: 0`、`flex: 1` 和 `overflow-y: auto`。
-- 新增列表、时间线、树、权限分组等可增长内容时，都要优先把滚动限制在数据容器内部，避免影响页面头部、页脚、卡片工具栏和字段表头。
-
-## 表格筛选
-
-状态、类型、范围、展示方式等枚举字段优先使用表头筛选，不要把所有下拉筛选都堆在页面顶部工具栏里。顶部工具栏只保留关键字、时间范围和确实需要横向组合查询的条件，避免筛选项过多导致按钮重叠或挤压。
-
-- 表头筛选可以继续调用后端列表接口，不要求只做当前表格数据的本地过滤。
-- 受控筛选值要和接口查询参数保持同一份状态，避免页面顶部和表格列头维护两套筛选条件。
-- 普通枚举字段默认优先支持多选；前端查询参数用数组和重复 query key 表达同字段多值，后端按“同字段 OR、多字段 AND”处理。涉及权限范围或账号边界的筛选，例如 `actor_scope`、`created_by`，可以按业务语义保持单选。
-- 新增批量操作按钮时放在工具栏操作区，窄屏下允许自然换行，不要压缩输入框或日期范围。
-
-## 表格分页
-
-数据量可能增长的后台列表页必须使用后端分页，不允许一次性加载全部数据后再由前端分页，避免后续数据变多时接口耗时和页面卡顿。
-
-- `n-data-table` 使用 `remote`，分页、表头筛选和排序统一映射到后端列表接口参数。
-- 分页大小统一使用 `20 / 50 / 100 / 500`，后端接口 `page_size` 上限保持 500。
-- 查询按钮、表头筛选和排序变更时重置到第一页；普通翻页和修改分页大小只刷新当前列表接口。
-- 后端分页响应统一使用 `items`、`total`、`page`、`page_size`，前端不要自行拼装不一致的数据结构。
-
-## 表格横向滚动
-
-字段较多的后台表格必须保证横向滚动能完整到达最后一列，尤其不能遮挡操作列。
-
-- 表格列宽集中维护为常量，`scroll-x` 使用列宽总和计算，不要手写一个可能小于实际列宽的固定值。
-- 列表表格的每个业务列都必须支持拖拽调整列宽；操作列不允许调整并优先固定在右侧，选择列和展开列保持组件默认行为。
-- 新增 `n-data-table` 列表时优先复用 `web/src/utils/table.ts` 的 `withResizableColumns(...)`、`updateColumnWidth(...)` 和 `sumColumnWidths(...)`，不要在页面里重复写列宽拖拽逻辑。
-- 行操作列优先设置 `fixed: "right"`，保证用户无需拖动到底也能编辑、删除或打开更多操作。
-- 新增、删除或调整列宽后必须同步列宽常量，让 `scroll-x` 自动跟随变化。
-- 选择列、固定列和操作列都要计入横向滚动宽度，避免滚动条到头后仍看不到完整操作区。
-
-## 页面最小尺寸与按钮挤压
-
-平台必须保留浏览器宽高自适应能力，只设置全局最小工作尺寸为 `600px * 400px`。当浏览器窗口小于该尺寸时，由页面外层滚动条承接，不要把安装页、注册页或后台主框架单独锁到更大的最小宽高。
-
-- 顶部工具栏、筛选区和表单操作区的普通文字按钮不得被压成逐字竖排；查询、新增、保存、删除等操作按钮默认保持单行显示，必要时让筛选区或工具栏自然换行。
-- 新增页面不要通过超大 `min-width` 解决挤压问题，优先使用响应式网格、内部滚动、表头筛选、按钮单行和工具栏换行来处理。
-- 只有业务上确实需要固定尺寸的控件才单独设置更大的尺寸，并需要保证小于 `600px * 400px` 时仍能通过外层滚动访问完整内容。
-
+- 新功能是否放在模块目录内，而不是修改核心注册文件。
+- 前后端权限 code、路由、API 路径和语言包是否一致。
+- 后端接口是否有真实权限校验。
+- 写操作是否记录审计日志。
+- 列表是否使用后端分页，数据量变大时不会一次性加载全部。
+- 测试、构建和 smoke 是否通过。
