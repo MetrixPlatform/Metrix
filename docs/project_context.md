@@ -658,3 +658,13 @@
 - 前端模块类型要求 `AppModule.version` 必填；smoke 继续增强：现在会校验模块入口必须使用 `defineModule`、模块 key 必须匹配目录、版本必须为语义化格式、依赖必须存在、菜单分组和页面路径不能重复、页面菜单分组必须存在，并扫描模块源码中的 `routePermission(...)` 与 `actionPermission(...)` 翻译是否完整。
 - `README.md`、`docs/development_page_guide.md` 和 `docs/framework_open_items.md` 已同步更新模块生命周期、便携迁移脚本、模块状态表、smoke 校验范围和剩余后续项边界；当前不引入复杂插件系统或 Alembic，后续只有生产升级频率明显增加时再评估。
 - 新增后端测试覆盖模块状态首次写入、生命周期 install/upgrade/disable 钩子、便携数据包导出导入、MySQL 安装流程模块状态同步和 demo CRUD 既有能力；本轮验证通过 `compileall`、`pytest`、`npm run test:smoke`、`vue-tsc` 和 `npm run build`。
+
+## 2026-06-10：补齐通用后台框架产品化能力
+- `scripts/create-module.mjs` 从最小 ping 骨架升级为完整 CRUD 模块脚手架，默认生成前端模块入口、API、权限、CRUD 页面、双语 i18n，以及后端 `api.py`、`models.py`、`schemas.py`、`repositories.py`、`services.py` 和 pytest 模板；生成结果沿用 `demo-crud` 的分页、筛选、审计、本人/他人权限和 i18n 约定。
+- 后端新增显式 schema migration 基础体系：`server/app/migrations/registry.py` 定义 `SchemaMigration`，`server/app/migrations/versions/0001_framework_baseline.py` 作为基线修订；`server/tools/migrate_database.py` 新增 `schema-new`、`schema-status`、`schema-apply`、`schema-rollback` 命令，执行记录写入既有 `migration_records`。
+- 模块生命周期进阶：`MODULE_LIFECYCLE_EVENTS` 增加 `uninstall`，`server/app/db/init.py` 新增 `run_module_uninstall(...)`，迁移工具新增 `module-uninstall --backup`，用于先导出便携备份再执行模块卸载钩子并把 `module_states.status` 标记为 `uninstalled`。
+- 模块依赖校验支持版本约束，`dependencies` 可继续写 `core`，也可写 `core>=0.1.0`、`core==1.2.0` 等；注册器会在启动/测试阶段阻止缺失或不满足版本约束的模块组合。
+- 前端引入 `@playwright/test`，新增 `web/playwright.config.ts`、`web/tests/regression/framework.spec.ts` 和 `npm run test:regression`，当前浏览器回归覆盖未安装跳转安装页、已安装匿名用户跳登录页、登录态恢复后访问有权限模块页面。
+- `.gitignore` 补充 `web/test-results/` 和 `web/playwright-report/`，避免 Playwright 运行产物进入版本控制；运行回归时首次需要 `npx playwright install chromium` 下载浏览器二进制。
+- 文档同步更新 `README.md` 和 `docs/framework_open_items.md`，把正式迁移第一版、前端回归入口、CRUD 脚手架和模块卸载/依赖版本约束标为已落地能力；保留真正插件化加载、更重 CI 审批和更完整组件/浏览器测试作为后续按需增强。
+- 验证结果：`node --check scripts/create-module.mjs`、后端 `compileall`、后端 `pytest tests -q --basetemp .pytest-temp` 通过 33 passed、前端 `npm run test:smoke`、`npm run build`、`npm run test:regression` 通过；额外临时生成 `scaffold-check` 模块验证脚手架产物可通过 smoke 和后端编译，验证后已删除临时模块文件。

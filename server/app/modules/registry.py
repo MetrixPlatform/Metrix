@@ -19,6 +19,7 @@ from app.core.module import (
 
 MODULE_KEY_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 MODULE_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+MODULE_DEPENDENCY_RE = re.compile(r"^([a-z][a-z0-9_]*)(?:\s*(==|>=|<=|>|<)\s*([0-9]+(?:\.[0-9]+){0,2}))?$")
 
 
 @cache
@@ -104,15 +105,27 @@ def validate_discovered_app_modules(modules: tuple[AppModule, ...]) -> None:
 
 def validate_app_modules(modules: tuple[AppModule, ...]) -> None:
     _ensure_unique("module key", (module.key for module in modules))
-    module_keys = {module.key for module in modules}
+    modules_by_key = {module.key: module for module in modules}
+    module_keys = set(modules_by_key)
+    for module in modules:
+        for dependency in module.dependencies:
+            _dependency_key_and_constraint(dependency)
     missing_dependencies = sorted(
         f"{module.key}->{dependency}"
         for module in modules
         for dependency in module.dependencies
-        if dependency not in module_keys
+        if _dependency_key_and_constraint(dependency)[0] not in module_keys
     )
     if missing_dependencies:
         raise RuntimeError(f"Missing app module dependency: {', '.join(missing_dependencies)}")
+    incompatible_dependencies = sorted(
+        f"{module.key}->{dependency}"
+        for module in modules
+        for dependency in module.dependencies
+        if not _dependency_is_satisfied(modules_by_key[_dependency_key_and_constraint(dependency)[0]].version, dependency)
+    )
+    if incompatible_dependencies:
+        raise RuntimeError(f"Incompatible app module dependency: {', '.join(incompatible_dependencies)}")
     _ensure_unique("router path", (path for module in modules for path in module.router_paths))
     _ensure_unique("model path", (path for module in modules for path in module.model_paths))
     _ensure_unique("migration key", (f"{module.key}:{step.key}" for module in modules for step in module.migrations))
@@ -173,3 +186,36 @@ def _ensure_unique(label: str, values) -> None:
     if duplicates:
         items = ", ".join(sorted(duplicates))
         raise RuntimeError(f"Duplicate app module {label}: {items}")
+
+
+def _dependency_key_and_constraint(value: str) -> tuple[str, str, str]:
+    match = MODULE_DEPENDENCY_RE.fullmatch(value.strip())
+    if not match:
+        raise RuntimeError(f"Invalid app module dependency: {value}")
+    key, operator, version = match.groups()
+    return key, operator or "", version or ""
+
+
+def _dependency_is_satisfied(actual_version: str, dependency: str) -> bool:
+    _, operator, required_version = _dependency_key_and_constraint(dependency)
+    if not operator:
+        return True
+    actual = _version_tuple(actual_version)
+    required = _version_tuple(required_version)
+    if operator == "==":
+        return actual == required
+    if operator == ">=":
+        return actual >= required
+    if operator == "<=":
+        return actual <= required
+    if operator == ">":
+        return actual > required
+    if operator == "<":
+        return actual < required
+    return False
+
+
+def _version_tuple(value: str) -> tuple[int, int, int]:
+    core = value.split("-", 1)[0].split("+", 1)[0]
+    parts = [int(part) for part in core.split(".")]
+    return tuple((parts + [0, 0, 0])[:3])

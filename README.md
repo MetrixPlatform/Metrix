@@ -80,7 +80,8 @@ SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `p
 - 后端模块可在 `APP_MODULE` 中声明 `model_paths`，框架建表前会自动导入模块模型。
 - 后端模块可在 `APP_MODULE` 中声明 `table_syncs`，用于开发期轻量字段同步。
 - 后端模块可声明 `migrations`，用于执行稳定、一次性的 SQL 迁移步骤；执行记录写入 `migration_records`。
-- 后端模块可声明轻量生命周期钩子 `lifecycle_hooks`，用于安装、升级和禁用时执行小型 SQL 步骤；模块状态记录写入 `module_states`。
+- 生产结构变更可使用显式 schema migration，修订文件位于 `server/app/migrations/versions/`，执行历史同样写入 `migration_records`。
+- 后端模块可声明轻量生命周期钩子 `lifecycle_hooks`，用于安装、升级、禁用和卸载时执行小型 SQL 步骤；模块状态记录写入 `module_states`。
 - 开发期字段同步也会写入 `migration_records`，用于追踪框架自动补齐过哪些字段。
 - 生产部署前必须先备份数据库；结构变更应形成可追踪升级记录，不要直接在生产库手工改表。
 - SQLite 与 MySQL 切换使用便携数据包迁移；迁移前先备份，迁移失败时使用保留的 zip 包重新导入回滚。
@@ -92,6 +93,11 @@ cd server
 ..\.venv\Scripts\python.exe tools\migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "..\runtime\backup.zip"
 ..\.venv\Scripts\python.exe tools\migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "..\runtime\backup.zip"
 ..\.venv\Scripts\python.exe tools\migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "sqlite:///../runtime/metrix-new.db" --backup "..\runtime\rollback.zip"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-new "add task indexes"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py module-uninstall --url "sqlite:///../runtime/metrix.db" --module demo_crud --backup "..\runtime\before-demo-uninstall.zip"
 ```
 
 `copy` 会先导出源库并保留 `--backup` 指定的便携包，再导入目标库；如果目标库迁移失败，保留的 zip 就是回滚依据。MySQL URL 使用 SQLAlchemy 格式，例如 `mysql+pymysql://user:pass@127.0.0.1:3306/metrix?charset=utf8mb4`。
@@ -111,7 +117,7 @@ cd server
 
 新增业务优先按模块目录开发，不要分散修改框架核心文件。
 
-生成最小模块骨架：
+生成完整 CRUD 模块骨架：
 
 ```powershell
 node scripts/create-module.mjs task "任务管理" "Tasks"
@@ -140,13 +146,13 @@ server/app/modules/<module>/
   services.py
 ```
 
-模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
+模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
 
-脚手架只生成页面、权限、语言包和 ping 接口骨架；完整 CRUD 示例请参考 `demo-crud`，开发规范见 `docs/development_page_guide.md`。
+脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `docs/development_page_guide.md`。
 
 模块启停保持轻量：后端通过 `METRIX_ENABLED_MODULES` / `METRIX_DISABLED_MODULES` 控制，前端通过 `app.config.json` 的 `enabledModules` / `disabledModules` 或 `VITE_ENABLED_MODULES` / `VITE_DISABLED_MODULES` 控制。前端模块 key 使用短横线，后端模块 key 使用下划线。
 
-后端会把已发现模块的版本、依赖和启用状态写入 `module_states`。禁用模块不会删除历史数据或权限；如果模块需要在禁用时执行小型清理动作，应通过 `lifecycle_hooks` 显式声明。
+后端会把已发现模块的版本、依赖和启用状态写入 `module_states`。禁用模块不会删除历史数据或权限；如果模块需要在禁用或卸载时执行归档/清理动作，应通过 `lifecycle_hooks` 显式声明，并通过 `module-uninstall` 命令执行卸载钩子。
 
 ## 测试与构建
 
@@ -163,13 +169,14 @@ cd server
 ```powershell
 cd web
 npm run test:smoke
+npm run test:regression
 npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters
 npm run build
 ```
 
 如果 Windows 用户临时目录没有访问权限，pytest 使用 `--basetemp .pytest-temp`。
 
-前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。新增模块后先跑 smoke，再做类型检查和构建。
+前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。Playwright 回归会覆盖安装守卫、匿名登录页、登录态恢复、权限菜单和模块页面。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
 
 ## License
 

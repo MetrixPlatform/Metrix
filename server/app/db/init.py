@@ -121,6 +121,16 @@ def run_migrations(engine) -> None:
             )
 
 
+def run_module_uninstall(engine, module_key: str) -> None:
+    modules = {module.key: module for module in get_discovered_app_modules()}
+    module = modules.get(module_key)
+    if module is None:
+        raise RuntimeError(f"Unknown app module: {module_key}")
+    with engine.begin() as conn:
+        _run_recorded_lifecycle_hooks(conn, module, "uninstall")
+        _upsert_module_state(conn, module.key, module.version, "uninstalled", module.dependencies)
+
+
 def _run_recorded_lifecycle_hooks(conn, module, event: str) -> None:
     for hook in (item for item in module.lifecycle_hooks if item.event == event):
         key = f"hook:{module.key}:{event}:{module.version}:{hook.key}"

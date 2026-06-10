@@ -202,6 +202,64 @@ def test_module_migration_steps_run_once(tmp_path, monkeypatch):
     assert records == [("migration", "test_migration", "create migration counter")]
 
 
+def test_schema_migrations_apply_and_rollback(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.migrations import registry as schema_registry
+
+    migration = schema_registry.SchemaMigration(
+        revision="9999_test_schema",
+        down_revision=None,
+        description="test explicit schema migration",
+        upgrade=(
+            "CREATE TABLE schema_migration_probe (id INTEGER PRIMARY KEY, value VARCHAR(40) NOT NULL)",
+            "INSERT INTO schema_migration_probe (value) VALUES ('applied')",
+        ),
+        downgrade=("DROP TABLE schema_migration_probe",),
+    )
+    monkeypatch.setattr(schema_registry, "discover_schema_migrations", lambda: (migration,))
+
+    engine = create_engine(load_install_config().database_url)
+    applied = schema_registry.apply_schema_migrations(engine)
+    schema_registry.apply_schema_migrations(engine)
+
+    with engine.begin() as conn:
+        value = conn.execute(text("SELECT value FROM schema_migration_probe")).scalar_one()
+        records = conn.execute(
+            text("SELECT `key`, kind, target FROM migration_records WHERE `key` = 'schema:9999_test_schema'")
+        ).all()
+
+    reverted = schema_registry.rollback_schema_migration(engine)
+    with engine.begin() as conn:
+        remaining = conn.execute(text("SELECT COUNT(*) FROM migration_records WHERE `key` = 'schema:9999_test_schema'")).scalar_one()
+    engine.dispose()
+
+    assert applied == ["9999_test_schema"]
+    assert value == "applied"
+    assert records == [("schema:9999_test_schema", "schema_migration", "9999_test_schema")]
+    assert reverted == "9999_test_schema"
+    assert remaining == 0
+
+
+def test_module_dependency_version_constraints_are_checked():
+    from app.core.module import AppModule
+    from app.modules.registry import validate_app_modules
+
+    core = AppModule(key="core", version="1.2.0")
+    compatible = AppModule(key="compatible", version="1.0.0", dependencies=("core>=1.0.0",))
+    validate_app_modules((core, compatible))
+
+    incompatible = AppModule(key="incompatible", version="1.0.0", dependencies=("core>=2.0.0",))
+    try:
+        validate_app_modules((core, incompatible))
+    except RuntimeError as exc:
+        assert "Incompatible app module dependency" in str(exc)
+    else:
+        raise AssertionError("Expected dependency constraint validation to fail")
+
+
 def test_module_states_are_recorded_on_install(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     install_sqlite(client, tmp_path)
@@ -285,6 +343,48 @@ def test_module_lifecycle_hooks_run_for_install_upgrade_and_disable(tmp_path, mo
         "hook:hooked:install:1.0.0:counter",
         "hook:hooked:upgrade:1.1.0:counter",
     ]
+
+
+def test_module_uninstall_hook_marks_module_uninstalled(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.core.module import AppModule, module_lifecycle_hook
+    from app.db import init as db_init
+
+    module = AppModule(
+        key="uninstallable",
+        version="1.0.0",
+        lifecycle_hooks=(
+            module_lifecycle_hook(
+                "uninstall",
+                "archive",
+                (
+                    "CREATE TABLE IF NOT EXISTS module_uninstall_events (event VARCHAR(20) NOT NULL)",
+                    "INSERT INTO module_uninstall_events (event) VALUES ('uninstall')",
+                ),
+                "uninstall archive hook",
+            ),
+        ),
+    )
+    monkeypatch.setattr(db_init, "get_discovered_app_modules", lambda: (module,))
+
+    engine = create_engine(load_install_config().database_url)
+    db_init.run_module_uninstall(engine, "uninstallable")
+    db_init.run_module_uninstall(engine, "uninstallable")
+
+    with engine.begin() as conn:
+        event_count = conn.execute(text("SELECT COUNT(*) FROM module_uninstall_events")).scalar_one()
+        state = conn.execute(text("SELECT version, status FROM module_states WHERE `key` = 'uninstallable'")).one()
+        records = conn.execute(
+            text("SELECT `key`, kind, target FROM migration_records WHERE `key` = 'hook:uninstallable:uninstall:1.0.0:archive'")
+        ).all()
+    engine.dispose()
+
+    assert event_count == 1
+    assert state == ("1.0.0", "uninstalled")
+    assert records == [("hook:uninstallable:uninstall:1.0.0:archive", "module_hook", "uninstallable")]
 
 
 def test_data_portability_exports_and_imports_sqlite_database(tmp_path, monkeypatch):

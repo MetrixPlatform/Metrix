@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-MODULE_LIFECYCLE_EVENTS = {"install", "upgrade", "disable"}
+MODULE_LIFECYCLE_EVENTS = {"install", "upgrade", "disable", "uninstall"}
 
 
 def route_code(page: str) -> str:
