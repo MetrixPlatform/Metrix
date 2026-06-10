@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-import json
-import zipfile
-from datetime import date, datetime, timedelta
-from io import BytesIO
+from datetime import timedelta
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -14,6 +10,7 @@ from app.models import AuditLog, User
 from app.repositories.settings import SystemSettingRepository
 from app.schemas.settings import PublicSettings, RegistrationRequiredFields, SystemSettings, SystemSettingsUpdate
 from app.services.audit import audit_changes, audit_detail, record_audit
+from app.services.data_portability import export_database, list_database_tables
 
 SETTING_APP_NAME = "app_name"
 SETTING_REGISTRATION_ENABLED = "registration_enabled"
@@ -24,18 +21,6 @@ SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
 DEFAULT_LOG_RETENTION_DAYS = 90
-BACKUP_TABLES = [
-    "users",
-    "roles",
-    "permissions",
-    "user_roles",
-    "role_permissions",
-    "audit_logs",
-    "announcements",
-    "announcement_reads",
-    "api_tokens",
-    "system_settings",
-]
 
 
 class SettingService:
@@ -100,12 +85,7 @@ class SettingService:
             query.delete(synchronize_session=False)
 
     def backup_data(self, actor: User) -> bytes:
-        buffer = BytesIO()
-        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as backup:
-            backup.writestr("metadata.json", self._backup_metadata())
-            for table in BACKUP_TABLES:
-                if self._table_exists(table):
-                    backup.writestr(f"tables/{table}.json", json.dumps(self._table_rows(table), ensure_ascii=False, indent=2))
+        backup = export_database(self.db)
         record_audit(
             self.db,
             actor.id,
@@ -113,10 +93,13 @@ class SettingService:
             "system_settings",
             "",
             "backup",
-            audit_detail("backup", meta={"tables": BACKUP_TABLES, "database_type": load_install_config().database_type}),
+            audit_detail(
+                "backup",
+                meta={"tables": list_database_tables(self.db.get_bind()), "database_type": load_install_config().database_type},
+            ),
         )
         self.db.commit()
-        return buffer.getvalue()
+        return backup
 
     def _merged_settings(self) -> SystemSettings:
         raw = self.settings.all()
@@ -146,28 +129,6 @@ class SettingService:
             query = query.filter(AuditLog.actor_user_id == actor_user_id)
         row = query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).first()
         return row[0] if row else None
-
-    def _backup_metadata(self) -> str:
-        payload = {
-            "app_name": self.get_settings().app_name,
-            "database_type": load_install_config().database_type,
-            "exported_by": "Metrix",
-        }
-        return json.dumps(payload, ensure_ascii=False, indent=2)
-
-    def _table_exists(self, table: str) -> bool:
-        bind = self.db.get_bind()
-        dialect = bind.dialect.name
-        if dialect == "sqlite":
-            result = self.db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name=:table"), {"table": table})
-        else:
-            result = self.db.execute(text("SHOW TABLES LIKE :table"), {"table": table})
-        return result.first() is not None
-
-    def _table_rows(self, table: str) -> list[dict[str, object]]:
-        safe_table = table.replace("`", "")
-        rows = self.db.execute(text(f"SELECT * FROM `{safe_table}`")).mappings().all()
-        return [{key: _json_value(value) for key, value in dict(row).items()} for row in rows]
 
 
 def _default_settings() -> SystemSettings:
@@ -230,9 +191,3 @@ def _parse_retention_days(value: str | None, fallback: int) -> int:
 
 def _parse_locale(value: str | None, fallback: str):
     return value if value in {"zh-CN", "en-US"} else fallback
-
-
-def _json_value(value: object) -> object:
-    if isinstance(value, (datetime, date)):
-        return value.isoformat()
-    return value

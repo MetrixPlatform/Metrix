@@ -1,16 +1,28 @@
 from functools import cache
 from importlib import import_module
+import os
 from pkgutil import iter_modules
+import re
 from typing import Any
 
 from fastapi import APIRouter
 
 import app.modules as modules_package
-from app.core.module import AppModule, PagePermissionSpec, ResourcePermissionSpec
+from app.core.module import (
+    MODULE_LIFECYCLE_EVENTS,
+    AppModule,
+    MigrationStep,
+    PagePermissionSpec,
+    ResourcePermissionSpec,
+    TableColumnSync,
+)
+
+MODULE_KEY_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+MODULE_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 @cache
-def get_app_modules() -> tuple[AppModule, ...]:
+def get_discovered_app_modules() -> tuple[AppModule, ...]:
     discovered = []
     for module_info in iter_modules(modules_package.__path__, f"{modules_package.__name__}."):
         if module_info.name.rsplit(".", 1)[-1] == "registry":
@@ -19,7 +31,16 @@ def get_app_modules() -> tuple[AppModule, ...]:
         app_module = getattr(module, "APP_MODULE", None)
         if isinstance(app_module, AppModule):
             discovered.append(app_module)
-    return tuple(sorted(discovered, key=lambda item: (item.order, item.key)))
+    sorted_modules = tuple(sorted(discovered, key=lambda item: (item.order, item.key)))
+    validate_discovered_app_modules(sorted_modules)
+    return sorted_modules
+
+
+@cache
+def get_app_modules() -> tuple[AppModule, ...]:
+    sorted_modules = tuple(_filter_modules(get_discovered_app_modules()))
+    validate_app_modules(sorted_modules)
+    return sorted_modules
 
 
 def get_page_permission_specs() -> tuple[PagePermissionSpec, ...]:
@@ -28,6 +49,14 @@ def get_page_permission_specs() -> tuple[PagePermissionSpec, ...]:
 
 def get_resource_permission_specs() -> tuple[ResourcePermissionSpec, ...]:
     return tuple(spec for module in get_app_modules() for spec in module.resource_permissions)
+
+
+def get_table_column_syncs() -> tuple[TableColumnSync, ...]:
+    return tuple(sync for module in get_app_modules() for sync in module.table_syncs)
+
+
+def get_migration_steps() -> tuple[tuple[AppModule, MigrationStep], ...]:
+    return tuple((module, step) for module in get_app_modules() for step in module.migrations)
 
 
 def get_openapi_hidden_tags() -> set[str]:
@@ -42,6 +71,105 @@ def load_module_routers() -> tuple[APIRouter, ...]:
     return tuple(load_object(path) for module in get_app_modules() for path in module.router_paths)
 
 
+def load_module_models() -> None:
+    for module in get_app_modules():
+        for path in module.model_paths:
+            import_module(path)
+
+
 def load_object(path: str) -> Any:
     module_name, object_name = path.split(":", 1)
     return getattr(import_module(module_name), object_name)
+
+
+def validate_discovered_app_modules(modules: tuple[AppModule, ...]) -> None:
+    _ensure_unique("module key", (module.key for module in modules))
+    for module in modules:
+        if not MODULE_KEY_RE.fullmatch(module.key):
+            raise RuntimeError(f"Invalid app module key: {module.key}")
+        if not MODULE_VERSION_RE.fullmatch(module.version):
+            raise RuntimeError(f"Invalid app module version: {module.key}@{module.version}")
+        for hook in module.lifecycle_hooks:
+            if hook.event not in MODULE_LIFECYCLE_EVENTS:
+                raise RuntimeError(f"Invalid app module lifecycle event: {module.key}.{hook.event}")
+            if not hook.key:
+                raise RuntimeError(f"Invalid app module lifecycle hook key: {module.key}")
+            if not hook.statements:
+                raise RuntimeError(f"Empty app module lifecycle hook statements: {module.key}.{hook.key}")
+    _ensure_unique(
+        "lifecycle hook",
+        (f"{module.key}:{hook.event}:{hook.key}" for module in modules for hook in module.lifecycle_hooks),
+    )
+
+
+def validate_app_modules(modules: tuple[AppModule, ...]) -> None:
+    _ensure_unique("module key", (module.key for module in modules))
+    module_keys = {module.key for module in modules}
+    missing_dependencies = sorted(
+        f"{module.key}->{dependency}"
+        for module in modules
+        for dependency in module.dependencies
+        if dependency not in module_keys
+    )
+    if missing_dependencies:
+        raise RuntimeError(f"Missing app module dependency: {', '.join(missing_dependencies)}")
+    _ensure_unique("router path", (path for module in modules for path in module.router_paths))
+    _ensure_unique("model path", (path for module in modules for path in module.model_paths))
+    _ensure_unique("migration key", (f"{module.key}:{step.key}" for module in modules for step in module.migrations))
+    _ensure_unique(
+        "table column sync",
+        (
+            f"{sync.table}.{column}"
+            for module in modules
+            for sync in module.table_syncs
+            for column in sync.columns
+        ),
+    )
+    _ensure_unique("page permission code", (spec.code for module in modules for spec in module.page_permissions))
+    _ensure_unique(
+        "resource permission code",
+        (
+            spec.to_seed(action).code
+            for module in modules
+            for spec in module.resource_permissions
+            for action in spec.actions
+        ),
+    )
+
+
+def _filter_modules(modules: tuple[AppModule, ...]) -> tuple[AppModule, ...]:
+    module_keys = {module.key for module in modules}
+    enabled = _module_filter("METRIX_ENABLED_MODULES")
+    disabled = _module_filter("METRIX_DISABLED_MODULES")
+    _ensure_known_modules("enabled", enabled, module_keys)
+    _ensure_known_modules("disabled", disabled, module_keys)
+    if "core" in disabled:
+        raise RuntimeError("Core app module cannot be disabled")
+    return tuple(
+        module
+        for module in modules
+        if (not enabled or module.key == "core" or module.key in enabled)
+        and (module.key == "core" or module.key not in disabled)
+    )
+
+
+def _module_filter(name: str) -> set[str]:
+    return {item.strip() for item in os.getenv(name, "").split(",") if item.strip()}
+
+
+def _ensure_known_modules(label: str, values: set[str], module_keys: set[str]) -> None:
+    unknown = values - module_keys
+    if unknown:
+        raise RuntimeError(f"Unknown {label} app module: {', '.join(sorted(unknown))}")
+
+
+def _ensure_unique(label: str, values) -> None:
+    seen = set()
+    duplicates = set()
+    for value in values:
+        if value in seen:
+            duplicates.add(value)
+        seen.add(value)
+    if duplicates:
+        items = ", ".join(sorted(duplicates))
+        raise RuntimeError(f"Duplicate app module {label}: {items}")

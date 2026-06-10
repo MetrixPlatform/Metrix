@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+MODULE_LIFECYCLE_EVENTS = {"install", "upgrade", "disable"}
+
 
 def route_code(page: str) -> str:
     return f"route:{page}"
@@ -83,12 +85,39 @@ class ResourcePermissionSpec:
 @dataclass(frozen=True)
 class AppModule:
     key: str
+    version: str = "0.1.0"
     order: int = 0
+    dependencies: tuple[str, ...] = ()
     router_paths: tuple[str, ...] = ()
+    model_paths: tuple[str, ...] = ()
     page_permissions: tuple[PagePermissionSpec, ...] = ()
     resource_permissions: tuple[ResourcePermissionSpec, ...] = ()
+    table_syncs: tuple["TableColumnSync", ...] = ()
+    migrations: tuple["MigrationStep", ...] = ()
+    lifecycle_hooks: tuple["ModuleLifecycleHook", ...] = ()
     openapi_hidden_tags: tuple[str, ...] = ()
     openapi_hidden_path_prefixes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class TableColumnSync:
+    table: str
+    columns: dict[str, str]
+
+
+@dataclass(frozen=True)
+class MigrationStep:
+    key: str
+    statements: tuple[str, ...]
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class ModuleLifecycleHook:
+    event: str
+    key: str
+    statements: tuple[str, ...]
+    description: str = ""
 
 
 def define_module(module: AppModule) -> AppModule:
@@ -115,3 +144,20 @@ def resource_permissions(
 
 def resource_action(action: str, order: int) -> ResourceActionSpec:
     return ResourceActionSpec(action, order)
+
+
+def table_column_sync(table: str, columns: dict[str, str]) -> TableColumnSync:
+    return TableColumnSync(table, columns)
+
+
+def migration_step(key: str, statements: tuple[str, ...], description: str = "") -> MigrationStep:
+    return MigrationStep(key, statements, description)
+
+
+def module_lifecycle_hook(
+    event: str,
+    key: str,
+    statements: tuple[str, ...],
+    description: str = "",
+) -> ModuleLifecycleHook:
+    return ModuleLifecycleHook(event, key, statements, description)

@@ -3,6 +3,8 @@
 declare const __APP_CONFIG__: {
   appName?: string;
   appSlug?: string;
+  enabledModules?: string[];
+  disabledModules?: string[];
 };
 
 declare module "*.vue" {

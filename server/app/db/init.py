@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -5,10 +7,12 @@ from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMIS
 from app.core.security import hash_password
 from app.db.base import Base
 from app.models import Permission, Role, User
+from app.modules.registry import get_app_modules, get_discovered_app_modules, get_migration_steps, get_table_column_syncs, load_module_models
 from app.schemas.install import InstallRequest
 
 
 def create_tables(engine) -> None:
+    load_module_models()
     Base.metadata.create_all(bind=engine)
 
 
@@ -39,7 +43,9 @@ def seed_database(db: Session, payload: InstallRequest) -> None:
 
 def sync_database(engine) -> None:
     create_tables(engine)
+    run_migrations(engine)
     sync_columns(engine)
+    sync_module_states(engine)
     session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with session_factory() as db:
         sync_seed_data(db)
@@ -62,36 +68,107 @@ def sync_columns(engine) -> None:
     if not table_names:
         return
     with engine.begin() as conn:
-        _sync_table_columns(
+        for sync in get_table_column_syncs():
+            _sync_table_columns(conn, inspector, table_names, sync.table, sync.columns)
+
+
+def sync_module_states(engine) -> None:
+    discovered_modules = {module.key: module for module in get_discovered_app_modules()}
+    enabled_modules = {module.key: module for module in get_app_modules()}
+    with engine.begin() as conn:
+        state_by_key = {
+            row["key"]: row
+            for row in conn.execute(text("SELECT `key`, version, status FROM module_states")).mappings()
+        }
+        for module in enabled_modules.values():
+            state = state_by_key.get(module.key)
+            if state is None:
+                _run_recorded_lifecycle_hooks(conn, module, "install")
+            elif state["version"] != module.version:
+                _run_recorded_lifecycle_hooks(conn, module, "upgrade")
+            _upsert_module_state(conn, module.key, module.version, "enabled", module.dependencies)
+
+        for module in discovered_modules.values():
+            if module.key in enabled_modules:
+                continue
+            state = state_by_key.get(module.key)
+            if state is not None and state["status"] == "enabled":
+                _run_lifecycle_hooks(conn, module, "disable")
+            _upsert_module_state(conn, module.key, module.version, "disabled", module.dependencies)
+
+        for key, state in state_by_key.items():
+            if key not in discovered_modules and state["status"] != "missing":
+                _upsert_module_state(conn, key, state["version"], "missing", ())
+
+
+def run_migrations(engine) -> None:
+    steps = get_migration_steps()
+    if not steps:
+        return
+    with engine.begin() as conn:
+        for module, step in steps:
+            key = f"migration:{module.key}:{step.key}"
+            if _has_migration_record(conn, key):
+                continue
+            for statement in step.statements:
+                conn.execute(text(statement))
+            _record_migration(
+                conn,
+                key,
+                "migration",
+                module.key,
+                step.description or f"{module.key}@{module.version}:{step.key}",
+            )
+
+
+def _run_recorded_lifecycle_hooks(conn, module, event: str) -> None:
+    for hook in (item for item in module.lifecycle_hooks if item.event == event):
+        key = f"hook:{module.key}:{event}:{module.version}:{hook.key}"
+        if _has_migration_record(conn, key):
+            continue
+        for statement in hook.statements:
+            conn.execute(text(statement))
+        _record_migration(
             conn,
-            inspector,
-            table_names,
-            "users",
-            {
-                "phone": "ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''",
-                "email": "ALTER TABLE users ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT ''",
-            },
+            key,
+            "module_hook",
+            module.key,
+            hook.description or f"{module.key}@{module.version}:{event}:{hook.key}",
         )
-        _sync_table_columns(
+
+
+def _run_lifecycle_hooks(conn, module, event: str) -> None:
+    for hook in (item for item in module.lifecycle_hooks if item.event == event):
+        for statement in hook.statements:
+            conn.execute(text(statement))
+        _record_migration(
             conn,
-            inspector,
-            table_names,
-            "audit_logs",
-            {
-                "source": "ALTER TABLE audit_logs ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT 'web'",
-                "api_token_prefix": "ALTER TABLE audit_logs ADD COLUMN api_token_prefix VARCHAR(16) NOT NULL DEFAULT ''",
-                "detail_data": "ALTER TABLE audit_logs ADD COLUMN detail_data TEXT",
-            },
+            f"hook:{module.key}:{event}:{hook.key}",
+            "module_hook",
+            module.key,
+            hook.description or f"{module.key}@{module.version}:{event}:{hook.key}",
         )
-        _sync_table_columns(
-            conn,
-            inspector,
-            table_names,
-            "api_tokens",
-            {
-                "token_value": "ALTER TABLE api_tokens ADD COLUMN token_value VARCHAR(128)",
-            },
+
+
+def _upsert_module_state(conn, key: str, version: str, status: str, dependencies: tuple[str, ...]) -> None:
+    payload = json.dumps(list(dependencies), ensure_ascii=False)
+    existing = conn.execute(text("SELECT id FROM module_states WHERE `key` = :key"), {"key": key}).first()
+    if existing:
+        conn.execute(
+            text(
+                "UPDATE module_states SET version = :version, status = :status, dependencies = :dependencies, "
+                "updated_at = CURRENT_TIMESTAMP WHERE `key` = :key"
+            ),
+            {"key": key, "version": version, "status": status, "dependencies": payload},
         )
+        return
+    conn.execute(
+        text(
+            "INSERT INTO module_states (`key`, version, status, dependencies, updated_at) "
+            "VALUES (:key, :version, :status, :dependencies, CURRENT_TIMESTAMP)"
+        ),
+        {"key": key, "version": version, "status": status, "dependencies": payload},
+    )
 
 
 def _sync_table_columns(conn, inspector, table_names: set[str], table: str, column_sql: dict[str, str]) -> None:
@@ -101,6 +178,29 @@ def _sync_table_columns(conn, inspector, table_names: set[str], table: str, colu
     for name, statement in column_sql.items():
         if name not in existing_columns:
             conn.execute(text(statement))
+            _record_migration(
+                conn,
+                f"column:{table}.{name}",
+                "column",
+                f"{table}.{name}",
+                statement,
+            )
+
+
+def _record_migration(conn, key: str, kind: str, target: str, detail: str) -> None:
+    if _has_migration_record(conn, key):
+        return
+    conn.execute(
+        text(
+            "INSERT INTO migration_records (`key`, kind, target, detail, applied_at) "
+            "VALUES (:key, :kind, :target, :detail, CURRENT_TIMESTAMP)"
+        ),
+        {"key": key, "kind": kind, "target": target, "detail": detail},
+    )
+
+
+def _has_migration_record(conn, key: str) -> bool:
+    return conn.execute(text("SELECT id FROM migration_records WHERE `key` = :key"), {"key": key}).first() is not None
 
 
 def _sync_permission_seeds(db: Session) -> dict[str, Permission]:

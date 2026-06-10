@@ -44,13 +44,20 @@ function loadAppConfig() {
       cleanSlug(process.env.VITE_APP_SLUG) ||
       cleanSlug(process.env.METRIX_APP_SLUG) ||
       cleanSlug(fileConfig.appSlug) ||
-      slugify(appName)
+      slugify(appName),
+    enabledModules: parseModuleList(process.env.VITE_ENABLED_MODULES) || parseModuleList(fileConfig.enabledModules),
+    disabledModules: parseModuleList(process.env.VITE_DISABLED_MODULES) || parseModuleList(fileConfig.disabledModules)
   };
 }
 
 function readJson(filePath: string) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as { appName?: unknown; appSlug?: unknown };
+    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as {
+      appName?: unknown;
+      appSlug?: unknown;
+      enabledModules?: unknown;
+      disabledModules?: unknown;
+    };
   } catch {
     return {};
   }
@@ -66,6 +73,20 @@ function cleanSlug(value: unknown) {
 
 function slugify(value: string) {
   return cleanSlug(value) || "app";
+}
+
+function parseModuleList(value: unknown) {
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const modules = items.map((item) => cleanModuleKey(item)).filter(Boolean);
+  return modules.length > 0 ? modules : undefined;
+}
+
+function cleanModuleKey(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function escapeHtml(value: string) {

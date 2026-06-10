@@ -1,0 +1,57 @@
+{
+  "route": {
+    "demoCrud": "CRUD Demo",
+    "group": {
+      "examples": "Examples"
+    }
+  },
+  "permission": {
+    "group": {
+      "demoCrud": "CRUD Demo"
+    },
+    "route:demo_crud": "CRUD Demo",
+    "action:demo_item:create": "Create demo items",
+    "action:demo_item:read": "Read demo items",
+    "action:demo_item:update": "Update demo items",
+    "action:demo_item:delete": "Delete demo items",
+    "action:demo_item:manage_others": "Manage others' demo items"
+  },
+  "error": {
+    "demoItemNotFound": "Demo item not found",
+    "demoItemManageOthersDenied": "You cannot manage demo items created by others"
+  },
+  "demoCrud": {
+    "searchPlaceholder": "Search name or description",
+    "categoryPlaceholder": "Filter category",
+    "add": "New demo",
+    "edit": "Edit demo",
+    "saved": "Demo item saved",
+    "deleted": "Demo item deleted",
+    "deleteTitle": "Delete demo",
+    "deleteConfirm": "Delete demo item {name}?",
+    "creatorAll": "All users",
+    "creatorMe": "Only mine",
+    "field": {
+      "name": "Name",
+      "category": "Category",
+      "description": "Description"
+    }
+  },
+  "auditLog": {
+    "action": {
+      "demo_item": {
+        "create": "Create demo item",
+        "update": "Update demo item",
+        "delete": "Delete demo item"
+      }
+    },
+    "target": {
+      "demo_item": "Demo item"
+    },
+    "field": {
+      "name": "Name",
+      "category": "Category",
+      "description": "Description"
+    }
+  }
+}

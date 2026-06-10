@@ -14,6 +14,7 @@ import { defineMenuGroup, defineModule, definePage, routePermission } from "../t
 
 export default defineModule({
   key: "core",
+  version: "0.1.0",
   order: 10,
   menuGroups: [
     defineMenuGroup({ key: "system", labelKey: "route.group.system", icon: Settings20Regular, order: 20 })

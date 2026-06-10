@@ -5,6 +5,7 @@ from app.core.module import (
     page_permission,
     resource_action,
     resource_permissions,
+    table_column_sync,
 )
 
 USER_READ = action_code("user", "read")
@@ -114,6 +115,29 @@ APP_MODULE = define_module(
                 (
                     resource_action("read", 20),
                 ),
+            ),
+        ),
+        table_syncs=(
+            table_column_sync(
+                "users",
+                {
+                    "phone": "ALTER TABLE users ADD COLUMN phone VARCHAR(20) NOT NULL DEFAULT ''",
+                    "email": "ALTER TABLE users ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT ''",
+                },
+            ),
+            table_column_sync(
+                "audit_logs",
+                {
+                    "source": "ALTER TABLE audit_logs ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT 'web'",
+                    "api_token_prefix": "ALTER TABLE audit_logs ADD COLUMN api_token_prefix VARCHAR(16) NOT NULL DEFAULT ''",
+                    "detail_data": "ALTER TABLE audit_logs ADD COLUMN detail_data TEXT",
+                },
+            ),
+            table_column_sync(
+                "api_tokens",
+                {
+                    "token_value": "ALTER TABLE api_tokens ADD COLUMN token_value VARCHAR(128)",
+                },
             ),
         ),
         openapi_hidden_tags=("api-tokens", "auth", "health", "install", "roles", "settings", "users"),

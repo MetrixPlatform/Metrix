@@ -625,3 +625,36 @@
 - `server/app/main.py` 改为遍历模块 router 自动 `include_router(...)`，OpenAPI 过滤规则从模块声明读取；`server/app/api/__init__.py` 不再集中导出所有 API。
 - `server/app/core/permissions.py` 保留现有稳定权限常量，底层权限种子与路由默认查询权限由模块注册器收集，兼顾现有 API/service 引用和后续模块化新增。
 - `docs/development_page_guide.md` 更新新增页面、i18n、新增权限和后端 API 注册流程：后续业务优先在模块目录内完成声明，不要再修改 `router/index.ts`、`AppShell.vue` 或 `server/app/main.py` 手工注册。
+
+## 2026-06-10：完成框架产品化第一轮落地
+- 根目录 `README.md` 从占位文档扩展为快速启动和部署说明，覆盖项目定位、技术栈、目录结构、环境要求、前后端启动、安装初始化、常用环境变量、SQLite/MySQL、内网离线资源、部署建议、模块开发和验证命令。
+- 新增标准 `demo-crud` 示例模块：后端位于 `server/app/modules/demo_crud`，包含 `api.py`、`models.py`、`schemas.py`、`repositories.py`、`services.py` 和模块入口；前端位于 `web/src/modules/demo-crud`，包含模块入口、API 封装、权限常量、页面和中英语言包。
+- `demo-crud` 展示最小完整业务开发路径：模块自动注册路由/菜单/权限/i18n，列表后端分页，表头筛选，固定操作列，写操作审计，业务表记录 `created_by`，默认只能操作本人数据，额外 `action:demo_item:manage_others` 才能操作他人数据。
+- 后端模块 manifest 增强：`AppModule` 支持 `model_paths` 和 `table_syncs`；建表前自动加载模块模型，开发期字段同步由模块声明提供；内置 `users`、`audit_logs`、`api_tokens` 字段同步迁移到 core 模块声明。
+- `server/app/modules/registry.py` 增加重复声明校验，覆盖模块 key、router path、model path、页面权限 code 和资源权限 code，后续模块写错时应在启动或测试阶段尽早失败。
+- `docs/development_page_guide.md` 补充标准 CRUD 示例、模块模型注册、开发期字段同步、数据库迁移边界和 submodule 接入规则；`docs/framework_open_items.md` 改为当前状态清单，标记第一轮已完成事项和后续增强项。
+- 前端新增无依赖 smoke 检查 `web/scripts/smoke.mjs` 和 `npm run test:smoke`，用于校验模块入口与模块语言包结构；后续若测试范围扩大，再评估 Vitest 或浏览器回归工具。
+- 后端测试新增 demo CRUD 覆盖，当前验证包括 `python -m compileall -q server\app server\tests`、`npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build`、`..\.venv\Scripts\python.exe -m pytest tests -q --basetemp .pytest-temp`，后端测试结果为 23 passed，仅保留 FastAPI/Starlette TestClient 与 httpx 的第三方提示。
+
+## 2026-06-10：推进框架产品化待办第二轮
+- 开发期字段同步新增 `migration_records` 记录表，字段补齐成功后记录同步 key、类型、目标和 SQL；重复同步同一 key 时直接跳过历史记录写入，避免旧库再次补字段被唯一键阻断。
+- 后端模块注册器继续增强校验，除模块 key、router path、model path 和权限 code 外，也会校验 `table_syncs` 中同一表字段同步声明是否重复，避免多个模块对同一字段各自声明造成启动后数据库冲突。
+- 新增基础模块脚手架 `scripts/create-module.mjs`，可生成前端模块入口、占位页面、模块语言包、后端模块入口和受权限保护的 ping 接口；脚手架只做最小骨架，完整 CRUD、审计、模型和本人/他人权限仍参考 `demo-crud`。
+- 前端 smoke 检查增强：校验模块入口必须使用 `defineModule`，模块语言包必须覆盖所有公共 locale，不同语言的模块 JSON key 必须一致，模块入口中的 `titleKey`、`labelKey` 和 `routePermission(...)` 必须能在语言包中找到对应翻译。
+- `README.md`、`docs/development_page_guide.md` 和 `docs/framework_open_items.md` 同步更新迁移记录、脚手架命令、当前已落地能力和后续仍需补齐的生产迁移脚本、模块生命周期、前端回归测试事项。
+
+## 2026-06-10：补齐轻量迁移脚本和模块生命周期基础校验
+- 后端 `AppModule` 增加 `version`、`dependencies` 和 `migrations`；业务模块可用 `migration_step(key, statements, description)` 声明一次性 SQL 迁移，安装初始化和已安装库同步都会执行未记录过的迁移。
+- 迁移执行记录继续写入 `migration_records`，key 格式为 `migration:<module>:<step>`；同一迁移 key 已存在时跳过执行，适合新增索引、辅助表、轻量数据修正等可重复跳过的升级步骤。
+- 安装流程 `install_system(...)` 在建表后执行模块迁移，再写入初始管理员和权限种子；已安装环境继续由 `sync_database(...)` 执行建表、迁移、字段同步和权限种子同步。
+- 后端模块注册器校验模块依赖是否存在，并校验 migration key、table sync 字段、router/model path、页面权限和资源权限是否重复；前端模块注册器同步校验模块依赖、菜单分组、页面 key、页面 path 和页面权限重复。
+- `scripts/create-module.mjs` 生成的前后端模块默认包含 `version=0.1.0` 和 `core` 依赖；`demo-crud` 也声明依赖 `core`，作为后续业务模块的最小生命周期元数据示例。
+
+## 2026-06-10：完成框架产品化待办轻量版收口
+- 后端模块生命周期补齐轻量实现：`AppModule` 新增 `lifecycle_hooks`，模块可通过 `module_lifecycle_hook(event, key, statements, description)` 声明 `install`、`upgrade`、`disable` 三类小型 SQL 钩子；安装和升级钩子按模块版本记录到 `migration_records`，禁用钩子在模块从 enabled 变为 disabled 时执行。
+- 新增 `module_states` 表，`sync_database(...)` 和首次安装流程都会记录已发现模块的 key、version、status 和 dependencies；status 当前为 `enabled`、`disabled` 或 `missing`，用于追踪源码模块状态，不自动删除模块历史数据、权限或审计记录。
+- 新增 `server/app/services/data_portability.py`，提供统一便携数据包导出和导入能力；系统设置中的“备份数据”改为复用该服务，备份 zip 内包含 `metadata.json` 和按表导出的 JSON 数据。
+- 新增 `server/tools/migrate_database.py`，提供 `export`、`import`、`copy` 三个命令，支持 SQLite/MySQL 之间通过便携 zip 迁移数据；`copy` 会保留 `--backup` 指定的 zip 作为失败回滚依据。
+- 前端模块类型要求 `AppModule.version` 必填；smoke 继续增强：现在会校验模块入口必须使用 `defineModule`、模块 key 必须匹配目录、版本必须为语义化格式、依赖必须存在、菜单分组和页面路径不能重复、页面菜单分组必须存在，并扫描模块源码中的 `routePermission(...)` 与 `actionPermission(...)` 翻译是否完整。
+- `README.md`、`docs/development_page_guide.md` 和 `docs/framework_open_items.md` 已同步更新模块生命周期、便携迁移脚本、模块状态表、smoke 校验范围和剩余后续项边界；当前不引入复杂插件系统或 Alembic，后续只有生产升级频率明显增加时再评估。
+- 新增后端测试覆盖模块状态首次写入、生命周期 install/upgrade/disable 钩子、便携数据包导出导入、MySQL 安装流程模块状态同步和 demo CRUD 既有能力；本轮验证通过 `compileall`、`pytest`、`npm run test:smoke`、`vue-tsc` 和 `npm run build`。

@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.exceptions import bad_request
 from app.core.install import default_sqlite_path, is_installed, load_install_config, write_install_config
-from app.db.init import create_tables, seed_database
+from app.db.init import create_tables, run_migrations, seed_database, sync_module_states
 from app.db.session import create_engine_for_url, reset_engine
 from app.schemas.install import InstallDatabaseTestRequest, InstallRequest, MysqlInstallConfig
 
@@ -37,6 +37,8 @@ def install_system(payload: InstallRequest) -> None:
     engine = create_engine_for_url(database_url)
     try:
         create_tables(engine)
+        run_migrations(engine)
+        sync_module_states(engine)
         session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
         with session_factory() as db:
             seed_database(db, payload)

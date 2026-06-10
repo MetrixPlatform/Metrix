@@ -4,6 +4,14 @@
 
 ## 新增页面
 
+可以先用脚手架生成最小模块骨架：
+
+```powershell
+node scripts/create-module.mjs task "任务管理" "Tasks"
+```
+
+脚手架会生成前端模块入口、页面占位、模块语言包、后端模块入口和受权限保护的 ping 接口。它只负责减少注册、权限和 i18n 的漏项；真实业务列表、表单、审计、数据库模型和测试仍按 `demo-crud` 或现有业务模块继续补齐。
+
 1. 在 `web/src/modules/<module>` 新建前端模块目录，模块入口固定为 `index.ts`。
 2. 页面组件优先放在模块目录内的 `views` 子目录；仍需复用现有基础页面时，也可以指向 `web/src/views` 中的组件。
 3. 在模块入口中使用 `defineModule(...)`、`definePage(...)` 和 `defineMenuGroup(...)` 声明页面、菜单分组、路由权限、菜单位置、功能开关和 fallback 顺序。
@@ -105,6 +113,7 @@ APP_MODULE = define_module(
         key="task",
         order=30,
         router_paths=("app.api.tasks:router",),
+        model_paths=("app.models.task",),
         page_permissions=(
             page_permission("tasks", "task", 100, TASK_READ),
         ),
@@ -138,11 +147,78 @@ APP_MODULE = define_module(
 
 后端业务模块的注册入口是 `server/app/modules`，框架启动时会自动扫描该目录下暴露 `APP_MODULE` 的模块。
 
+- 模块需要声明稳定 `key` 和语义化 `version`；业务模块依赖内置能力时声明 `dependencies=("core",)`，注册器会检查依赖是否存在。
 - `router_paths` 使用字符串形式，例如 `"app.api.tasks:router"`，避免模块注册阶段和权限常量、API 文件之间形成循环 import。
 - 新增 API router 后，只需要把 router 路径写入所属模块的 `router_paths`，不要在 `server/app/main.py` 手工 `include_router(...)`。
+- 模块自带 SQLAlchemy model 时，在 `model_paths` 中声明模型模块路径；框架建表前会自动导入这些模块，确保 `Base.metadata` 包含业务表。
+- 需要可回放的一次性 SQL 迁移时，在模块声明中使用 `migration_step(key, statements, description)` 声明迁移步骤。框架安装初始化和已安装库同步时都会执行未记录过的迁移，成功后写入 `migration_records`，同一模块同一 key 不会重复执行。
+- 需要模块安装、升级或禁用时执行小型 SQL 步骤时，在模块声明中使用 `module_lifecycle_hook(event, key, statements, description)`；`event` 仅允许 `install`、`upgrade`、`disable`。安装和升级钩子会按模块版本记录执行历史，禁用钩子在模块从 enabled 变为 disabled 时执行。
+- 框架会把已发现模块写入 `module_states`，记录模块 key、version、status 和 dependencies。`status` 当前为 `enabled`、`disabled` 或 `missing`；它用于追踪源码模块状态，不代表数据表或权限会被自动删除。
+- 开发期需要轻量补字段时，在模块声明中使用 `table_column_sync(table, columns)` 声明字段同步 SQL；该机制只用于开发期自动同步和小步补字段，不替代正式生产迁移脚本。
 - Web-only 管理接口仍然需要在 router 或接口依赖中使用 `require_web_session` 强校验，不能只依赖前端隐藏入口。
 - 需要从 API 文档隐藏的 Web-only tag 或 path prefix，放入模块声明的 `openapi_hidden_tags` 和 `openapi_hidden_path_prefixes`；`/openapi.json` 会统一读取模块声明做过滤。
 - 模块可以是单文件，也可以是包目录；复杂业务优先使用包目录，把 API、schema、service、repository、model 和测试按现有后端分层拆开。
+- 模块注册器会校验模块 key、版本格式、依赖、生命周期事件、router path、model path、迁移 key、字段同步声明、页面权限 code 和功能权限 code 的重复项；新增模块如果启动时报重复或格式错误，需要先修正命名，不要绕开校验。
+
+## 标准 CRUD 示例
+
+`demo-crud` 是当前项目的标准最小业务示例，后续新增普通业务页面优先参考它，而不是从用户管理、公告管理这类较复杂功能复制。
+
+- 前端入口：`web/src/modules/demo-crud/index.ts`
+- 前端 API：`web/src/modules/demo-crud/api.ts`
+- 前端页面：`web/src/modules/demo-crud/views/DemoCrudView.vue`
+- 前端语言包：`web/src/modules/demo-crud/i18n/zh-CN.json` 和 `en-US.json`
+- 后端入口：`server/app/modules/demo_crud/__init__.py`
+- 后端分层：`api.py`、`models.py`、`schemas.py`、`repositories.py`、`services.py`
+- 后端测试：`server/tests/test_auth_rbac.py` 中 `test_demo_crud_module_covers_permissions_audit_and_owner_scope`
+
+示例模块覆盖以下约定：
+
+- 前端模块声明自动生成路由、菜单和 fallback。
+- 模块语言包自动并入公共 i18n。
+- 后端模块声明自动注册 API router、权限种子和 model。
+- 列表使用后端分页，分页大小为 `20 / 50 / 100 / 500`。
+- 表格使用 `work-card table-page-card`、`page-data-table`、`flex-height`、内部数据滚动和固定操作列。
+- 写操作记录审计日志，动作 code 使用 `demo_item.create`、`demo_item.update`、`demo_item.delete`。
+- 业务表记录 `created_by`，默认只能修改和删除本人数据；需要操作他人数据时额外授予 `action:demo_item:manage_others`。
+
+## 数据库迁移策略
+
+当前仍处于开发期，框架默认采用“启动时自动建表 + 模块一次性迁移 + 模块字段同步 + 权限种子同步”的轻量策略。这个策略用于提升开发速度，不等同于完整生产迁移框架。
+
+- 开发期：可以新增 model、权限和少量字段同步声明，后端启动或首次访问数据库时自动同步。
+- 一次性迁移：适合新增索引、初始化辅助表、轻量数据修正等可用 SQL 表达且可重复跳过的升级步骤；迁移 key 一旦发布不要改名，SQL 不要依赖用户交互。
+- 自动补字段成功后会写入 `migration_records`，记录同步 key、类型、目标和 SQL 内容，便于追踪开发库结构变化；重复补同一字段时不会因为历史记录阻断同步。
+- 生产期：上线前必须备份数据库，并为结构变更准备明确升级记录；涉及删字段、改类型、拆表、数据转换、跨库迁移时，必须使用可审查的迁移脚本。
+- SQLite/MySQL 切换：不要直接复用另一个数据库的安装配置；使用 `server/tools/migrate_database.py` 导出便携 zip，再导入目标库。
+- 权限种子：权限 code 必须稳定，删除权限时先加入废弃清单并清理授权关系，避免旧角色保留不可见权限。
+- 回滚：生产变更需要同时准备数据库备份、应用版本回退方式和失败处理步骤。`copy` 命令保留的 `--backup` zip 是数据回滚依据，目标库失败时优先用该 zip 导回旧版本或临时库核验。
+
+迁移辅助命令：
+
+```powershell
+cd server
+..\.venv\Scripts\python.exe tools\migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "..\runtime\backup.zip"
+..\.venv\Scripts\python.exe tools\migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "..\runtime\backup.zip"
+..\.venv\Scripts\python.exe tools\migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "mysql+pymysql://user:pass@127.0.0.1:3306/metrix?charset=utf8mb4" --backup "..\runtime\rollback.zip"
+```
+
+后续如果生产部署和升级频率继续增加，再评估是否引入 Alembic 等正式迁移框架；当前阶段不为了假设场景提前增加复杂依赖。
+
+## Submodule 业务模块接入
+
+业务模块可以先作为普通目录开发，稳定后再拆成独立仓库并通过 submodule 放入对应前后端模块目录。
+
+- 前端 submodule 放在 `web/src/modules/<module>`，必须提供 `index.ts`。
+- 后端 submodule 放在 `server/app/modules/<module>`，必须提供 `APP_MODULE`。
+- 前后端模块名保持可读且稳定；前端目录可用短横线，后端 Python 包使用下划线。
+- 模块内自带语言包、API 封装、页面、schema、service、repository、model 和测试；主项目只负责扫描，不回到核心文件分散注册。
+- 模块依赖优先使用主项目已有依赖和公共工具，不在业务模块中自行引入重复框架。
+- 删除模块前需要确认菜单、路由、权限、数据库表、审计 code 和角色授权的处理方式；不要只删除前端页面留下后端权限或数据表。
+- 模块可以通过配置轻量启停：后端使用 `METRIX_ENABLED_MODULES` 和 `METRIX_DISABLED_MODULES`，前端使用 `app.config.json` 的 `enabledModules` / `disabledModules` 或构建环境变量 `VITE_ENABLED_MODULES` / `VITE_DISABLED_MODULES`。前端模块 key 使用短横线，例如 `demo-crud`；后端模块 key 使用下划线，例如 `demo_crud`。
+- `core` 是基础模块，前后端都不能禁用；配置里引用不存在的模块时，启动、构建或 smoke 检查必须失败，不能静默忽略。
+
+当前阶段不做复杂插件系统。模块启停只控制模块是否参与注册和构建，并通过 `module_states` 留痕；禁用时只执行模块显式声明的轻量 `disable` 钩子，不自动清理已有权限、数据表或审计记录。等模块数量和升级流程明显复杂后，再评估完整插件化。
 
 ## API 与 Token
 

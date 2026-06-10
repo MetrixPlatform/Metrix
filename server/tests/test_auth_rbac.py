@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 import re
+import zipfile
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -129,6 +130,201 @@ def test_installed_database_auto_syncs_new_tables_and_permissions(tmp_path, monk
     assert "route:announcements" in {item["code"] for item in permissions.json()}
 
 
+def test_database_column_sync_records_migration_history(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.db.session import reset_engine
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users DROP COLUMN phone"))
+        conn.execute(text("ALTER TABLE users DROP COLUMN email"))
+        assert "phone" not in {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
+    engine.dispose()
+    reset_engine()
+
+    headers = login(client, payload["admin_username"], payload["admin_password"])
+    assert client.get("/api/auth/me", headers=headers).status_code == 200
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        user_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(users)"))}
+        records = conn.execute(
+            text("SELECT `key`, kind, target FROM migration_records WHERE `key` LIKE 'column:users.%' ORDER BY `key`")
+        ).all()
+    engine.dispose()
+
+    assert {"phone", "email"}.issubset(user_columns)
+    assert records == [
+        ("column:users.email", "column", "users.email"),
+        ("column:users.phone", "column", "users.phone"),
+    ]
+
+
+def test_module_migration_steps_run_once(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.core.module import AppModule, migration_step
+    from app.db import init as db_init
+
+    module = AppModule(
+        key="test_migration",
+        version="1.0.0",
+        migrations=(
+            migration_step(
+                "001_counter",
+                (
+                    "CREATE TABLE IF NOT EXISTS migration_counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+                    "INSERT INTO migration_counter (value) VALUES (1)",
+                ),
+                "create migration counter",
+            ),
+        ),
+    )
+    monkeypatch.setattr(db_init, "get_migration_steps", lambda: ((module, module.migrations[0]),))
+
+    engine = create_engine(load_install_config().database_url)
+    db_init.run_migrations(engine)
+    db_init.run_migrations(engine)
+
+    with engine.begin() as conn:
+        counter_count = conn.execute(text("SELECT COUNT(*) FROM migration_counter")).scalar_one()
+        records = conn.execute(
+            text("SELECT kind, target, detail FROM migration_records WHERE `key` = 'migration:test_migration:001_counter'")
+        ).all()
+    engine.dispose()
+
+    assert counter_count == 1
+    assert records == [("migration", "test_migration", "create migration counter")]
+
+
+def test_module_states_are_recorded_on_install(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        rows = conn.execute(text("SELECT `key`, version, status, dependencies FROM module_states ORDER BY `key`")).all()
+    engine.dispose()
+
+    states = {row[0]: row for row in rows}
+    assert states["core"][1:3] == ("0.1.0", "enabled")
+    assert json.loads(states["core"][3]) == []
+    assert states["demo_crud"][1:3] == ("0.1.0", "enabled")
+    assert json.loads(states["demo_crud"][3]) == ["core"]
+
+
+def test_module_lifecycle_hooks_run_for_install_upgrade_and_disable(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.core.module import AppModule, module_lifecycle_hook
+    from app.db import init as db_init
+
+    module_v1 = AppModule(
+        key="hooked",
+        version="1.0.0",
+        lifecycle_hooks=(
+            module_lifecycle_hook(
+                "install",
+                "counter",
+                (
+                    "CREATE TABLE IF NOT EXISTS lifecycle_events (event VARCHAR(20) NOT NULL)",
+                    "INSERT INTO lifecycle_events (event) VALUES ('install')",
+                ),
+                "install hook",
+            ),
+        ),
+    )
+    module_v2 = AppModule(
+        key="hooked",
+        version="1.1.0",
+        lifecycle_hooks=(
+            module_lifecycle_hook("upgrade", "counter", ("INSERT INTO lifecycle_events (event) VALUES ('upgrade')",), "upgrade hook"),
+            module_lifecycle_hook("disable", "counter", ("INSERT INTO lifecycle_events (event) VALUES ('disable')",), "disable hook"),
+        ),
+    )
+
+    engine = create_engine(load_install_config().database_url)
+    monkeypatch.setattr(db_init, "get_discovered_app_modules", lambda: (module_v1,))
+    monkeypatch.setattr(db_init, "get_app_modules", lambda: (module_v1,))
+    db_init.sync_module_states(engine)
+    db_init.sync_module_states(engine)
+
+    monkeypatch.setattr(db_init, "get_discovered_app_modules", lambda: (module_v2,))
+    monkeypatch.setattr(db_init, "get_app_modules", lambda: (module_v2,))
+    db_init.sync_module_states(engine)
+    db_init.sync_module_states(engine)
+
+    monkeypatch.setattr(db_init, "get_app_modules", lambda: ())
+    db_init.sync_module_states(engine)
+    db_init.sync_module_states(engine)
+
+    with engine.begin() as conn:
+        events = [row[0] for row in conn.execute(text("SELECT event FROM lifecycle_events ORDER BY rowid")).all()]
+        state = conn.execute(text("SELECT version, status FROM module_states WHERE `key` = 'hooked'")).one()
+        records = [
+            row[0]
+            for row in conn.execute(
+                text("SELECT `key` FROM migration_records WHERE kind = 'module_hook' AND target = 'hooked' ORDER BY `key`")
+            ).all()
+        ]
+    engine.dispose()
+
+    assert events == ["install", "upgrade", "disable"]
+    assert state == ("1.1.0", "disabled")
+    assert records == [
+        "hook:hooked:disable:counter",
+        "hook:hooked:install:1.0.0:counter",
+        "hook:hooked:upgrade:1.1.0:counter",
+    ]
+
+
+def test_data_portability_exports_and_imports_sqlite_database(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.db.init import sync_database
+    from app.services.data_portability import export_database_to_file, import_database_from_file
+    from sqlalchemy.orm import sessionmaker
+
+    backup_path = tmp_path / "portable-backup.zip"
+    source_engine = create_engine(load_install_config().database_url)
+    try:
+        session_factory = sessionmaker(bind=source_engine, autoflush=False, autocommit=False, expire_on_commit=False)
+        with session_factory() as db:
+            export_database_to_file(db, backup_path)
+    finally:
+        source_engine.dispose()
+
+    with zipfile.ZipFile(backup_path, "r") as archive:
+        metadata = json.loads(archive.read("metadata.json").decode("utf-8"))
+        assert "tables/users.json" in archive.namelist()
+        assert "module_states" in metadata["tables"]
+
+    target_engine = create_engine(f"sqlite:///{tmp_path / 'portable-target.db'}")
+    try:
+        sync_database(target_engine)
+        import_database_from_file(target_engine, backup_path)
+        sync_database(target_engine)
+        with target_engine.begin() as conn:
+            username = conn.execute(text("SELECT username FROM users WHERE username = :username"), {"username": payload["admin_username"]}).scalar_one()
+            module_status = conn.execute(text("SELECT status FROM module_states WHERE `key` = 'demo_crud'")).scalar_one()
+    finally:
+        target_engine.dispose()
+
+    assert username == payload["admin_username"]
+    assert module_status == "enabled"
+
+
 def test_app_config_defaults_and_env_override(monkeypatch):
     from app.core.config import get_settings
 
@@ -218,6 +414,7 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_SETTINGS: SETTING_READ,
         ROUTE_TOKENS: API_TOKEN_READ,
         ROUTE_API_DOCS: API_DOCS_READ,
+        route_code("demo_crud"): action_code("demo_item", "read"),
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
     assert expand_permissions({ROUTE_TOKENS, ROUTE_API_DOCS}) == {ROUTE_TOKENS, API_TOKEN_READ, ROUTE_API_DOCS, API_DOCS_READ}
@@ -230,17 +427,64 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
         get_openapi_hidden_tags,
         get_page_permission_specs,
         get_resource_permission_specs,
+        get_table_column_syncs,
         load_module_routers,
     )
 
     modules = get_app_modules()
-    assert [module.key for module in modules] == ["core"]
-    assert "app.api.dashboard:router" in modules[0].router_paths
-    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users"}
-    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement"}
+    assert [module.key for module in modules] == ["core", "demo_crud"]
+    routers_by_module = {module.key: module.router_paths for module in modules}
+    assert "app.api.dashboard:router" in routers_by_module["core"]
+    assert "app.modules.demo_crud.api:router" in routers_by_module["demo_crud"]
+    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:demo_crud"}
+    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement", "demo_item"}
+    assert "app.modules.demo_crud.models" in modules[1].model_paths
+    assert {"users", "audit_logs", "api_tokens"}.issubset({sync.table for sync in get_table_column_syncs()})
     assert "auth" in get_openapi_hidden_tags()
     assert "/api/users" in get_openapi_hidden_path_prefixes()
     assert any(getattr(router, "prefix", None) == "/api/dashboard" for router in load_module_routers())
+    assert any(getattr(router, "prefix", None) == "/api/demo-items" for router in load_module_routers())
+
+
+def test_app_modules_can_be_filtered_by_environment(monkeypatch):
+    from app.modules.registry import get_app_modules, get_page_permission_specs
+
+    monkeypatch.setenv("METRIX_DISABLED_MODULES", "demo_crud")
+    get_app_modules.cache_clear()
+    try:
+        assert [module.key for module in get_app_modules()] == ["core"]
+        assert "route:demo_crud" not in {spec.code for spec in get_page_permission_specs()}
+    finally:
+        get_app_modules.cache_clear()
+
+
+def test_app_module_filter_rejects_unknown_or_core_module(monkeypatch):
+    from app.modules.registry import get_app_modules
+
+    monkeypatch.setenv("METRIX_ENABLED_MODULES", "missing_module")
+    get_app_modules.cache_clear()
+    try:
+        try:
+            get_app_modules()
+        except RuntimeError as exc:
+            assert str(exc) == "Unknown enabled app module: missing_module"
+        else:
+            raise AssertionError("Unknown enabled module should fail")
+    finally:
+        get_app_modules.cache_clear()
+
+    monkeypatch.delenv("METRIX_ENABLED_MODULES", raising=False)
+    monkeypatch.setenv("METRIX_DISABLED_MODULES", "core")
+    get_app_modules.cache_clear()
+    try:
+        try:
+            get_app_modules()
+        except RuntimeError as exc:
+            assert str(exc) == "Core app module cannot be disabled"
+        else:
+            raise AssertionError("Disabling core module should fail")
+    finally:
+        get_app_modules.cache_clear()
 
 
 def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch):
@@ -322,6 +566,8 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
     monkeypatch.setattr(install_service, "_create_mysql_database", lambda data: calls.append(("create_db", data.mysql.database)))
     monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine(url))
     monkeypatch.setattr(install_service, "create_tables", lambda engine: calls.append(("tables", engine.url)))
+    monkeypatch.setattr(install_service, "run_migrations", lambda engine: calls.append(("migrations", engine.url)))
+    monkeypatch.setattr(install_service, "sync_module_states", lambda engine: calls.append(("module_states", engine.url)))
     monkeypatch.setattr(install_service, "sessionmaker", lambda **kwargs: FakeSessionFactory())
     monkeypatch.setattr(install_service, "seed_database", lambda db, data: calls.append(("seed", data.admin_username)))
     monkeypatch.setattr(install_service, "write_install_config", lambda database_type, url: calls.append(("config", database_type, url)))
@@ -331,6 +577,8 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
 
     assert ("create_db", MYSQL_TEST_DATABASE) in calls
     assert any(call[0] == "tables" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
+    assert any(call[0] == "migrations" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
+    assert any(call[0] == "module_states" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
     assert ("seed", "mysqladmin") in calls
     assert any(call[0] == "config" and call[1] == "mysql" for call in calls)
     assert "reset" in calls
@@ -580,6 +828,121 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
     assert role_options.json()[0].keys() == {"id", "code", "name"}
     assert client.get("/api/permissions", headers=reader_headers).status_code == 403
     assert client.post("/api/users", json={}, headers=reader_headers).status_code == 403
+
+
+def test_demo_crud_module_covers_permissions_audit_and_owner_scope(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    empty_list = client.get("/api/demo-items", headers=admin_headers)
+    assert empty_list.status_code == 200
+    assert empty_list.json()["items"] == []
+
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
+    demo_base_codes = {
+        "route:demo_crud",
+        "action:demo_item:create",
+        "action:demo_item:read",
+        "action:demo_item:update",
+        "action:demo_item:delete",
+    }
+    assert demo_base_codes.issubset(permission_ids_by_code)
+    assert "action:demo_item:manage_others" in permission_ids_by_code
+
+    created = client.post(
+        "/api/demo-items",
+        json={"name": "管理员样例", "category": "core", "description": "用于验证 demo 模块", "is_active": True},
+        headers=admin_headers,
+    )
+    assert created.status_code == 200
+    admin_item = created.json()
+    assert admin_item["created_by_username"] == payload["admin_username"]
+
+    filtered = client.get("/api/demo-items", params={"category": "core"}, headers=admin_headers)
+    assert filtered.status_code == 200
+    assert [item["name"] for item in page_items(filtered)] == ["管理员样例"]
+
+    role = client.post(
+        "/api/roles",
+        json={"code": "demo_operator", "name": "示例操作员", "description": ""},
+        headers=admin_headers,
+    )
+    assert role.status_code == 200
+    role_id = role.json()["id"]
+    assign = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={"permission_ids": [permission_ids_by_code[code] for code in demo_base_codes]},
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+
+    for index, username in enumerate(["demo_owner", "demo_other"], start=20):
+        user = client.post(
+            "/api/users",
+            json={
+                "username": username,
+                "password": "DemoPass123",
+                "full_name": username,
+                "phone": f"138000000{index}",
+                "email": f"{username}@example.com",
+                "company": "",
+                "department": "",
+                "role_ids": [role_id],
+            },
+            headers=admin_headers,
+        )
+        assert user.status_code == 200
+
+    owner_headers = login(client, "demo_owner", "DemoPass123")
+    other_headers = login(client, "demo_other", "DemoPass123")
+    me = client.get("/api/auth/me", headers=owner_headers).json()
+    assert "route:demo_crud" in me["permissions"]
+    assert "action:demo_item:read" in me["permissions"]
+
+    owner_item = client.post(
+        "/api/demo-items",
+        json={"name": "本人样例", "category": "mine", "description": "", "is_active": True},
+        headers=owner_headers,
+    )
+    assert owner_item.status_code == 200
+    owner_item_id = owner_item.json()["id"]
+
+    own_items = client.get("/api/demo-items", params={"created_by": "me"}, headers=owner_headers)
+    assert own_items.status_code == 200
+    assert {item["name"] for item in page_items(own_items)} == {"本人样例"}
+
+    update_payload = {"name": "跨账号修改", "category": "core", "description": "拒绝跨账号", "is_active": False}
+    forbidden_update = client.put(f"/api/demo-items/{admin_item['id']}", json=update_payload, headers=other_headers)
+    assert forbidden_update.status_code == 403
+    assert forbidden_update.json()["detail"]["code"] == "error.demoItemManageOthersDenied"
+    forbidden_delete = client.delete(f"/api/demo-items/{admin_item['id']}", headers=other_headers)
+    assert forbidden_delete.status_code == 403
+
+    own_update = client.put(
+        f"/api/demo-items/{owner_item_id}",
+        json={"name": "本人修改", "category": "mine", "description": "可修改自己的数据", "is_active": True},
+        headers=owner_headers,
+    )
+    assert own_update.status_code == 200
+    assert own_update.json()["name"] == "本人修改"
+
+    assign_manage_others = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={"permission_ids": [permission_ids_by_code[code] for code in {*demo_base_codes, "action:demo_item:manage_others"}]},
+        headers=admin_headers,
+    )
+    assert assign_manage_others.status_code == 200
+    allowed_update = client.put(f"/api/demo-items/{admin_item['id']}", json=update_payload, headers=other_headers)
+    assert allowed_update.status_code == 200
+    assert allowed_update.json()["is_active"] is False
+    assert client.delete(f"/api/demo-items/{admin_item['id']}", headers=other_headers).status_code == 200
+
+    logs = client.get("/api/audit-logs", params={"actor_scope": "all", "target_type": "demo_item", "page_size": 500}, headers=admin_headers)
+    assert logs.status_code == 200
+    actions = {item["action"] for item in page_items(logs)}
+    assert {"demo_item.create", "demo_item.update", "demo_item.delete"}.issubset(actions)
 
 
 def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, monkeypatch):

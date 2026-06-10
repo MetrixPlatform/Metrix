@@ -1,0 +1,57 @@
+{
+  "route": {
+    "demoCrud": "CRUD 示例",
+    "group": {
+      "examples": "开发示例"
+    }
+  },
+  "permission": {
+    "group": {
+      "demoCrud": "CRUD 示例"
+    },
+    "route:demo_crud": "CRUD 示例",
+    "action:demo_item:create": "新增示例数据",
+    "action:demo_item:read": "查询示例数据",
+    "action:demo_item:update": "修改示例数据",
+    "action:demo_item:delete": "删除示例数据",
+    "action:demo_item:manage_others": "操作他人示例数据"
+  },
+  "error": {
+    "demoItemNotFound": "示例数据不存在",
+    "demoItemManageOthersDenied": "无权限操作他人示例数据"
+  },
+  "demoCrud": {
+    "searchPlaceholder": "搜索名称、说明",
+    "categoryPlaceholder": "筛选分类",
+    "add": "新增示例",
+    "edit": "编辑示例",
+    "saved": "示例数据已保存",
+    "deleted": "示例数据已删除",
+    "deleteTitle": "删除示例",
+    "deleteConfirm": "确认删除示例 {name}？",
+    "creatorAll": "全部人",
+    "creatorMe": "仅自己",
+    "field": {
+      "name": "名称",
+      "category": "分类",
+      "description": "说明"
+    }
+  },
+  "auditLog": {
+    "action": {
+      "demo_item": {
+        "create": "新增示例数据",
+        "update": "修改示例数据",
+        "delete": "删除示例数据"
+      }
+    },
+    "target": {
+      "demo_item": "示例数据"
+    },
+    "field": {
+      "name": "名称",
+      "category": "分类",
+      "description": "说明"
+    }
+  }
+}

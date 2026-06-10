@@ -27,7 +27,9 @@ export interface AppPage {
 
 export interface AppModule {
   key: string;
+  version: string;
   order?: number;
+  dependencies?: string[];
   menuGroups?: AppMenuGroup[];
   pages?: AppPage[];
 }
