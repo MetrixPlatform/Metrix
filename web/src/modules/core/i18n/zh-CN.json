@@ -1,0 +1,16 @@
+{
+  "route": {
+    "group": {
+      "system": "系统管理"
+    },
+    "dashboard": "首页",
+    "users": "用户管理",
+    "permissions": "权限管理",
+    "announcements": "公告管理",
+    "auditLogs": "操作日志",
+    "settings": "系统设置",
+    "tokens": "Token",
+    "apiDocs": "API 文档",
+    "profile": "个人信息"
+  }
+}

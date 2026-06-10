@@ -616,3 +616,12 @@
 - 新增 `docs/framework_open_items.md`，记录当前框架从内部平台开发底座升级为通用后台 Web 框架所需补齐的事项。
 - 待处理清单覆盖 README/快速启动/初始化/部署说明、标准 `demo-crud` 示例模块、权限/路由/菜单/i18n 模块化注册、数据库迁移策略、submodule 业务模块接入机制和前后端测试覆盖。
 - 当前建议保持轻量演进：优先通过模块 manifest、示例模板和清晰文档减少新增模块时对核心文件的分散修改，暂不引入复杂插件系统。
+
+## 2026-06-10：落地模块化注册基础机制
+- 前端新增 `web/src/modules/types.ts` 和 `web/src/modules/registry.ts`，通过 `import.meta.glob` 自动发现 `web/src/modules/*/index.ts`，模块使用 `defineModule(...)`、`definePage(...)` 和 `defineMenuGroup(...)` 声明页面、菜单、权限、功能开关和 fallback 顺序。
+- 内置页面迁移到 `web/src/modules/core/index.ts`，`web/src/router/page-registry.ts` 不再手写页面数组，只从模块声明派生主框架子路由、侧边栏菜单、页面标题和无权限 fallback。
+- 前端 i18n 支持“公共语言包 + 模块语言包”合并，默认语言随首包加载，非默认语言继续按需动态加载；内置路由标题迁移到 `web/src/modules/core/i18n/zh-CN.json` 和 `en-US.json`，减少全局语言包重复。
+- 后端新增 `server/app/core/module.py`、`server/app/modules/registry.py` 和 `server/app/modules/core.py`；启动时自动扫描 `server/app/modules` 中的 `APP_MODULE`，统一收集 API router、页面权限、功能权限和 OpenAPI 隐藏规则。
+- `server/app/main.py` 改为遍历模块 router 自动 `include_router(...)`，OpenAPI 过滤规则从模块声明读取；`server/app/api/__init__.py` 不再集中导出所有 API。
+- `server/app/core/permissions.py` 保留现有稳定权限常量，底层权限种子与路由默认查询权限由模块注册器收集，兼顾现有 API/service 引用和后续模块化新增。
+- `docs/development_page_guide.md` 更新新增页面、i18n、新增权限和后端 API 注册流程：后续业务优先在模块目录内完成声明，不要再修改 `router/index.ts`、`AppShell.vue` 或 `server/app/main.py` 手工注册。

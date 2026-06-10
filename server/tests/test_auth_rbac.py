@@ -223,6 +223,26 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert expand_permissions({ROUTE_TOKENS, ROUTE_API_DOCS}) == {ROUTE_TOKENS, API_TOKEN_READ, ROUTE_API_DOCS, API_DOCS_READ}
 
 
+def test_app_modules_register_permissions_routers_and_openapi_filters():
+    from app.modules.registry import (
+        get_app_modules,
+        get_openapi_hidden_path_prefixes,
+        get_openapi_hidden_tags,
+        get_page_permission_specs,
+        get_resource_permission_specs,
+        load_module_routers,
+    )
+
+    modules = get_app_modules()
+    assert [module.key for module in modules] == ["core"]
+    assert "app.api.dashboard:router" in modules[0].router_paths
+    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users"}
+    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement"}
+    assert "auth" in get_openapi_hidden_tags()
+    assert "/api/users" in get_openapi_hidden_path_prefixes()
+    assert any(getattr(router, "prefix", None) == "/api/dashboard" for router in load_module_routers())
+
+
 def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     payload = install_sqlite(client, tmp_path)

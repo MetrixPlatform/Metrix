@@ -4,22 +4,46 @@
 
 ## 新增页面
 
-1. 在 `web/src/views` 新建页面组件，页面内部只写当前页面需要的交互和布局。
-2. 在 `web/src/router/page-registry.ts` 的 `appPages` 中添加页面注册项。
-3. 注册项统一维护页面 `key`、`path`、`titleKey`、懒加载组件、路由权限、菜单位置和 fallback 顺序。
-4. 需要显示到侧边栏时配置 `menu`；不需要显示菜单的页面不配置 `menu`。
-5. 需要收纳到二级菜单时使用已有 `group`，新增分组时维护同文件的 `menuGroups` 和对应 `labelKey`。
+1. 在 `web/src/modules/<module>` 新建前端模块目录，模块入口固定为 `index.ts`。
+2. 页面组件优先放在模块目录内的 `views` 子目录；仍需复用现有基础页面时，也可以指向 `web/src/views` 中的组件。
+3. 在模块入口中使用 `defineModule(...)`、`definePage(...)` 和 `defineMenuGroup(...)` 声明页面、菜单分组、路由权限、菜单位置、功能开关和 fallback 顺序。
+4. 需要显示到侧边栏时配置页面 `menu`；不需要显示菜单的页面不配置 `menu`。
+5. 需要收纳到二级菜单时使用已有 `group`；新增分组时在当前模块的 `menuGroups` 中声明，不要回到主框架组件里手写菜单。
 
-`page-registry.ts` 会自动派生主框架子路由、页面标题、侧边栏菜单、父级展开状态和无权限 fallback，不要在 `router/index.ts` 或 `AppShell.vue` 里重复维护页面列表。
+`web/src/modules/registry.ts` 会自动发现 `web/src/modules/*/index.ts` 并交给 `page-registry.ts` 生成主框架子路由、页面标题、侧边栏菜单、父级展开状态和无权限 fallback。后续新增页面不要修改 `router/index.ts`、`AppShell.vue` 或手工维护第二份菜单。
+
+模块入口示例：
+
+```ts
+import { Board20Regular } from "@vicons/fluent";
+
+import { defineModule, definePage, routePermission } from "../types";
+
+export default defineModule({
+  key: "task",
+  order: 30,
+  pages: [
+    definePage({
+      key: "tasks",
+      path: "/tasks",
+      titleKey: "route.tasks",
+      component: () => import("./views/TaskManageView.vue"),
+      permission: routePermission("tasks"),
+      fallbackOrder: 100,
+      menu: { icon: Board20Regular, order: 10 }
+    })
+  ]
+});
+```
 
 ## 多语言
 
 前端文案统一通过 `web/src/i18n` 管理，底层使用本地依赖 `vue-i18n`，当前支持 `zh-CN` 和 `en-US`。新增页面、弹窗、按钮、表单提示、空状态、确认信息、表头、枚举显示和路由标题都不能在页面组件中直接硬编码展示文案。
 
-- 语言资源按语言拆分到 `web/src/i18n/locales/<locale>.json`，JSON 内按 key 路径分组，例如 `common.save` 写成 `{ "common": { "save": "保存" } }`；不要再把多种语言的翻译集中写进同一个 TS 文件。
+- 公共语言资源按语言拆分到 `web/src/i18n/locales/<locale>.json`，模块自己的语言资源放到 `web/src/modules/<module>/i18n/<locale>.json`。JSON 内按 key 路径分组，例如 `common.save` 写成 `{ "common": { "save": "保存" } }`；不要再把多种语言的翻译集中写进同一个 TS 文件。
 - 每个语言 JSON 顶层必须提供自己的语言显示名，例如 `"language": "简体中文"` 或 `"language": "English"`；不要在每个语言文件里维护其他语言名称列表。
-- 默认语言 `zh-CN` 随首包加载，其他语言由 `web/src/i18n/messages.ts` 自动发现并按需动态加载；新增语言时优先只新增 `locales/<locale>.json`。只有 Naive UI 已有对应组件语言包且需要适配日期、组件内置文案时，才扩展 `web/src/i18n/naive.ts` 映射。
-- 新增页面标题和菜单名称时，在语言 JSON 中新增 `route.*` key，并在 `page-registry.ts` 使用 `titleKey` 或 `labelKey`。
+- 默认语言 `zh-CN` 随首包加载，其他语言由 `web/src/i18n/messages.ts` 自动发现并按需动态加载；加载时会自动合并公共语言包和所有模块语言包。新增语言时至少新增公共 `locales/<locale>.json`，模块有独立文案时再新增对应模块的 `i18n/<locale>.json`。只有 Naive UI 已有对应组件语言包且需要适配日期、组件内置文案时，才扩展 `web/src/i18n/naive.ts` 映射。
+- 新增页面标题和菜单名称时，在模块语言 JSON 中新增 `route.*` key，并在模块入口使用 `titleKey` 或 `labelKey`。
 - 页面展示文案使用 `t("...")`，日期时间使用 `formatDateTime`，不要在页面里直接调用固定语言的格式化逻辑。
 - 表单校验规则需要使用 `computed` 生成，确保语言切换后校验提示同步更新。
 - 后端返回的内置角色、权限名称和权限分组通过 `web/src/i18n/builtins.ts` 做显示转换；新增内置角色或权限时优先让后端返回稳定资源 key，并在语言 JSON 中补充对应翻译。
@@ -61,11 +85,46 @@
 
 ## 新增权限
 
-1. 在 `server/app/core/permissions.py` 使用 `route_code(page)` 定义页面路由权限。
-2. 业务资源需要增删改查操作时，使用 `action_code(resource, action)` 定义功能权限。
-3. 在 `PAGE_PERMISSION_SPECS` 中添加页面权限规格。
-4. 在 `RESOURCE_PERMISSION_SPECS` 中添加资源功能权限规格。
-5. 路由权限授予后需要默认拥有查询能力时，在页面权限规格里填写对应 `read_permission`。
+1. 在 `server/app/modules/<module>.py` 或 `server/app/modules/<module>/__init__.py` 中声明 `APP_MODULE`。
+2. 页面路由权限使用 `page_permission(page, resource, sort_order, read_permission)` 声明。
+3. 业务资源需要增删改查操作时，使用 `resource_permissions(...)` 和 `resource_action(...)` 声明功能权限。
+4. 路由权限授予后需要默认拥有查询能力时，在 `page_permission(...)` 的 `read_permission` 中填写对应 `action:<resource>:read` 权限。
+5. 权限 code 仍然使用稳定规则：路由权限为 `route:<page>`，功能权限为 `action:<resource>:<action>`。
+
+后端模块由 `server/app/modules/registry.py` 自动扫描 `server/app/modules` 下暴露 `APP_MODULE` 的模块，并统一收集页面权限、功能权限、API router 和 OpenAPI 过滤规则。`server/app/core/permissions.py` 只保留稳定权限常量和兼容导出，不再作为新增权限的手工注册入口。
+
+后端模块入口示例：
+
+```python
+from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+
+TASK_READ = action_code("task", "read")
+
+APP_MODULE = define_module(
+    AppModule(
+        key="task",
+        order=30,
+        router_paths=("app.api.tasks:router",),
+        page_permissions=(
+            page_permission("tasks", "task", 100, TASK_READ),
+        ),
+        resource_permissions=(
+            resource_permissions(
+                "task",
+                "task",
+                800,
+                (
+                    resource_action("create", 10),
+                    resource_action("read", 20),
+                    resource_action("update", 30),
+                    resource_action("delete", 40),
+                    resource_action("operate", 50),
+                ),
+            ),
+        ),
+    )
+)
+```
 
 后端内置权限和内置角色种子只保存稳定 key 或编码，不保存中文、英文等展示文案。权限种子的 `name`、`group_name`、`description` 使用 `permission.*` 这类资源 key，内置角色使用 `role.*` key；页面展示统一由前端 i18n 根据权限 `code`、分组 key 或角色 key 翻译。
 
@@ -74,6 +133,16 @@
 权限分配区使用可展开/收起的树形节点展示权限分组和权限项，默认保持全部收缩，并在工具栏提供一键展开/收缩图标按钮；后续新增权限只维护后端权限规格和语言包翻译，不要在权限页继续增加独立卡片、手写分栏或额外权限清单。
 
 系统设置页使用标签分页承载不同类型设置，当前包括基础设置、注册与账号、API 与 Token、日志策略和数据备份；后续新增设置优先放入已有标签页，确实独立时再新增同级标签页，不要再使用左右大卡片、单页堆叠或大面积留白布局。设置表单宽度需要受控，不能让少量字段横向撑满整个工作区。
+
+## 后端模块与 API 注册
+
+后端业务模块的注册入口是 `server/app/modules`，框架启动时会自动扫描该目录下暴露 `APP_MODULE` 的模块。
+
+- `router_paths` 使用字符串形式，例如 `"app.api.tasks:router"`，避免模块注册阶段和权限常量、API 文件之间形成循环 import。
+- 新增 API router 后，只需要把 router 路径写入所属模块的 `router_paths`，不要在 `server/app/main.py` 手工 `include_router(...)`。
+- Web-only 管理接口仍然需要在 router 或接口依赖中使用 `require_web_session` 强校验，不能只依赖前端隐藏入口。
+- 需要从 API 文档隐藏的 Web-only tag 或 path prefix，放入模块声明的 `openapi_hidden_tags` 和 `openapi_hidden_path_prefixes`；`/openapi.json` 会统一读取模块声明做过滤。
+- 模块可以是单文件，也可以是包目录；复杂业务优先使用包目录，把 API、schema、service、repository、model 和测试按现有后端分层拆开。
 
 ## API 与 Token
 
@@ -96,7 +165,7 @@
 - 用 API Token 调用接口时，用户角色仍必须拥有 `action:api_token:read`，并且目标接口本身仍要通过对应权限；收回角色 API 能力后，既不能创建新 Token，旧 Token 也不能继续调用平台接口。
 - 后续新增业务 API 时，在 FastAPI 路由上设置清晰 `tags`、`summary`、响应模型和必要的 `responses`，请求/响应 Pydantic schema 字段使用 `Field(...)` 描述和示例；API 文档页会自动从 `/openapi.json` 中展示，不要在前端 API 文档页手写接口清单。新增 Web-only 管理接口时，需要同步维护后端 OpenAPI 过滤规则，避免出现在 API 文档页。
 - OpenAPI 文档翻译集中维护在语言 JSON 的 `openapi.*` 分组中，`web/src/i18n/openapi.ts` 只保留读取辅助函数。翻译 key 约定为 `openapi.tag.<tag>`、`openapi.operation.<operationId>.summary`、`openapi.operation.<operationId>.description`、`openapi.parameter.<operationId>.<name>`、`openapi.parameter.common.<name>`、`openapi.schema.property.<field>`、`openapi.schema.property.<nested.field>` 和 `openapi.response.<status>`；页面继续通过 `openApiText(...)` 读取，找不到时回退到 OpenAPI 原始说明。
-- 若新增页面属于 API 功能整体开关管辖，在 `web/src/router/page-registry.ts` 的页面注册项中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
+- 若新增页面属于 API 功能整体开关管辖，在前端模块页面声明中设置 `feature: "api"`，菜单、fallback 和路由守卫会统一处理显示与访问。
 - Vite 开发代理只匹配 `/api/` 和 `/openapi.json`。不要把代理前缀改回宽泛的 `/api`，否则前端页面路径 `/api-docs` 会被误转发到后端并在刷新时显示 404。
 
 ## 页面内按钮

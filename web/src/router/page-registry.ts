@@ -1,22 +1,12 @@
-import {
-  Board20Regular,
-  ClipboardClock20Regular,
-  Code20Regular,
-  Key20Regular,
-  KeyMultiple20Regular,
-  MegaphoneLoud20Regular,
-  People20Regular,
-  PeopleSettings20Regular,
-  Settings20Regular
-} from "@vicons/fluent";
 import type { Component } from "vue";
 import type { RouteRecordRaw } from "vue-router";
 
-import { t, type I18nKey } from "../i18n";
+import { t } from "../i18n";
+import { appModules } from "../modules/registry";
+import type { AppPage } from "../modules/types";
 
 type HasPermission = (permission: string) => boolean;
 type IsFeatureEnabled = (feature?: string) => boolean;
-type PageComponent = () => Promise<unknown>;
 
 export interface AppMenuItem {
   key?: string;
@@ -27,115 +17,8 @@ export interface AppMenuItem {
   children?: AppMenuItem[];
 }
 
-interface AppMenuGroup {
-  key: string;
-  labelKey: I18nKey;
-  icon: Component;
-  order: number;
-}
-
-interface AppPage {
-  key: string;
-  path: string;
-  titleKey: I18nKey;
-  component: PageComponent;
-  permission?: string;
-  feature?: "api";
-  fallbackOrder?: number;
-  menu?: {
-    group?: string;
-    icon: Component;
-    order: number;
-  };
-}
-
-const menuGroups: AppMenuGroup[] = [
-  { key: "system", labelKey: "route.group.system", icon: Settings20Regular, order: 20 }
-];
-
-const appPages: AppPage[] = [
-  {
-    key: "dashboard",
-    path: "/",
-    titleKey: "route.dashboard",
-    component: () => import("../views/DashboardView.vue"),
-    permission: "route:dashboard",
-    fallbackOrder: 10,
-    menu: { icon: Board20Regular, order: 10 }
-  },
-  {
-    key: "users",
-    path: "/users",
-    titleKey: "route.users",
-    component: () => import("../views/UserManageView.vue"),
-    permission: "route:users",
-    fallbackOrder: 20,
-    menu: { group: "system", icon: People20Regular, order: 10 }
-  },
-  {
-    key: "permissions",
-    path: "/permissions",
-    titleKey: "route.permissions",
-    component: () => import("../views/PermissionView.vue"),
-    permission: "route:permissions",
-    fallbackOrder: 30,
-    menu: { group: "system", icon: KeyMultiple20Regular, order: 20 }
-  },
-  {
-    key: "announcements",
-    path: "/announcements",
-    titleKey: "route.announcements",
-    component: () => import("../views/AnnouncementManageView.vue"),
-    permission: "route:announcements",
-    fallbackOrder: 40,
-    menu: { group: "system", icon: MegaphoneLoud20Regular, order: 30 }
-  },
-  {
-    key: "auditLogs",
-    path: "/audit-logs",
-    titleKey: "route.auditLogs",
-    component: () => import("../views/AuditLogView.vue"),
-    permission: "route:audit_logs",
-    fallbackOrder: 50,
-    menu: { group: "system", icon: ClipboardClock20Regular, order: 40 }
-  },
-  {
-    key: "settings",
-    path: "/settings",
-    titleKey: "route.settings",
-    component: () => import("../views/SystemSettingsView.vue"),
-    permission: "route:settings",
-    fallbackOrder: 60,
-    menu: { group: "system", icon: PeopleSettings20Regular, order: 50 }
-  },
-  {
-    key: "tokens",
-    path: "/tokens",
-    titleKey: "route.tokens",
-    component: () => import("../views/TokenManageView.vue"),
-    permission: "route:tokens",
-    feature: "api",
-    fallbackOrder: 70,
-    menu: { group: "system", icon: Key20Regular, order: 60 }
-  },
-  {
-    key: "apiDocs",
-    path: "/api-docs",
-    titleKey: "route.apiDocs",
-    component: () => import("../views/ApiDocsView.vue"),
-    permission: "route:api_docs",
-    feature: "api",
-    fallbackOrder: 80,
-    menu: { group: "system", icon: Code20Regular, order: 70 }
-  },
-  {
-    key: "profile",
-    path: "/profile",
-    titleKey: "route.profile",
-    component: () => import("../views/ProfileView.vue"),
-    fallbackOrder: 900
-  }
-];
+const menuGroups = appModules.flatMap((module) => module.menuGroups || []);
+const appPages = appModules.flatMap((module) => module.pages || []);
 
 export function createAppPageRoutes() {
   return appPages.map((page) => ({

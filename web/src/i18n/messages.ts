@@ -3,19 +3,32 @@ import zhCN from "./locales/zh-CN.json";
 export type Locale = string;
 export type TranslateParam = string | number | boolean | null | undefined;
 export type TranslateParams = Record<string, TranslateParam>;
-export type LocaleMessages = typeof zhCN;
+export type MessageTree = { [key: string]: string | MessageTree };
+export type LocaleMessages = MessageTree & { language: string };
 export type I18nKey = string;
 
 export const DEFAULT_LOCALE: Locale = "zh-CN";
-export const defaultMessages = zhCN;
 
-const messageModules = import.meta.glob<LocaleMessages>(["./locales/*.json", "!./locales/zh-CN.json"], { import: "default" });
+const defaultModuleMessages = import.meta.glob<MessageTree>("../modules/*/i18n/zh-CN.json", { eager: true, import: "default" });
+const messageModules = import.meta.glob<MessageTree>(["./locales/*.json", "!./locales/zh-CN.json"], { import: "default" });
+const moduleMessageModules = import.meta.glob<MessageTree>(["../modules/*/i18n/*.json", "!../modules/*/i18n/zh-CN.json"], {
+  import: "default"
+});
 const languageModules = import.meta.glob<string>(["./locales/*.json", "!./locales/zh-CN.json"], { import: "language" });
 
-const localeLoaders: Record<Locale, () => Promise<LocaleMessages>> = {
+export const defaultMessages = mergeMessages(zhCN as MessageTree, ...Object.values(defaultModuleMessages));
+
+const baseLocaleLoaders: Record<Locale, () => Promise<MessageTree>> = {
   ...moduleMap(messageModules),
-  [DEFAULT_LOCALE]: () => Promise.resolve(zhCN)
+  [DEFAULT_LOCALE]: () => Promise.resolve(zhCN as MessageTree)
 };
+const moduleLocaleLoaders = moduleLoaderMap(moduleMessageModules);
+const localeLoaders = Object.fromEntries(
+  Object.entries(baseLocaleLoaders).map(([locale, loadBase]) => [
+    locale,
+    async () => mergeMessages(await loadBase(), ...(await loadModuleMessages(locale)))
+  ])
+) as Record<Locale, () => Promise<LocaleMessages>>;
 const languageLoaders: Record<Locale, () => Promise<string>> = {
   ...moduleMap(languageModules),
   [DEFAULT_LOCALE]: () => Promise.resolve(zhCN.language)
@@ -58,4 +71,39 @@ function moduleMap<T>(modules: Record<string, () => Promise<T>>) {
 
 function localeFromPath(path: string) {
   return path.replace(/^\.\/locales\//, "").replace(/\.json$/, "");
+}
+
+function moduleLocaleFromPath(path: string) {
+  return path.replace(/^\.\.\/modules\/[^/]+\/i18n\//, "").replace(/\.json$/, "");
+}
+
+function moduleLoaderMap(modules: Record<string, () => Promise<MessageTree>>) {
+  return Object.entries(modules).reduce<Record<Locale, Array<() => Promise<MessageTree>>>>((groups, [path, loader]) => {
+    const locale = moduleLocaleFromPath(path);
+    groups[locale] ||= [];
+    groups[locale].push(loader);
+    return groups;
+  }, {});
+}
+
+async function loadModuleMessages(locale: Locale) {
+  return Promise.all((moduleLocaleLoaders[locale] || []).map((loader) => loader()));
+}
+
+function mergeMessages(...sources: MessageTree[]): LocaleMessages {
+  return sources.reduce<MessageTree>((merged, source) => mergeInto(merged, source), {}) as LocaleMessages;
+}
+
+function mergeInto(target: MessageTree, source: MessageTree): MessageTree {
+  for (const [key, value] of Object.entries(source)) {
+    if (key === "language" && Object.hasOwn(target, key)) continue;
+    if (isRecord(value) && isRecord(target[key])) {
+      mergeInto(target[key] as MessageTree, value);
+    } else if (isRecord(value)) {
+      target[key] = mergeInto({}, value);
+    } else {
+      target[key] = value;
+    }
+  }
+  return target;
 }

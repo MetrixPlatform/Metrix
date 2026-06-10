@@ -38,20 +38,6 @@
     "expandAll": "Expand all",
     "collapseAll": "Collapse all"
   },
-  "route": {
-    "group": {
-      "system": "System"
-    },
-    "dashboard": "Home",
-    "users": "Users",
-    "permissions": "Permissions",
-    "announcements": "Announcements",
-    "auditLogs": "Audit logs",
-    "settings": "Settings",
-    "tokens": "Tokens",
-    "apiDocs": "API docs",
-    "profile": "Profile"
-  },
   "field": {
     "username": "Username",
     "password": "Password",

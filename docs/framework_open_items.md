@@ -44,24 +44,23 @@
 
 **现状**
 
-- 前端页面、路由和菜单已经集中在 `web/src/router/page-registry.ts`。
-- 后端权限种子已经集中在 `server/app/core/permissions.py`。
-- 前端语言资源已经按语言 JSON 拆分，并支持动态加载。
-- 新增功能时仍需要开发者按规范分别维护前端路由菜单、后端权限种子和语言资源。
+- 前端已新增 `web/src/modules` 模块声明机制，`web/src/modules/registry.ts` 会自动发现模块入口并生成路由、菜单和 fallback 所需数据。
+- 前端 i18n 已支持公共语言包与模块语言包合并，模块语言资源可以放到 `web/src/modules/<module>/i18n/<locale>.json`。
+- 后端已新增 `server/app/modules` 模块声明机制，`server/app/modules/registry.py` 会自动扫描 `APP_MODULE`，并统一注册 API router、权限规格和 OpenAPI 过滤规则。
+- `server/app/core/permissions.py` 仍保留稳定权限常量，方便现有 API、service 和测试引用。
 
 **待处理**
 
-- 设计轻量模块声明机制，让每个业务模块可以声明自己的页面、菜单、权限、功能开关和语言资源。
-- 前端优先考虑基于 `web/src/modules/*/index.ts` 的模块 manifest，由框架层统一收集并生成路由、菜单、fallback 和标题。
-- i18n 优先考虑支持模块级语言包，例如 `web/src/modules/<module>/i18n/<locale>.json`，加载语言时自动合并基础语言包和模块语言包。
-- 后端优先考虑显式模块列表，由框架层统一注册 API router、收集权限种子并同步权限。
+- 继续完善标准示例模块，展示前端模块声明、模块语言包、后端模块声明、API router、权限、审计和测试如何协同。
+- 评估 submodule 业务模块接入时，模块目录如何映射到当前 `web/src/modules` 和 `server/app/modules` 自动扫描机制。
 - 保持权限 code 稳定，继续使用 `route:<page>` 和 `action:<resource>:<action>` 规则。
+- 如后续模块数量明显增加，再评估是否需要模块启用/禁用配置或脚手架生成器。
 
 **完成标准**
 
 - 新增一个业务模块时，开发者主要在模块目录内完成声明和实现，不需要到多个框架核心文件中分散注册。
 - 权限页面、侧边菜单、路由守卫和语言切换可以从模块声明自动获得所需信息。
-- 保留显式模块启用清单，避免过度自动扫描导致排查困难。
+- 标准示例模块和文档能让新开发者按模板完成最小 CRUD 功能。
 
 ## 4. 数据库迁移策略
 
@@ -87,7 +86,7 @@
 **现状**
 
 - 项目已有多仓库与 submodule 的设计方向。
-- 当前初版 Web/server 框架还没有形成真正的业务模块接入机制。
+- 当前 Web/server 已有轻量模块声明与自动扫描机制，但 submodule 业务仓库如何接入主项目还需要继续固化。
 
 **待处理**
 

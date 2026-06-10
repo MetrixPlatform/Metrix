@@ -177,8 +177,8 @@ const auditLogColumnWidthKeys: Record<string, string> = {
   created_at: "createdAt"
 };
 const tableScrollX = computed(() => sumColumnWidths(auditLogColumnWidths));
-const auditActionCodes = messagePathKeys(defaultMessages.auditLog.action);
-const auditTargetTypes = Object.keys(defaultMessages.auditLog.target);
+const auditActionCodes = messagePathKeys(messageNode(defaultMessages, "auditLog.action"));
+const auditTargetTypes = Object.keys(messageNode(defaultMessages, "auditLog.target"));
 const auditSources = ["web", "api"];
 const canViewAllLogs = computed(() => authStore.has("action:audit_log:manage_others"));
 const actorScopeOptions = computed(() => [
@@ -401,6 +401,15 @@ function isActorScope(value: unknown): value is AuditActorScope {
 function messagePathKeys(value: unknown, prefix = ""): string[] {
   if (!isRecord(value)) return prefix ? [prefix] : [];
   return Object.entries(value).flatMap(([key, item]) => messagePathKeys(item, prefix ? `${prefix}.${key}` : key));
+}
+
+function messageNode(value: unknown, path: string): Record<string, unknown> {
+  let current = value;
+  for (const part of path.split(".")) {
+    if (!isRecord(current)) return {};
+    current = current[part];
+  }
+  return isRecord(current) ? current : {};
 }
 
 function distinctActionOptions(values: string[]) {
