@@ -28,9 +28,9 @@ def discover_schema_migrations() -> tuple[SchemaMigration, ...]:
         migration = getattr(module, "MIGRATION", None)
         if isinstance(migration, SchemaMigration):
             migrations.append(migration)
-    ordered = _order_migrations(tuple(migrations))
-    _validate_migrations(ordered)
-    return ordered
+    migrations_tuple = tuple(migrations)
+    _validate_migrations(migrations_tuple)
+    return _order_migrations(migrations_tuple)
 
 
 def schema_migration_status(engine: Engine) -> list[dict[str, object]]:
@@ -82,6 +82,8 @@ def rollback_schema_migration(engine: Engine, revision: str | None = None) -> st
             return None
         if target not in applied:
             raise RuntimeError(f"Schema migration is not applied: {target}")
+        if target != applied[0]:
+            raise RuntimeError(f"Only the latest applied schema migration can be rolled back: {applied[0]}")
         migration = migrations_by_revision.get(target)
         if migration is None:
             raise RuntimeError(f"Unknown schema migration revision: {target}")
@@ -94,16 +96,21 @@ def rollback_schema_migration(engine: Engine, revision: str | None = None) -> st
 
 
 def _order_migrations(migrations: tuple[SchemaMigration, ...]) -> tuple[SchemaMigration, ...]:
-    by_revision = {migration.revision: migration for migration in migrations}
+    if not migrations:
+        return ()
+    children_by_parent = {
+        migration.down_revision: migration
+        for migration in migrations
+        if migration.down_revision is not None
+    }
     roots = [migration for migration in migrations if migration.down_revision is None]
     ordered = []
     current = roots[0] if roots else None
     while current is not None:
         ordered.append(current)
-        children = [migration for migration in migrations if migration.down_revision == current.revision]
-        current = children[0] if children else None
+        current = children_by_parent.get(current.revision)
     if len(ordered) != len(migrations):
-        return tuple(sorted(migrations, key=lambda migration: migration.revision))
+        raise RuntimeError("Schema migrations must form a single linear chain")
     return tuple(ordered)
 
 
@@ -114,7 +121,7 @@ def _validate_migrations(migrations: tuple[SchemaMigration, ...]) -> None:
         raise RuntimeError(f"Duplicate schema migration revision: {', '.join(sorted(duplicates))}")
     revision_set = set(revisions)
     roots = [migration for migration in migrations if migration.down_revision is None]
-    if len(roots) > 1:
+    if migrations and len(roots) != 1:
         raise RuntimeError("Schema migrations must have a single root revision")
     missing = sorted(
         f"{migration.revision}->{migration.down_revision}"
@@ -123,6 +130,13 @@ def _validate_migrations(migrations: tuple[SchemaMigration, ...]) -> None:
     )
     if missing:
         raise RuntimeError(f"Missing schema migration dependency: {', '.join(missing)}")
+    parent_counts: dict[str, int] = {}
+    for migration in migrations:
+        if migration.down_revision is not None:
+            parent_counts[migration.down_revision] = parent_counts.get(migration.down_revision, 0) + 1
+    branches = sorted(parent for parent, count in parent_counts.items() if count > 1)
+    if branches:
+        raise RuntimeError(f"Schema migrations must not branch from revision: {', '.join(branches)}")
 
 
 def _applied_schema_migration_keys(engine: Engine) -> set[str]:

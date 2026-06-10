@@ -81,14 +81,6 @@ export function formatDateTime(value: string | number | Date) {
   return new Date(value).toLocaleString(currentLocale());
 }
 
-export function useI18n() {
-  return {
-    locale: computed(() => currentLocale()),
-    t,
-    formatDateTime
-  };
-}
-
 function initialLocale(): Locale {
   const saved = localStorage.getItem(LOCALE_KEY);
   return isLocale(saved) ? saved : DEFAULT_LOCALE;

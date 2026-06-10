@@ -668,3 +668,13 @@
 - `.gitignore` 补充 `web/test-results/` 和 `web/playwright-report/`，避免 Playwright 运行产物进入版本控制；运行回归时首次需要 `npx playwright install chromium` 下载浏览器二进制。
 - 文档同步更新 `README.md` 和 `docs/framework_open_items.md`，把正式迁移第一版、前端回归入口、CRUD 脚手架和模块卸载/依赖版本约束标为已落地能力；保留真正插件化加载、更重 CI 审批和更完整组件/浏览器测试作为后续按需增强。
 - 验证结果：`node --check scripts/create-module.mjs`、后端 `compileall`、后端 `pytest tests -q --basetemp .pytest-temp` 通过 33 passed、前端 `npm run test:smoke`、`npm run build`、`npm run test:regression` 通过；额外临时生成 `scaffold-check` 模块验证脚手架产物可通过 smoke 和后端编译，验证后已删除临时模块文件。
+
+## 2026-06-10：第一轮框架清理与回归修复
+- 安装流程 `install_system(...)` 在 `run_migrations(engine)` 后补充 `sync_columns(engine)`，与已安装环境的 `sync_database(...)` 保持一致，避免复用旧结构数据库安装时 `create_all` 不补列导致种子写入失败；MySQL 安装测试同步断言字段同步步骤会执行。
+- 显式 schema migration 加固为单线性链：发现分叉、缺根或非线性链时直接失败，不再静默按 revision 排序；`schema-rollback` 只允许回滚最新已应用修订，避免中间回滚造成迁移记录和真实结构不一致。
+- `schema-new` 改用 `datetime.now(timezone.utc)`，并用 `repr` 写入 `revision`、`description`，避免 Python 3.12+ 弃用警告和名称中包含引号时生成无效迁移文件。
+- 前端清理未使用导出：删除 `web/src/modules/demo-crud/permissions.ts` 中未被引用的 `DEMO_ITEM_READ`，删除 `web/src/i18n/index.ts` 中未使用的 `useI18n()`；脚手架移除未使用的 `pluralCamel`、`__PLURAL_CAMEL__` 和冗余 `tableName`。
+- 路由修复：未知业务路径作为 `AppShell` 的 catch-all 子路由显示 `NotFoundView`，避免被根路由吞掉；Playwright 新增已登录未知路由显示 404 的回归用例。`NotFoundView` 仍保持 5 秒后自动返回首页的既有行为。
+- 文档同步：`docs/development_page_guide.md` 从旧的 ping/占位脚手架描述更新为完整 CRUD 脚手架说明，补充 `permissions.ts`、`uninstall` 生命周期、显式 schema migration 命令和“只允许回滚最新修订”的边界；`README.md` 补充前端模块 `permissions.ts` 和 `npm run test:regression:install`。
+- `.gitignore` 补充根目录 `.pytest-temp/`、`web/node_modules/.vite/`、`web/blob-report/` 等测试/构建边缘产物；浏览器回归留下的 `e2e_user_001` 已从本地运行库清理。
+- 验证结果：`node --check scripts/create-module.mjs` 通过；后端 `compileall` 通过；`pytest tests -q --basetemp .pytest-temp` 通过 34 passed；前端 `npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build`、`npm run test:regression` 通过，Playwright 为 4 passed；浏览器快速回归覆盖用户、权限、公告、日志、设置、Token、API 文档、个人资料、demo CRUD、注册和 404 页面。

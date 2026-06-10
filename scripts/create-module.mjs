@@ -20,9 +20,7 @@ const pascal = toPascal(kebab);
 const constant = snake.toUpperCase();
 const pluralKebab = pluralizeKebab(kebab);
 const pluralSnake = pluralKebab.replaceAll("-", "_");
-const pluralCamel = toCamel(pluralKebab);
 const pluralPascal = toPascal(pluralKebab);
-const tableName = pluralSnake;
 const zhTitle = zhTitleArg || kebab;
 const enTitle = enTitleArg || toTitle(kebab);
 const replacements = {
@@ -33,9 +31,8 @@ const replacements = {
   __CONSTANT__: constant,
   __PLURAL_KEBAB__: pluralKebab,
   __PLURAL_SNAKE__: pluralSnake,
-  __PLURAL_CAMEL__: pluralCamel,
   __PLURAL_PASCAL__: pluralPascal,
-  __TABLE_NAME__: tableName,
+  __TABLE_NAME__: pluralSnake,
   __ZH_TITLE__: zhTitle,
   __EN_TITLE__: enTitle
 };
@@ -157,7 +154,6 @@ function webPermissionsTemplate() {
   return render(`import { actionPermission } from "../types";
 
 export const __CONSTANT___CREATE = actionPermission("__SNAKE__", "create");
-export const __CONSTANT___READ = actionPermission("__SNAKE__", "read");
 export const __CONSTANT___UPDATE = actionPermission("__SNAKE__", "update");
 export const __CONSTANT___DELETE = actionPermission("__SNAKE__", "delete");
 export const __CONSTANT___MANAGE_OTHERS = actionPermission("__SNAKE__", "manage_others");

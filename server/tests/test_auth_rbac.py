@@ -243,6 +243,40 @@ def test_schema_migrations_apply_and_rollback(tmp_path, monkeypatch):
     assert remaining == 0
 
 
+def test_schema_migrations_reject_branching_and_non_latest_rollback(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.install import load_install_config
+    from app.migrations import registry as schema_registry
+
+    root = schema_registry.SchemaMigration("9999_root", None, "root", downgrade=("SELECT 1",))
+    child_a = schema_registry.SchemaMigration("9999_child_a", "9999_root", "child a")
+    child_b = schema_registry.SchemaMigration("9999_child_b", "9999_root", "child b")
+    try:
+        schema_registry._validate_migrations((root, child_a, child_b))
+    except RuntimeError as exc:
+        assert "must not branch" in str(exc)
+    else:
+        raise AssertionError("Branching schema migrations should fail")
+
+    migrations = (
+        schema_registry.SchemaMigration("9999_first", None, "first", downgrade=("SELECT 1",)),
+        schema_registry.SchemaMigration("9999_second", "9999_first", "second", downgrade=("SELECT 1",)),
+    )
+    monkeypatch.setattr(schema_registry, "discover_schema_migrations", lambda: migrations)
+    engine = create_engine(load_install_config().database_url)
+    schema_registry.apply_schema_migrations(engine)
+    try:
+        schema_registry.rollback_schema_migration(engine, "9999_first")
+    except RuntimeError as exc:
+        assert "Only the latest applied schema migration" in str(exc)
+    else:
+        raise AssertionError("Rolling back a non-latest schema migration should fail")
+    finally:
+        engine.dispose()
+
+
 def test_module_dependency_version_constraints_are_checked():
     from app.core.module import AppModule
     from app.modules.registry import validate_app_modules
@@ -667,6 +701,7 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
     monkeypatch.setattr(install_service, "create_engine_for_url", lambda url: FakeEngine(url))
     monkeypatch.setattr(install_service, "create_tables", lambda engine: calls.append(("tables", engine.url)))
     monkeypatch.setattr(install_service, "run_migrations", lambda engine: calls.append(("migrations", engine.url)))
+    monkeypatch.setattr(install_service, "sync_columns", lambda engine: calls.append(("columns", engine.url)))
     monkeypatch.setattr(install_service, "sync_module_states", lambda engine: calls.append(("module_states", engine.url)))
     monkeypatch.setattr(install_service, "sessionmaker", lambda **kwargs: FakeSessionFactory())
     monkeypatch.setattr(install_service, "seed_database", lambda db, data: calls.append(("seed", data.admin_username)))
@@ -678,6 +713,7 @@ def test_mysql_install_runs_database_and_table_creation(monkeypatch):
     assert ("create_db", MYSQL_TEST_DATABASE) in calls
     assert any(call[0] == "tables" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
     assert any(call[0] == "migrations" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
+    assert any(call[0] == "columns" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
     assert any(call[0] == "module_states" and call[1].startswith(f"mysql+pymysql://root:pass@127.0.0.1:3306/{MYSQL_TEST_DATABASE}") for call in calls)
     assert ("seed", "mysqladmin") in calls
     assert any(call[0] == "config" and call[1] == "mysql" for call in calls)

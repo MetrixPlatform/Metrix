@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -138,7 +138,7 @@ def create_schema_revision(name: str, down_revision: str | None) -> None:
 
     migrations = discover_schema_migrations()
     parent = down_revision if down_revision is not None else (migrations[-1].revision if migrations else None)
-    revision = f"{datetime.utcnow():%Y%m%d%H%M%S}_{slugify(name)}"
+    revision = f"{datetime.now(timezone.utc):%Y%m%d%H%M%S}_{slugify(name)}"
     target = ROOT_DIR / "app" / "migrations" / "versions" / f"{revision}.py"
     target.write_text(
         "\n".join(
@@ -146,9 +146,9 @@ def create_schema_revision(name: str, down_revision: str | None) -> None:
                 "from app.migrations.registry import SchemaMigration",
                 "",
                 "MIGRATION = SchemaMigration(",
-                f'    revision="{revision}",',
+                f"    revision={revision!r},",
                 f'    down_revision={parent!r},',
-                f'    description="{name}",',
+                f"    description={name!r},",
                 "    upgrade=(",
                 "        # Add SQL statements here.",
                 "    ),",

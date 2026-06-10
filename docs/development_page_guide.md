@@ -4,13 +4,13 @@
 
 ## 新增页面
 
-可以先用脚手架生成最小模块骨架：
+可以先用脚手架生成完整 CRUD 模块骨架：
 
 ```powershell
 node scripts/create-module.mjs task "任务管理" "Tasks"
 ```
 
-脚手架会生成前端模块入口、页面占位、模块语言包、后端模块入口和受权限保护的 ping 接口。它只负责减少注册、权限和 i18n 的漏项；真实业务列表、表单、审计、数据库模型和测试仍按 `demo-crud` 或现有业务模块继续补齐。
+脚手架会生成前端模块入口、API、权限常量、CRUD 页面、模块语言包，以及后端模块入口、API、model、schema、repository、service 和 pytest 模板。生成结果遵循 `demo-crud` 的分页、筛选、审计、本人/他人权限和 i18n 约定；复杂业务字段继续在生成骨架上扩展。
 
 1. 在 `web/src/modules/<module>` 新建前端模块目录，模块入口固定为 `index.ts`。
 2. 页面组件优先放在模块目录内的 `views` 子目录；仍需复用现有基础页面时，也可以指向 `web/src/views` 中的组件。
@@ -29,14 +29,16 @@ import { defineModule, definePage, routePermission } from "../types";
 
 export default defineModule({
   key: "task",
+  version: "0.1.0",
   order: 30,
+  dependencies: ["core"],
   pages: [
     definePage({
-      key: "tasks",
-      path: "/tasks",
-      titleKey: "route.tasks",
+      key: "task",
+      path: "/task",
+      titleKey: "route.task",
       component: () => import("./views/TaskManageView.vue"),
-      permission: routePermission("tasks"),
+      permission: routePermission("task"),
       fallbackOrder: 100,
       menu: { icon: Board20Regular, order: 10 }
     })
@@ -152,8 +154,8 @@ APP_MODULE = define_module(
 - 新增 API router 后，只需要把 router 路径写入所属模块的 `router_paths`，不要在 `server/app/main.py` 手工 `include_router(...)`。
 - 模块自带 SQLAlchemy model 时，在 `model_paths` 中声明模型模块路径；框架建表前会自动导入这些模块，确保 `Base.metadata` 包含业务表。
 - 需要可回放的一次性 SQL 迁移时，在模块声明中使用 `migration_step(key, statements, description)` 声明迁移步骤。框架安装初始化和已安装库同步时都会执行未记录过的迁移，成功后写入 `migration_records`，同一模块同一 key 不会重复执行。
-- 需要模块安装、升级或禁用时执行小型 SQL 步骤时，在模块声明中使用 `module_lifecycle_hook(event, key, statements, description)`；`event` 仅允许 `install`、`upgrade`、`disable`。安装和升级钩子会按模块版本记录执行历史，禁用钩子在模块从 enabled 变为 disabled 时执行。
-- 框架会把已发现模块写入 `module_states`，记录模块 key、version、status 和 dependencies。`status` 当前为 `enabled`、`disabled` 或 `missing`；它用于追踪源码模块状态，不代表数据表或权限会被自动删除。
+- 需要模块安装、升级、禁用或卸载时执行小型 SQL 步骤时，在模块声明中使用 `module_lifecycle_hook(event, key, statements, description)`；`event` 仅允许 `install`、`upgrade`、`disable`、`uninstall`。安装、升级和卸载钩子会按模块版本记录执行历史，禁用钩子在模块从 enabled 变为 disabled 时执行。
+- 框架会把已发现模块写入 `module_states`，记录模块 key、version、status 和 dependencies。`status` 当前为 `enabled`、`disabled`、`missing` 或 `uninstalled`；它用于追踪源码模块状态，不代表数据表或权限会被自动删除。
 - 开发期需要轻量补字段时，在模块声明中使用 `table_column_sync(table, columns)` 声明字段同步 SQL；该机制只用于开发期自动同步和小步补字段，不替代正式生产迁移脚本。
 - Web-only 管理接口仍然需要在 router 或接口依赖中使用 `require_web_session` 强校验，不能只依赖前端隐藏入口。
 - 需要从 API 文档隐藏的 Web-only tag 或 path prefix，放入模块声明的 `openapi_hidden_tags` 和 `openapi_hidden_path_prefixes`；`/openapi.json` 会统一读取模块声明做过滤。
@@ -166,6 +168,7 @@ APP_MODULE = define_module(
 
 - 前端入口：`web/src/modules/demo-crud/index.ts`
 - 前端 API：`web/src/modules/demo-crud/api.ts`
+- 前端权限：`web/src/modules/demo-crud/permissions.ts`
 - 前端页面：`web/src/modules/demo-crud/views/DemoCrudView.vue`
 - 前端语言包：`web/src/modules/demo-crud/i18n/zh-CN.json` 和 `en-US.json`
 - 后端入口：`server/app/modules/demo_crud/__init__.py`
@@ -184,12 +187,12 @@ APP_MODULE = define_module(
 
 ## 数据库迁移策略
 
-当前仍处于开发期，框架默认采用“启动时自动建表 + 模块一次性迁移 + 模块字段同步 + 权限种子同步”的轻量策略。这个策略用于提升开发速度，不等同于完整生产迁移框架。
+当前仍处于开发期，框架默认采用“启动时自动建表 + 模块一次性迁移 + 模块字段同步 + 权限种子同步”的轻量策略提升开发速度；生产结构变更使用显式 schema migration。
 
 - 开发期：可以新增 model、权限和少量字段同步声明，后端启动或首次访问数据库时自动同步。
 - 一次性迁移：适合新增索引、初始化辅助表、轻量数据修正等可用 SQL 表达且可重复跳过的升级步骤；迁移 key 一旦发布不要改名，SQL 不要依赖用户交互。
 - 自动补字段成功后会写入 `migration_records`，记录同步 key、类型、目标和 SQL 内容，便于追踪开发库结构变化；重复补同一字段时不会因为历史记录阻断同步。
-- 生产期：上线前必须备份数据库，并为结构变更准备明确升级记录；涉及删字段、改类型、拆表、数据转换、跨库迁移时，必须使用可审查的迁移脚本。
+- 生产期：上线前必须备份数据库，并为结构变更准备明确升级记录；涉及删字段、改类型、拆表、数据转换、跨库迁移时，必须使用 `server/app/migrations/versions` 下的显式 schema migration。
 - SQLite/MySQL 切换：不要直接复用另一个数据库的安装配置；使用 `server/tools/migrate_database.py` 导出便携 zip，再导入目标库。
 - 权限种子：权限 code 必须稳定，删除权限时先加入废弃清单并清理授权关系，避免旧角色保留不可见权限。
 - 回滚：生产变更需要同时准备数据库备份、应用版本回退方式和失败处理步骤。`copy` 命令保留的 `--backup` zip 是数据回滚依据，目标库失败时优先用该 zip 导回旧版本或临时库核验。
@@ -201,9 +204,13 @@ cd server
 ..\.venv\Scripts\python.exe tools\migrate_database.py export --url "sqlite:///../runtime/metrix.db" --out "..\runtime\backup.zip"
 ..\.venv\Scripts\python.exe tools\migrate_database.py import --url "sqlite:///../runtime/metrix-new.db" --in "..\runtime\backup.zip"
 ..\.venv\Scripts\python.exe tools\migrate_database.py copy --from-url "sqlite:///../runtime/metrix.db" --to-url "mysql+pymysql://user:pass@127.0.0.1:3306/metrix?charset=utf8mb4" --backup "..\runtime\rollback.zip"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-new "add task indexes"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
 ```
 
-后续如果生产部署和升级频率继续增加，再评估是否引入 Alembic 等正式迁移框架；当前阶段不为了假设场景提前增加复杂依赖。
+显式 schema migration 当前保持单线性链，只允许回滚最新已应用修订，避免迁移记录和真实结构不一致。后续如果生产部署和升级频率继续增加，再评估是否引入 Alembic 等正式迁移框架；当前阶段不为了假设场景提前增加复杂依赖。
 
 ## Submodule 业务模块接入
 

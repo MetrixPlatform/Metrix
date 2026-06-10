@@ -18,9 +18,14 @@ const routes = [
   {
     path: "/",
     component: () => import("../components/AppShell.vue"),
-    children: createAppPageRoutes()
-  },
-  { path: "/:pathMatch(.*)*", component: () => import("../views/NotFoundView.vue"), meta: { public: true } }
+    children: [
+      ...createAppPageRoutes(),
+      {
+        path: ":pathMatch(.*)*",
+        component: () => import("../views/NotFoundView.vue")
+      }
+    ]
+  }
 ];
 
 export const router = createRouter({

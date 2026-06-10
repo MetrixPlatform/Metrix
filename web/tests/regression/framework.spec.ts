@@ -73,6 +73,18 @@ test("restores session and opens permitted module page", async ({ page }) => {
   await expect(page.getByRole("button", { name: /新增示例|New demo/i })).toBeVisible();
 });
 
+test("shows not found page for unknown authenticated routes", async ({ page }) => {
+  await mockApi(page, { installed: true, session: adminSession });
+  await page.addInitScript(() => {
+    localStorage.setItem("metrix.token", "browser-test-token");
+  });
+
+  await page.goto("/not-found-route");
+
+  await expect(page).toHaveURL(/\/not-found-route$/);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+});
+
 async function mockApi(
   page: Page,
   options: {
