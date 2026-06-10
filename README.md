@@ -178,7 +178,7 @@ npm run build
 
 如果 Windows 用户临时目录没有访问权限，pytest 使用 `--basetemp .pytest-temp`。
 
-前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；回归会覆盖安装守卫、匿名登录页、登录态恢复、权限菜单和模块页面。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
+前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
 
 ## License
 

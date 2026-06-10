@@ -678,3 +678,10 @@
 - 文档同步：`docs/development_page_guide.md` 从旧的 ping/占位脚手架描述更新为完整 CRUD 脚手架说明，补充 `permissions.ts`、`uninstall` 生命周期、显式 schema migration 命令和“只允许回滚最新修订”的边界；`README.md` 补充前端模块 `permissions.ts` 和 `npm run test:regression:install`。
 - `.gitignore` 补充根目录 `.pytest-temp/`、`web/node_modules/.vite/`、`web/blob-report/` 等测试/构建边缘产物；浏览器回归留下的 `e2e_user_001` 已从本地运行库清理。
 - 验证结果：`node --check scripts/create-module.mjs` 通过；后端 `compileall` 通过；`pytest tests -q --basetemp .pytest-temp` 通过 34 passed；前端 `npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build`、`npm run test:regression` 通过，Playwright 为 4 passed；浏览器快速回归覆盖用户、权限、公告、日志、设置、Token、API 文档、个人资料、demo CRUD、注册和 404 页面。
+
+## 2026-06-10：第二轮文档一致性与 404 样式清理
+- 第二轮复查未发现新的阻塞性代码 bug；重点修正剩余文档精度问题，避免后续新增模块时按旧路径或旧生命周期说明开发。
+- `docs/development_page_guide.md` 的后端模块示例从旧的 `app.api.tasks:router` / `app.models.task` 改为当前业务模块路径 `app.modules.task.api:router` / `app.modules.task.models`，并统一示例中的模块 key、页面权限 page 名和依赖声明。
+- `docs/development_page_guide.md` 的迁移辅助命令补充 `module-uninstall --backup`；`docs/framework_open_items.md` 的生命周期描述同步为 install/upgrade/disable/uninstall，`module_states` 状态同步为 enabled/disabled/missing/uninstalled。
+- `README.md` 收敛 Playwright 回归覆盖描述，明确当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404，不再夸大为完整权限菜单覆盖。
+- `web/src/styles/main.css` 中 404 页面样式从全视口高度调整为填满主框架内容区，避免 `NotFoundView` 嵌入 `AppShell` 后产生多余滚动或居中偏差。

@@ -55,9 +55,9 @@
 - 后端 `AppModule` 支持 `version` 和 `dependencies`，注册器会检查模块依赖是否存在。
 - 后端 `AppModule` 支持 `migrations`，安装初始化和已安装库同步时会执行未记录过的一次性 SQL 迁移。
 - 后端 `AppModule` 支持 `table_syncs`，开发期字段补齐声明从核心同步函数迁移到模块声明。
-- 后端 `AppModule` 支持 `lifecycle_hooks`，安装、升级和禁用时可执行显式声明的小型 SQL 步骤。
+- 后端 `AppModule` 支持 `lifecycle_hooks`，安装、升级、禁用和卸载时可执行显式声明的小型 SQL 步骤。
 - 开发期字段同步写入 `migration_records`，用于追踪框架自动补齐过的字段。
-- 模块状态写入 `module_states`，用于追踪已发现模块的版本、依赖和 enabled/disabled/missing 状态。
+- 模块状态写入 `module_states`，用于追踪已发现模块的版本、依赖和 enabled/disabled/missing/uninstalled 状态。
 - `server/app/modules/registry.py` 会校验模块 key、依赖、router path、model path、迁移 key、字段同步声明、页面权限 code 和资源权限 code 的重复项。
 - 前端模块继续通过 `import.meta.glob` 自动发现页面、菜单和模块语言包，并校验模块依赖、页面路径、菜单分组和权限声明的重复项。
 - 模块启停配置会在注册和构建阶段过滤模块；未知模块或禁用 `core` 会直接失败。

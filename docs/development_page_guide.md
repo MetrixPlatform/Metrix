@@ -113,11 +113,13 @@ TASK_READ = action_code("task", "read")
 APP_MODULE = define_module(
     AppModule(
         key="task",
+        version="0.1.0",
         order=30,
-        router_paths=("app.api.tasks:router",),
-        model_paths=("app.models.task",),
+        dependencies=("core",),
+        router_paths=("app.modules.task.api:router",),
+        model_paths=("app.modules.task.models",),
         page_permissions=(
-            page_permission("tasks", "task", 100, TASK_READ),
+            page_permission("task", "task", 100, TASK_READ),
         ),
         resource_permissions=(
             resource_permissions(
@@ -150,7 +152,7 @@ APP_MODULE = define_module(
 后端业务模块的注册入口是 `server/app/modules`，框架启动时会自动扫描该目录下暴露 `APP_MODULE` 的模块。
 
 - 模块需要声明稳定 `key` 和语义化 `version`；业务模块依赖内置能力时声明 `dependencies=("core",)`，注册器会检查依赖是否存在。
-- `router_paths` 使用字符串形式，例如 `"app.api.tasks:router"`，避免模块注册阶段和权限常量、API 文件之间形成循环 import。
+- `router_paths` 使用字符串形式，例如 `"app.modules.task.api:router"`，避免模块注册阶段和权限常量、API 文件之间形成循环 import。
 - 新增 API router 后，只需要把 router 路径写入所属模块的 `router_paths`，不要在 `server/app/main.py` 手工 `include_router(...)`。
 - 模块自带 SQLAlchemy model 时，在 `model_paths` 中声明模型模块路径；框架建表前会自动导入这些模块，确保 `Base.metadata` 包含业务表。
 - 需要可回放的一次性 SQL 迁移时，在模块声明中使用 `migration_step(key, statements, description)` 声明迁移步骤。框架安装初始化和已安装库同步时都会执行未记录过的迁移，成功后写入 `migration_records`，同一模块同一 key 不会重复执行。
@@ -208,6 +210,7 @@ cd server
 ..\.venv\Scripts\python.exe tools\migrate_database.py schema-status --url "sqlite:///../runtime/metrix.db"
 ..\.venv\Scripts\python.exe tools\migrate_database.py schema-apply --url "sqlite:///../runtime/metrix.db"
 ..\.venv\Scripts\python.exe tools\migrate_database.py schema-rollback --url "sqlite:///../runtime/metrix.db"
+..\.venv\Scripts\python.exe tools\migrate_database.py module-uninstall --url "sqlite:///../runtime/metrix.db" --module demo_crud --backup "..\runtime\before-demo-uninstall.zip"
 ```
 
 显式 schema migration 当前保持单线性链，只允许回滚最新已应用修订，避免迁移记录和真实结构不一致。后续如果生产部署和升级频率继续增加，再评估是否引入 Alembic 等正式迁移框架；当前阶段不为了假设场景提前增加复杂依赖。

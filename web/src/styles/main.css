@@ -556,13 +556,11 @@ a {
 }
 
 .not-found-page {
-  min-height: 100dvh;
+  min-height: 100%;
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    var(--auth-bg-layer),
-    var(--app-bg);
+  background: var(--app-bg);
 }
 
 .not-found-content {
