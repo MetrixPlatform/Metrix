@@ -99,7 +99,36 @@
       "is_dir": "Directory"
     }
   },
-  "api": {
+  "openapi": {
+    "tag": {
+      "storage-files": "Storage files"
+    },
+    "operation": {
+      "list_storage_files_api_storages__storage_id__files_get": {
+        "summary": "List directory entries",
+        "description": "List files and directories under a path; combine keyword with recursive to search or enumerate the whole subtree."
+      },
+      "download_storage_file_api_storages__storage_id__download_get": {
+        "summary": "Download a file",
+        "description": "Stream-download the file at the given path."
+      },
+      "upload_storage_file_api_storages__storage_id__upload_post": {
+        "summary": "Upload a file",
+        "description": "Upload a file into the given directory; an existing file with the same name is overwritten."
+      },
+      "mkdir_storage_api_storages__storage_id__mkdir_post": {
+        "summary": "Create a directory",
+        "description": "Create a directory at the given path."
+      },
+      "rename_storage_entry_api_storages__storage_id__rename_post": {
+        "summary": "Rename a file or directory",
+        "description": "Rename a file or directory within its parent directory."
+      },
+      "delete_storage_entry_api_storages__storage_id__files_delete": {
+        "summary": "Delete a file or directory",
+        "description": "Delete the file or directory at the given path; directories are deleted recursively."
+      }
+    },
     "parameter": {
       "common": {
         "path": "File or directory path relative to the storage root, starting with /.",

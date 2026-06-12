@@ -99,7 +99,36 @@
       "is_dir": "目录"
     }
   },
-  "api": {
+  "openapi": {
+    "tag": {
+      "storage-files": "储存文件"
+    },
+    "operation": {
+      "list_storage_files_api_storages__storage_id__files_get": {
+        "summary": "查询目录列表",
+        "description": "列出指定路径下的文件和目录；keyword 配合 recursive 可在子树内搜索或枚举全部条目。"
+      },
+      "download_storage_file_api_storages__storage_id__download_get": {
+        "summary": "下载文件",
+        "description": "流式下载指定路径的文件。"
+      },
+      "upload_storage_file_api_storages__storage_id__upload_post": {
+        "summary": "上传文件",
+        "description": "上传文件到指定目录，同名文件会被覆盖。"
+      },
+      "mkdir_storage_api_storages__storage_id__mkdir_post": {
+        "summary": "新建目录",
+        "description": "在指定路径创建目录。"
+      },
+      "rename_storage_entry_api_storages__storage_id__rename_post": {
+        "summary": "重命名文件或目录",
+        "description": "在原目录内重命名文件或目录。"
+      },
+      "delete_storage_entry_api_storages__storage_id__files_delete": {
+        "summary": "删除文件或目录",
+        "description": "删除指定文件或目录；目录会递归删除全部内容。"
+      }
+    },
     "parameter": {
       "common": {
         "path": "文件或目录路径，相对储存根目录，以 / 开头。",
