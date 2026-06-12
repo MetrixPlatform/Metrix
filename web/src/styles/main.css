@@ -1977,6 +1977,67 @@ a {
   max-height: min(86vh, 820px);
 }
 
+.storage-protocol-filter {
+  width: 130px;
+}
+
+.copyable-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.copyable-cell code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storage-file-modal {
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(86vh, 820px);
+}
+
+.storage-file-modal .file-manager {
+  display: grid;
+  gap: 0;
+}
+
+.file-breadcrumb {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.file-truncated-alert {
+  margin-bottom: 10px;
+}
+
+.file-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.file-entry .n-icon {
+  flex: 0 0 auto;
+  color: var(--muted-color);
+}
+
+.file-entry-dir {
+  cursor: pointer;
+}
+
+.file-entry-dir .n-icon {
+  color: var(--primary-strong);
+}
+
+.file-entry-dir:hover span {
+  color: var(--primary-strong);
+}
+
 .api-detail-modal > .n-card__content,
 .api-detail-modal > .n-card-content {
   max-height: calc(86vh - 112px);

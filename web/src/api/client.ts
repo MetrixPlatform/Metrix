@@ -38,7 +38,13 @@ const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
   content: "field.content",
   target_type: "field.targetType",
   target_value: "field.targetValue",
-  expires_at: "field.expiresAt"
+  expires_at: "field.expiresAt",
+  storage_id: "field.storageId",
+  protocol: "field.protocol",
+  host: "field.host",
+  port: "field.port",
+  base_path: "field.basePath",
+  new_name: "field.newName"
 };
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -62,7 +68,7 @@ export async function download(path: string, options: RequestInit = {}): Promise
 
 async function rawRequest(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type")) {
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   if (authStore.token) {

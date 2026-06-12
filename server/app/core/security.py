@@ -5,6 +5,8 @@ import json
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from cryptography.fernet import Fernet, InvalidToken
+
 from app.core.config import Settings, get_settings
 from app.core.install import is_installed, load_install_config
 
@@ -71,6 +73,22 @@ def create_api_token() -> str:
 
 def hash_api_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def encrypt_secret(plain: str) -> str:
+    return _fernet().encrypt(plain.encode("utf-8")).decode("ascii")
+
+
+def decrypt_secret(encrypted: str) -> str:
+    try:
+        return _fernet().decrypt(encrypted.encode("ascii")).decode("utf-8")
+    except (InvalidToken, ValueError) as exc:
+        raise ValueError("Invalid encrypted secret") from exc
+
+
+def _fernet() -> Fernet:
+    digest = hashlib.sha256(_secret_key(get_settings()).encode("utf-8")).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
 
 
 def _secret_key(settings: Settings) -> str:

@@ -1,0 +1,116 @@
+{
+  "route": {
+    "storage": "Storage"
+  },
+  "permission": {
+    "group": {
+      "storage": "Storage"
+    },
+    "route:storage": "Storage",
+    "action:storage:create": "Create storage connections",
+    "action:storage:read": "Read storage and files",
+    "action:storage:update": "Update storage connections",
+    "action:storage:delete": "Delete storage connections",
+    "action:storage:operate": "Operate storage files",
+    "action:storage:manage_others": "Manage others' storage connections"
+  },
+  "error": {
+    "storageNotFound": "Storage connection not found",
+    "storageIdTaken": "Storage ID already exists",
+    "storagePasswordRequired": "Password is required",
+    "storageDisabled": "Storage connection is disabled",
+    "storageUseDenied": "You cannot use this storage connection",
+    "storageManageOthersDenied": "You cannot manage storage connections created by others",
+    "storagePathInvalid": "Invalid path",
+    "storageNameInvalid": "Invalid name",
+    "storageConnectFailed": "Connection failed: {reason}",
+    "storageOperationFailed": "Operation failed: {reason}",
+    "storageBasePathMissing": "Base path does not exist",
+    "storageCredentialInvalid": "Stored credential cannot be decrypted, please reset the password"
+  },
+  "storage": {
+    "searchPlaceholder": "Search name, ID or host",
+    "protocolAll": "All protocols",
+    "add": "New connection",
+    "edit": "Edit connection",
+    "manage": "Manage",
+    "saved": "Connection saved",
+    "deleted": "Connection deleted",
+    "deleteTitle": "Delete connection",
+    "deleteConfirm": "Delete connection {name}? Only the connection info is removed; remote files stay untouched.",
+    "connectionOk": "Connection is healthy",
+    "entryDeleted": "Deleted",
+    "shared": "Shared",
+    "private": "Private",
+    "idPlaceholder": "Leave empty to auto-generate",
+    "passwordKeep": "Leave empty to keep unchanged",
+    "field": {
+      "name": "Name",
+      "address": "Address",
+      "shared": "Shared"
+    },
+    "files": {
+      "search": "Search current directory",
+      "upload": "Upload",
+      "mkdir": "New folder",
+      "renameTitle": "Rename",
+      "name": "Name",
+      "size": "Size",
+      "modifiedAt": "Modified",
+      "location": "Location",
+      "truncated": "Too many results, showing first {count}",
+      "uploaded": "{count} file(s) uploaded",
+      "uploadFailed": "Failed to upload {name}",
+      "created": "Folder created",
+      "renamed": "Renamed",
+      "deleteTitle": "Delete",
+      "deleteFileConfirm": "Delete file {name}?",
+      "deleteDirConfirm": "Delete folder {name} and all its contents?"
+    }
+  },
+  "auditLog": {
+    "action": {
+      "storage": {
+        "create": "Create storage connection",
+        "update": "Update storage connection",
+        "delete": "Delete storage connection",
+        "file_upload": "Upload file",
+        "file_delete": "Delete file",
+        "file_rename": "Rename file",
+        "file_mkdir": "Create folder"
+      }
+    },
+    "target": {
+      "storage": "Storage connection"
+    },
+    "field": {
+      "storage_id": "Storage ID",
+      "protocol": "Protocol",
+      "host": "Host",
+      "port": "Port",
+      "username": "Username",
+      "base_path": "Base path",
+      "is_shared": "Shared",
+      "path": "Path",
+      "new_path": "New path",
+      "size": "Size",
+      "is_dir": "Directory"
+    }
+  },
+  "api": {
+    "parameter": {
+      "common": {
+        "path": "File or directory path relative to the storage root, starting with /.",
+        "recursive": "Whether to enumerate subdirectories recursively. When true, returns all matches in the subtree.",
+        "storage_id": "Unique ID of the storage connection."
+      }
+    },
+    "schema": {
+      "property": {
+        "new_name": "New name. Slashes are not allowed.",
+        "path": "File or directory path relative to the storage root.",
+        "file": "File content to upload."
+      }
+    }
+  }
+}

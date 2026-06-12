@@ -1,6 +1,6 @@
 # Metrix
 
-Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
+Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
 
 新增页面、业务模块、权限、API 或数据库变更时，先阅读 [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md)。
 

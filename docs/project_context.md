@@ -710,3 +710,19 @@
 - `framework-stable` 与 `main` 无分叉，仅领先 1 个提交（`f20af7a`）；已在本地对 `main` 执行 `--ff-only` 快进合并，两分支现均指向 `f20af7a`。
 - 合并后复验：`.venv` 下 `pytest` 36 passed、`npm run test:smoke` 通过。
 - `origin/main` 已推送至 `f20af7a`，与 `origin/framework-stable` 对齐。
+
+## 2026-06-12：新增 FTP/SFTP 储存管理模块
+
+- 新增前后端 `storage` 业务模块（`server/app/modules/storage`、`web/src/modules/storage`），完全走模块自动发现，未改框架核心注册文件。
+- 数据表 `storage_connections`：`storage_id` 全局唯一（可自定义 3-64 位 `[A-Za-z0-9_-]`，留空自动生成 `stg_` + 10 位 hex，创建后不可修改）、协议仅 ftp/sftp、`base_path` 根目录限定、`is_shared` 共享开关、密码加密存储。
+- 凭据加密：`server/app/core/security.py` 新增 `encrypt_secret`/`decrypt_secret`，用安装密钥 SHA256 派生 Fernet 密钥；密码只在连接远端时解密，API 响应与审计不回传。
+- 共享/私有规则：列表可见 = 本人 + 共享（`action:storage:manage_others` 可见全部）；文件操作（浏览/下载/上传/删/改名/建目录）= 本人或共享或 manage_others；连接信息编辑/删除/测试 = 仅创建者或 manage_others，共享不放开修改权。
+- 并发模型：每个文件 API 请求独立建连（`clients.py` 的 `FtpClient`/`SftpClient`）、用完即关，无连接池、无共享状态、无锁；连接超时 10s，多用户并行操作多个或同一服务器互不阻塞；测试 `test_storage_parallel_connections_use_isolated_clients` 验证每请求独立实例并全部关闭。
+- 路径安全：所有 path 参数为相对连接根目录的虚拟路径，服务层做 `..` 逃逸检测（400 `error.storagePathInvalid`）后再拼 `base_path`，外部无法越出根目录；文件/目录名禁止斜杠。
+- API 设计：管理 API（tag `storages`，`require_web_session`，OpenAPI 隐藏）`GET/POST /api/storages`、`PUT/DELETE /api/storages/{connection_id}`、`POST /api/storages/test`（编辑场景密码留空按 id 复用存量密码）；文件 API（tag `storage-files`，进入 API 文档，API Token 可直接调用）`GET {sid}/files`（keyword/recursive 搜索枚举，递归上限 1000 条/500 目录并返回 `truncated`）、`GET {sid}/download`（流式）、`POST {sid}/upload`（multipart）、`POST {sid}/mkdir`、`POST {sid}/rename`、`DELETE {sid}/files`（目录递归删除）。
+- 审计：`storage.create/update/delete` 与 `storage.file_upload/file_delete/file_rename/file_mkdir`，详情不含密码。
+- 前端：`StorageManageView` 列表页（关键字/协议筛选、storage_id 一键复制、共享/私有与状态标签、行内 管理/编辑/删除 按归属显隐）；`FileManagerModal` 980px 大弹窗（面包屑导航、递归搜索、多文件上传、下载、重命名、新建目录、递归删除目录，操作按钮按 `action:storage:operate` 显隐）；上传走 FormData，`client.ts` 的 `rawRequest` 对 FormData 不再强制 JSON Content-Type。
+- 新依赖：`paramiko`（SFTP，自带 `cryptography` 供 Fernet 使用）、`python-multipart`（FastAPI 文件上传）；已写入 `server/requirements.txt`。
+- FTP 实现细节：列目录 MLSD 优先，500/502 不支持时回退 LIST 解析（unix/IIS 两种格式）；下载用 `transfercmd` 真流式；编码 UTF-8。
+- 测试：`server/tests/test_storage.py` 6 个用例（CRUD 与 ID 规则、加密落库校验、共享/私有可见性与越权、假客户端文件全操作与路径逃逸、test 端点与连接失败 503、API Token 全链路与 OpenAPI 可见性、并发隔离）；`test_auth_rbac.py` 中 3 处模块清单断言同步加入 storage。
+- 验证：后端 `compileall` + `pytest` 42 passed；前端 `test:smoke`、`vue-tsc`（含 unused 检查）、`build`、`test:regression` 4 passed 全部通过。真实 FTP/SFTP 服务器联调待内网环境验证。

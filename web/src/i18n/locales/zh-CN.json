@@ -100,7 +100,13 @@
     "expiresAt": "过期时间",
     "lastUsedAt": "最后使用时间",
     "createdAt": "创建时间",
-    "approval": "审核"
+    "approval": "审核",
+    "storageId": "储存 ID",
+    "protocol": "协议",
+    "host": "主机",
+    "port": "端口",
+    "basePath": "根目录",
+    "newName": "新名称"
   },
   "validation": {
     "required": "请输入{label}",
@@ -118,7 +124,9 @@
     "passwordMismatch": "两次输入的密码不一致",
     "displayModeRequired": "请至少选择一种展示方式",
     "announcementTargetType": "公告目标类型不正确",
-    "announcementTargetRequired": "请填写定向目标"
+    "announcementTargetRequired": "请填写定向目标",
+    "storageId": "{label}仅限 3-64 位字母、数字、- 或 _，且以字母或数字开头",
+    "entryName": "{label}不能包含斜杠"
   },
   "api": {
     "requestFailed": "请求失败",

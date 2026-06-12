@@ -100,7 +100,13 @@
     "expiresAt": "Expires at",
     "lastUsedAt": "Last used at",
     "createdAt": "Created at",
-    "approval": "Approval"
+    "approval": "Approval",
+    "storageId": "Storage ID",
+    "protocol": "Protocol",
+    "host": "Host",
+    "port": "Port",
+    "basePath": "Base path",
+    "newName": "New name"
   },
   "validation": {
     "required": "Please enter {label}",
@@ -118,7 +124,9 @@
     "passwordMismatch": "The two passwords do not match",
     "displayModeRequired": "Select at least one display mode",
     "announcementTargetType": "Invalid announcement target type",
-    "announcementTargetRequired": "Enter a targeted push target"
+    "announcementTargetRequired": "Enter a targeted push target",
+    "storageId": "{label} must be 3-64 letters, digits, - or _, starting with a letter or digit",
+    "entryName": "{label} cannot contain slashes"
   },
   "api": {
     "requestFailed": "Request failed",

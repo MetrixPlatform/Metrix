@@ -3,6 +3,8 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 pymysql
+paramiko
+python-multipart
 swagger-ui-bundle
 pytest
 httpx

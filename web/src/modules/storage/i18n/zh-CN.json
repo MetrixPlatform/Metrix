@@ -1,0 +1,116 @@
+{
+  "route": {
+    "storage": "储存管理"
+  },
+  "permission": {
+    "group": {
+      "storage": "储存管理"
+    },
+    "route:storage": "储存管理",
+    "action:storage:create": "新增储存连接",
+    "action:storage:read": "查询储存与文件",
+    "action:storage:update": "修改储存连接",
+    "action:storage:delete": "删除储存连接",
+    "action:storage:operate": "操作储存文件",
+    "action:storage:manage_others": "管理他人储存连接"
+  },
+  "error": {
+    "storageNotFound": "储存连接不存在",
+    "storageIdTaken": "储存 ID 已存在",
+    "storagePasswordRequired": "请输入密码",
+    "storageDisabled": "储存连接已禁用",
+    "storageUseDenied": "无权限使用该储存连接",
+    "storageManageOthersDenied": "无权限管理他人储存连接",
+    "storagePathInvalid": "路径不合法",
+    "storageNameInvalid": "名称不合法",
+    "storageConnectFailed": "连接失败：{reason}",
+    "storageOperationFailed": "操作失败：{reason}",
+    "storageBasePathMissing": "根目录不存在",
+    "storageCredentialInvalid": "存储凭据无法解密，请重新设置密码"
+  },
+  "storage": {
+    "searchPlaceholder": "搜索名称、ID、主机",
+    "protocolAll": "全部协议",
+    "add": "新增连接",
+    "edit": "编辑连接",
+    "manage": "管理",
+    "saved": "连接已保存",
+    "deleted": "连接已删除",
+    "deleteTitle": "删除连接",
+    "deleteConfirm": "确认删除连接 {name}？仅删除连接信息，不影响远端文件。",
+    "connectionOk": "连接正常",
+    "entryDeleted": "已删除",
+    "shared": "共享",
+    "private": "私有",
+    "idPlaceholder": "留空自动生成",
+    "passwordKeep": "留空保持不变",
+    "field": {
+      "name": "名称",
+      "address": "地址",
+      "shared": "共享"
+    },
+    "files": {
+      "search": "搜索当前目录",
+      "upload": "上传",
+      "mkdir": "新建目录",
+      "renameTitle": "重命名",
+      "name": "名称",
+      "size": "大小",
+      "modifiedAt": "修改时间",
+      "location": "位置",
+      "truncated": "结果过多，仅显示前 {count} 项",
+      "uploaded": "已上传 {count} 个文件",
+      "uploadFailed": "{name} 上传失败",
+      "created": "目录已创建",
+      "renamed": "已重命名",
+      "deleteTitle": "删除",
+      "deleteFileConfirm": "确认删除文件 {name}？",
+      "deleteDirConfirm": "确认删除目录 {name} 及其全部内容？"
+    }
+  },
+  "auditLog": {
+    "action": {
+      "storage": {
+        "create": "新增储存连接",
+        "update": "修改储存连接",
+        "delete": "删除储存连接",
+        "file_upload": "上传文件",
+        "file_delete": "删除文件",
+        "file_rename": "重命名文件",
+        "file_mkdir": "新建目录"
+      }
+    },
+    "target": {
+      "storage": "储存连接"
+    },
+    "field": {
+      "storage_id": "储存 ID",
+      "protocol": "协议",
+      "host": "主机",
+      "port": "端口",
+      "username": "账号",
+      "base_path": "根目录",
+      "is_shared": "共享",
+      "path": "路径",
+      "new_path": "新路径",
+      "size": "大小",
+      "is_dir": "目录"
+    }
+  },
+  "api": {
+    "parameter": {
+      "common": {
+        "path": "文件或目录路径，相对储存根目录，以 / 开头。",
+        "recursive": "是否递归枚举子目录。true 时返回子树内所有匹配项。",
+        "storage_id": "储存连接的唯一 ID。"
+      }
+    },
+    "schema": {
+      "property": {
+        "new_name": "新名称，不能包含斜杠。",
+        "path": "文件或目录路径，相对储存根目录。",
+        "file": "要上传的文件内容。"
+      }
+    }
+  }
+}
