@@ -56,15 +56,6 @@ def list_role_options(
     return UserService(db).list_role_options()
 
 
-@router.get("/{user_id}", response_model=UserListItem)
-def get_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_permission(USER_READ)),
-) -> User:
-    return UserService(db).get_user(user_id)
-
-
 @router.post("", response_model=UserListItem)
 def create_user(
     payload: UserCreateRequest,

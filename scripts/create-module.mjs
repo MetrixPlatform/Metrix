@@ -163,7 +163,7 @@ export const __CONSTANT___MANAGE_OTHERS = actionPermission("__SNAKE__", "manage_
 function webViewTemplate() {
   return render(`<template>
   <section class="work-card table-page-card">
-    <div class="toolbar __KEBAB__-toolbar">
+    <div class="toolbar">
       <div class="toolbar-group">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('__CAMEL__.searchPlaceholder')" clearable />
         <n-input v-model:value="filters.category" :placeholder="t('__CAMEL__.categoryPlaceholder')" clearable />

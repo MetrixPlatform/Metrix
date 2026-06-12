@@ -114,7 +114,6 @@ import { backupData, getSystemSettings, updateSystemSettings } from "../api/sett
 import type { SystemSettings } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import { ensureLocaleNames, localeOptions, t } from "../i18n";
-import { appStore } from "../stores/app";
 import { settingsStore } from "../stores/settings";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
@@ -175,7 +174,6 @@ async function saveSettings() {
     const updated = await updateSystemSettings(form);
     assignSettings(updated);
     settingsStore.setPublic(updated);
-    await appStore.setLocale(updated.default_locale);
     message.success(t("settings.saved"));
   } catch (error) {
     showError(message, error);

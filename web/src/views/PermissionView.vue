@@ -189,7 +189,12 @@ onMounted(async () => {
 });
 
 async function loadData() {
-  [roles.value, permissions.value] = await Promise.all([listRoles(), listPermissions()]);
+  try {
+    [roles.value, permissions.value] = await Promise.all([listRoles(), listPermissions()]);
+  } catch (error) {
+    showError(message, error);
+    return;
+  }
   permissions.value = permissions.value.filter((permission) => isActivePermissionCode(permission.code));
   roles.value = roles.value.map((role) => ({
     ...role,

@@ -36,7 +36,7 @@
         </button>
       </div>
     </aside>
-    <n-modal v-model:show="showDetailModal" preset="card" class="modal-card announcement-popup-modal" :title="selectedAnnouncement?.title || t('dashboard.announcements')">
+    <n-modal v-model:show="showDetailModal" preset="card" class="modal-card" :title="selectedAnnouncement?.title || t('dashboard.announcements')">
       <div class="announcement-popup-content">{{ selectedAnnouncement?.content }}</div>
       <div class="form-actions">
         <n-button type="primary" @click="showDetailModal = false">{{ t("common.close") }}</n-button>

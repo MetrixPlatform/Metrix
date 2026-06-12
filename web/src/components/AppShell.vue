@@ -57,7 +57,7 @@
     <n-modal
       v-model:show="showAnnouncementModal"
       preset="card"
-      class="modal-card announcement-popup-modal"
+      class="modal-card"
       :title="popupAnnouncement?.title || t('dashboard.announcements')"
       :closable="false"
       :mask-closable="false"
@@ -107,7 +107,7 @@ const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
-const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code), isFeatureEnabled));
+const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code), (feature) => settingsStore.featureEnabled(feature)));
 const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);
@@ -160,10 +160,6 @@ function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
 
-function isFeatureEnabled(feature?: string) {
-  return feature !== "api" || settingsStore.apiEnabled();
-}
-
 function toMenuOptions(items: AppMenuItem[]) {
   return items.map((item) => {
     const option: MenuOption = {
@@ -192,10 +188,10 @@ async function closeTickerAnnouncement(item: { id: number }) {
 
 async function acknowledgePopup() {
   const item = popupAnnouncement.value;
-  showAnnouncementModal.value = false;
   if (item) {
     await markAnnouncementRead(item);
   }
+  showAnnouncementModal.value = Boolean(popupAnnouncement.value);
 }
 
 async function markAnnouncementRead(item: { id: number }) {

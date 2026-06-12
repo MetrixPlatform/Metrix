@@ -92,6 +92,7 @@ import StatusTag from "../components/StatusTag.vue";
 import { formatDateTime, t } from "../i18n";
 import { authStore } from "../stores/auth";
 import { settingsStore } from "../stores/settings";
+import { copyText } from "../utils/clipboard";
 import { messageText, showError } from "../utils/message";
 import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
@@ -329,19 +330,6 @@ async function copyRevealedToken() {
   } catch {
     message.error(t("message.operationFailed"));
   }
-}
-
-async function copyText(value: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const input = document.createElement("textarea");
-  input.value = value;
-  document.body.append(input);
-  input.select();
-  document.execCommand("copy");
-  input.remove();
 }
 
 function formatExpiresAt(value: string | null) {

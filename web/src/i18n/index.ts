@@ -1,7 +1,7 @@
 import { computed, reactive } from "vue";
 import { createI18n } from "vue-i18n";
 
-import { appKey } from "../config/app";
+import { LOCALE_STORAGE_KEY } from "../config/app";
 import {
   DEFAULT_LOCALE,
   defaultMessages,
@@ -17,8 +17,6 @@ import {
 
 export { DEFAULT_LOCALE, isLocale, locales };
 export type { I18nKey, Locale, TranslateParams };
-
-const LOCALE_KEY = appKey("locale");
 
 export const i18n = createI18n({
   legacy: false,
@@ -81,8 +79,8 @@ export function formatDateTime(value: string | number | Date) {
   return new Date(value).toLocaleString(currentLocale());
 }
 
-function initialLocale(): Locale {
-  const saved = localStorage.getItem(LOCALE_KEY);
+export function initialLocale(): Locale {
+  const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
   return isLocale(saved) ? saved : DEFAULT_LOCALE;
 }
 

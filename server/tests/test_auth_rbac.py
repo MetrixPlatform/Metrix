@@ -359,6 +359,11 @@ def test_module_lifecycle_hooks_run_for_install_upgrade_and_disable(tmp_path, mo
     db_init.sync_module_states(engine)
     db_init.sync_module_states(engine)
 
+    monkeypatch.setattr(db_init, "get_app_modules", lambda: (module_v2,))
+    db_init.sync_module_states(engine)
+    monkeypatch.setattr(db_init, "get_app_modules", lambda: ())
+    db_init.sync_module_states(engine)
+
     with engine.begin() as conn:
         events = [row[0] for row in conn.execute(text("SELECT event FROM lifecycle_events ORDER BY rowid")).all()]
         state = conn.execute(text("SELECT version, status FROM module_states WHERE `key` = 'hooked'")).one()
@@ -373,7 +378,7 @@ def test_module_lifecycle_hooks_run_for_install_upgrade_and_disable(tmp_path, mo
     assert events == ["install", "upgrade", "disable"]
     assert state == ("1.1.0", "disabled")
     assert records == [
-        "hook:hooked:disable:counter",
+        "hook:hooked:disable:1.1.0:counter",
         "hook:hooked:install:1.0.0:counter",
         "hook:hooked:upgrade:1.1.0:counter",
     ]
@@ -881,6 +886,80 @@ def test_register_without_approval_can_login(tmp_path, monkeypatch):
 
     user_headers = login(client, "direct_user", "UserPass123")
     assert client.get("/api/dashboard/summary", headers=user_headers).status_code == 200
+
+
+def test_user_role_permission_assignment_rejects_unknown_ids(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+
+    invalid_create = client.post(
+        "/api/users",
+        json={
+            "username": "managed01",
+            "password": "UserPass123",
+            "full_name": "受管用户",
+            "phone": "13800000006",
+            "email": "managed01@example.com",
+            "company": "公司",
+            "department": "部门",
+            "role_ids": [99999],
+        },
+        headers=admin_headers,
+    )
+    assert invalid_create.status_code == 400
+    assert invalid_create.json()["detail"]["code"] == "error.roleNotFound"
+
+    created = client.post(
+        "/api/users",
+        json={
+            "username": "managed01",
+            "password": "UserPass123",
+            "full_name": "受管用户",
+            "phone": "13800000006",
+            "email": "managed01@example.com",
+            "company": "公司",
+            "department": "部门",
+            "role_ids": [],
+        },
+        headers=admin_headers,
+    )
+    assert created.status_code == 200
+    user_id = created.json()["id"]
+
+    from app.core.install import load_install_config
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        approved = conn.execute(
+            text("SELECT approved_by, approved_at FROM users WHERE id = :id"), {"id": user_id}
+        ).one()
+    engine.dispose()
+    assert approved[0] is not None
+    assert approved[1] is not None
+
+    invalid_assign = client.put(f"/api/users/{user_id}/roles", json={"role_ids": [1, 99999]}, headers=admin_headers)
+    assert invalid_assign.status_code == 400
+    assert invalid_assign.json()["detail"]["code"] == "error.roleNotFound"
+
+    role = client.post("/api/roles", json={"code": "ops", "name": "运维", "description": ""}, headers=admin_headers)
+    assert role.status_code == 200
+    invalid_permissions = client.put(
+        f"/api/roles/{role.json()['id']}/permissions", json={"permission_ids": [99999]}, headers=admin_headers
+    )
+    assert invalid_permissions.status_code == 400
+    assert invalid_permissions.json()["detail"]["code"] == "error.permissionNotFound"
+
+
+def test_forged_token_subject_is_rejected_as_unauthorized(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    from app.core.security import create_access_token
+
+    forged = create_access_token("not-a-number")
+    response = client.get("/api/auth/me", headers={"Authorization": f"Bearer {forged}"})
+    assert response.status_code == 401
 
 
 def test_profile_and_password_change(tmp_path, monkeypatch):

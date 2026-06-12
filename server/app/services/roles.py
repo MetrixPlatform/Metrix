@@ -80,7 +80,7 @@ class RoleService:
         if role.code == ADMIN_ROLE:
             role.permissions = self.roles.permissions()
         else:
-            role.permissions = self.roles.permissions_by_ids(payload.permission_ids)
+            role.permissions = self._permissions_by_ids_strict(payload.permission_ids)
         record_audit(
             self.db,
             actor_id,
@@ -92,6 +92,13 @@ class RoleService:
         )
         self.db.commit()
         return role
+
+    def _permissions_by_ids_strict(self, permission_ids: list[int]) -> list[Permission]:
+        unique_ids = list(set(permission_ids))
+        permissions = self.roles.permissions_by_ids(unique_ids)
+        if len(permissions) != len(unique_ids):
+            raise bad_request("error.permissionNotFound", "Permission not found")
+        return permissions
 
 
 def _role_snapshot(role: Role) -> dict[str, object]:

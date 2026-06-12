@@ -74,6 +74,16 @@ class ApiTokenService:
             raise not_found("error.apiTokenNotFound", "API token not found")
         if not api_token.token_value:
             raise not_found("error.apiTokenSecretUnavailable", "API token secret is unavailable")
+        record_audit(
+            self.db,
+            user.id,
+            "api_token.reveal",
+            "api_token",
+            str(api_token.id),
+            api_token.name,
+            audit_detail(api_token.name, meta=_token_snapshot(api_token)),
+        )
+        self.db.commit()
         return api_token.token_value
 
     def _new_unique_token(self) -> str:

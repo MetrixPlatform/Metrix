@@ -52,6 +52,7 @@
     "departmentOrPosition": "部门/职位",
     "role": "角色",
     "roles": "角色",
+    "permissions": "权限",
     "reason": "驳回原因",
     "roleCode": "角色编码",
     "roleName": "角色名称",
@@ -148,6 +149,7 @@
     "lastAdminRoleRequired": "不能移除最后一个管理员的管理员角色",
     "selfAdminRoleRequired": "不能移除自己的管理员角色",
     "roleNotFound": "角色不存在",
+    "permissionNotFound": "权限不存在",
     "roleCodeExists": "角色编码已存在",
     "builtinRoleCannotDelete": "内置角色不能删除",
     "databaseConnectionFailed": "数据库连接失败，请检查连接配置",
@@ -376,7 +378,8 @@
       },
       "api_token": {
         "create": "创建 Token",
-        "delete": "删除 Token"
+        "delete": "删除 Token",
+        "reveal": "显示完整 Token"
       }
     },
     "target": {

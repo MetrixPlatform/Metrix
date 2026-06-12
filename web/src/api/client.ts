@@ -33,7 +33,7 @@ const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
   description: "field.description",
   reason: "field.reason",
   role_ids: "field.roles",
-  permission_ids: "field.roles",
+  permission_ids: "field.permissions",
   title: "field.title",
   content: "field.content",
   target_type: "field.targetType",

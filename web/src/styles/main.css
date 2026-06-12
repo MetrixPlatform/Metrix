@@ -1054,13 +1054,6 @@ a {
   min-height: 0;
 }
 
-.module-placeholder {
-  min-height: 0;
-  flex: 1;
-  display: grid;
-  place-items: center;
-}
-
 .announcement-ticker {
   height: 36px;
   display: flex;
@@ -1353,7 +1346,6 @@ a {
 }
 
 .filter-keyword,
-.filter-select,
 .filter-date-range {
   width: 100%;
 }
@@ -1978,21 +1970,6 @@ a {
 .api-detail-block {
   display: grid;
   gap: 8px;
-}
-
-.api-response-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.api-response-list span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
 }
 
 .api-detail-modal {

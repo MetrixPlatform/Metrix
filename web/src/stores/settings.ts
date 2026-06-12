@@ -42,5 +42,8 @@ export const settingsStore = reactive({
   },
   apiTokenRevealEnabled() {
     return this.publicSettings.api_token_reveal_enabled;
+  },
+  featureEnabled(feature?: string) {
+    return feature !== "api" || this.apiEnabled();
   }
 });

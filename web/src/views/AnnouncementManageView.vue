@@ -1,5 +1,5 @@
 <template>
-  <section class="work-card table-page-card announcement-manage-card">
+  <section class="work-card table-page-card">
     <div class="toolbar announcement-toolbar">
       <div class="announcement-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('announcement.searchPlaceholder')" clearable />

@@ -1,12 +1,10 @@
 import { reactive } from "vue";
 
-import { appKey } from "../config/app";
-import { setI18nLocale } from "../i18n";
+import { appKey, LOCALE_STORAGE_KEY } from "../config/app";
+import { initialLocale, setI18nLocale } from "../i18n";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n/messages";
-import { settingsStore } from "./settings";
 
 const THEME_KEY = appKey("dark");
-const LOCALE_KEY = appKey("locale");
 
 export const appStore = reactive({
   dark: localStorage.getItem(THEME_KEY) === "1",
@@ -20,7 +18,7 @@ export const appStore = reactive({
     const nextLocale = isLocale(locale) ? locale : DEFAULT_LOCALE;
     await setI18nLocale(nextLocale);
     appStore.locale = nextLocale;
-    localStorage.setItem(LOCALE_KEY, appStore.locale);
+    localStorage.setItem(LOCALE_STORAGE_KEY, appStore.locale);
     document.documentElement.lang = appStore.locale;
   }
 });
@@ -30,12 +28,4 @@ document.documentElement.lang = appStore.locale;
 
 function applyTheme(dark: boolean) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-}
-
-function initialLocale(): Locale {
-  const saved = localStorage.getItem(LOCALE_KEY);
-  if (isLocale(saved)) {
-    return saved;
-  }
-  return settingsStore.defaultLocale();
 }

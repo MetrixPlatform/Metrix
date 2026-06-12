@@ -241,6 +241,7 @@ import {
 } from "../api/openapi";
 import { t } from "../i18n";
 import { openApiText } from "../i18n/openapi";
+import { copyText } from "../utils/clipboard";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../utils/table";
@@ -384,7 +385,7 @@ async function loadDocument() {
 
 async function copyDocument() {
   try {
-    await navigator.clipboard.writeText(documentText.value);
+    await copyText(documentText.value);
     message.success(t("common.copied"));
   } catch {
     message.error(t("message.operationFailed"));

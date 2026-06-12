@@ -690,3 +690,17 @@
 - 原 `docs/development_page_guide.md` 迁移到仓库根目录并改名为 `DEVELOPMENT_GUIDE.md`，标题改为“开发指南”，用于承载新增页面、模块、权限、迁移、API 和前端交互规范。
 - `docs` 目录只保留 `project_context.md`，删除已不作为当前入口维护的 open items 与早期设计文档；当前开发者入口由 `README.md` 和 `DEVELOPMENT_GUIDE.md` 承担。
 - `README.md` 更新目录结构和文档入口说明，移除平台限定描述，命令示例改为更通用的 `python` / `npm` 写法，并把开发规范引用指向 `DEVELOPMENT_GUIDE.md`。
+
+## 2026-06-12：framework-stable 分支第三轮全量复查与修复
+- 鉴权加固：`decode_access_token` 现在只接受纯数字 `sub`，伪造或异常 payload 统一走 401，不再因 `int(subject)` 抛 `ValueError` 返回 500；新增伪造 subject 回归测试。
+- 模块生命周期一致性：`disable` 钩子改为与 install/upgrade/uninstall 相同的“先查 `migration_records` 再执行”模式，记录 key 带模块版本（`hook:<key>:disable:<version>:<hook>`）；模块反复启停不会重复执行非幂等 SQL，删除了旧的无守卫 `_run_lifecycle_hooks`，生命周期测试补充重复启停场景。
+- RBAC 静默降级修复：`assign_roles`、`approve_user`/`create_user` 的 `role_ids`、`assign_permissions` 的 `permission_ids` 现在严格校验 ID 全部存在，无效 ID 返回 400（`error.roleNotFound` / 新增 `error.permissionNotFound`），不再静默部分生效；新增对应接口测试。
+- 数据一致性：管理员直接创建的用户补记 `approved_by` 和 `approved_at`，与注册审批通过、免审注册路径保持一致。
+- 审计补缺：`get_token_secret` 显示完整 Token 时记录 `api_token.reveal` 审计；语言包补充 `auditLog.action.api_token.reveal`。
+- 后端清理：删除无引用的 `ApiTokenRepository.get()` 和前端从未调用的 `GET /api/users/{user_id}` 端点；`_user_profile_snapshot` 重复实现合并为 `app/services/users.py` 的 `user_profile_snapshot`，`auth.py` 复用。
+- 前端修复：保存系统设置不再调用 `appStore.setLocale` 强制覆盖当前用户语言（`default_locale` 只影响无本地偏好的会话）；`AppShell` 公告弹窗改为标记已读成功后才关闭，失败时保持弹出；`PermissionView.loadData` 增加错误提示，避免首屏白屏；校验错误字段 `permission_ids` 的 label 修正为新增的 `field.permissions`。
+- 前端去重与收敛：`LOCALE_STORAGE_KEY` 统一定义在 `config/app.ts`；`initialLocale()` 收敛到 `i18n/index.ts` 并导出复用，`stores/app.ts` 不再依赖 `settingsStore`；`isFeatureEnabled` 收敛为 `settingsStore.featureEnabled(...)`；剪贴板复制（含 `execCommand` 降级）抽到 `web/src/utils/clipboard.ts`，`TokenManageView` 与 `ApiDocsView` 共用，顺带修复 ApiDocs 复制无降级问题。
+- 前端清理：`APP_SLUG`、`DEPRECATED_PERMISSION_CODES`、`TranslateParam` 改为模块内私有；删除无引用的 `.module-placeholder`、`.api-response-list` 样式和 `.filter-select` 选择器；移除模板中无样式的 `announcement-manage-card`、`demo-crud-toolbar`、`demo-crud-category-filter`、`announcement-popup-modal` class，脚手架模板同步去掉 `__KEBAB__-toolbar`。
+- smoke 增强：`web/scripts/smoke.mjs` 新增基础语言包 `i18n/locales/*.json` 的 key 一致性校验（原来只校验模块语言包）。
+- 有意保留的重复/设计边界：`modules/core.py` 与 `core/permissions.py` 的 READ 常量重复用于避免循环 import；`creator_usernames`/`actor_usernames` 在各模块 repository 重复属于模块自包含约定；dashboard API 和 `/api/audit-logs/export` 作为 API 契约保留；列表页分页/筛选模式按脚手架约定逐页实现，不抽公共 composable。
+- 验证结果：后端 `compileall` 通过、`pytest` 36 passed（新增 2 个用例）；前端 `npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build`、`npm run test:regression`（4 passed）全部通过。

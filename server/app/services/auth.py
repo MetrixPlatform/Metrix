@@ -12,6 +12,7 @@ from app.schemas.settings import PublicSettings
 from app.services.audit import audit_changes, audit_detail, record_audit
 from app.services.permissions import get_user_permission_codes
 from app.services.settings import SettingService
+from app.services.users import user_profile_snapshot
 
 
 class AuthService:
@@ -113,7 +114,7 @@ class AuthService:
         return token, user, permissions
 
     def update_profile(self, user: User, payload: ProfileUpdateRequest) -> User:
-        before = _user_profile_snapshot(user)
+        before = user_profile_snapshot(user)
         user.full_name = payload.full_name
         user.phone = payload.phone
         user.email = payload.email
@@ -126,7 +127,7 @@ class AuthService:
             "user",
             str(user.id),
             user.username,
-            audit_detail(user.username, audit_changes(before, _user_profile_snapshot(user))),
+            audit_detail(user.username, audit_changes(before, user_profile_snapshot(user))),
         )
         self.db.commit()
         return user
@@ -145,13 +146,3 @@ class AuthService:
             audit_detail(user.username, meta={"password_changed": True}),
         )
         self.db.commit()
-
-
-def _user_profile_snapshot(user: User) -> dict[str, str]:
-    return {
-        "full_name": user.full_name,
-        "phone": user.phone,
-        "email": user.email,
-        "company": user.company,
-        "department": user.department,
-    }

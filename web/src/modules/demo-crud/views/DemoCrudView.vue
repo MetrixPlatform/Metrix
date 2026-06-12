@@ -1,9 +1,9 @@
 <template>
   <section class="work-card table-page-card">
-    <div class="toolbar demo-crud-toolbar">
+    <div class="toolbar">
       <div class="toolbar-group">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('demoCrud.searchPlaceholder')" clearable />
-        <n-input v-model:value="filters.category" class="demo-crud-category-filter" :placeholder="t('demoCrud.categoryPlaceholder')" clearable />
+        <n-input v-model:value="filters.category" :placeholder="t('demoCrud.categoryPlaceholder')" clearable />
         <n-button @click="searchItems">{{ t("common.search") }}</n-button>
       </div>
       <permission-button :permission="DEMO_ITEM_CREATE" type="primary" @click="openCreate">{{ t("demoCrud.add") }}</permission-button>

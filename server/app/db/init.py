@@ -93,7 +93,7 @@ def sync_module_states(engine) -> None:
                 continue
             state = state_by_key.get(module.key)
             if state is not None and state["status"] == "enabled":
-                _run_lifecycle_hooks(conn, module, "disable")
+                _run_recorded_lifecycle_hooks(conn, module, "disable")
             _upsert_module_state(conn, module.key, module.version, "disabled", module.dependencies)
 
         for key, state in state_by_key.items():
@@ -141,19 +141,6 @@ def _run_recorded_lifecycle_hooks(conn, module, event: str) -> None:
         _record_migration(
             conn,
             key,
-            "module_hook",
-            module.key,
-            hook.description or f"{module.key}@{module.version}:{event}:{hook.key}",
-        )
-
-
-def _run_lifecycle_hooks(conn, module, event: str) -> None:
-    for hook in (item for item in module.lifecycle_hooks if item.event == event):
-        for statement in hook.statements:
-            conn.execute(text(statement))
-        _record_migration(
-            conn,
-            f"hook:{module.key}:{event}:{hook.key}",
             "module_hook",
             module.key,
             hook.description or f"{module.key}@{module.version}:{event}:{hook.key}",

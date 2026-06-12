@@ -1,7 +1,7 @@
 import zhCN from "./locales/zh-CN.json";
 
 export type Locale = string;
-export type TranslateParam = string | number | boolean | null | undefined;
+type TranslateParam = string | number | boolean | null | undefined;
 export type TranslateParams = Record<string, TranslateParam>;
 export type MessageTree = { [key: string]: string | MessageTree };
 export type LocaleMessages = MessageTree & { language: string };

@@ -52,6 +52,7 @@
     "departmentOrPosition": "Department/Position",
     "role": "Role",
     "roles": "Roles",
+    "permissions": "Permissions",
     "reason": "Reason",
     "roleCode": "Role code",
     "roleName": "Role name",
@@ -148,6 +149,7 @@
     "lastAdminRoleRequired": "The last administrator role cannot be removed",
     "selfAdminRoleRequired": "You cannot remove your own administrator role",
     "roleNotFound": "Role not found",
+    "permissionNotFound": "Permission not found",
     "roleCodeExists": "Role code already exists",
     "builtinRoleCannotDelete": "Built-in roles cannot be deleted",
     "databaseConnectionFailed": "Database connection failed. Check the connection config",
@@ -376,7 +378,8 @@
       },
       "api_token": {
         "create": "Created token",
-        "delete": "Deleted token"
+        "delete": "Deleted token",
+        "reveal": "Revealed token secret"
       }
     },
     "target": {

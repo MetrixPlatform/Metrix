@@ -3,13 +3,11 @@ import { createRouter, createWebHistory } from "vue-router";
 import { AUTH_EXPIRED_EVENT } from "../api/client";
 import { getInstallStatus } from "../api/install";
 import { getMe } from "../api/auth";
-import { appKey } from "../config/app";
+import { LOCALE_STORAGE_KEY } from "../config/app";
 import { appStore } from "../stores/app";
 import { authStore } from "../stores/auth";
 import { settingsStore } from "../stores/settings";
 import { createAppPageRoutes, getFallbackPath } from "./page-registry";
-
-const LOCALE_KEY = appKey("locale");
 
 const routes = [
   { path: "/install", component: () => import("../views/InstallView.vue"), meta: { public: true } },
@@ -51,7 +49,7 @@ router.beforeEach(async (to) => {
   if (status?.installed && !settingsStore.loaded) {
     try {
       const publicSettings = await settingsStore.loadPublic();
-      if (!localStorage.getItem(LOCALE_KEY)) {
+      if (!localStorage.getItem(LOCALE_STORAGE_KEY)) {
         await appStore.setLocale(publicSettings.default_locale);
       }
     } catch {
@@ -77,12 +75,13 @@ router.beforeEach(async (to) => {
   }
   const permission = to.meta.permission as string | undefined;
   const feature = to.meta.feature as string | undefined;
-  if (feature && !isFeatureEnabled(feature)) {
-    const path = getFallbackPath((code) => authStore.has(code), isFeatureEnabled);
+  const featureEnabled = (value?: string) => settingsStore.featureEnabled(value);
+  if (feature && !featureEnabled(feature)) {
+    const path = getFallbackPath((code) => authStore.has(code), featureEnabled);
     return to.path === path ? true : path;
   }
   if (permission && !authStore.has(permission)) {
-    const path = getFallbackPath((code) => authStore.has(code), isFeatureEnabled);
+    const path = getFallbackPath((code) => authStore.has(code), featureEnabled);
     return to.path === path ? true : path;
   }
   return true;
@@ -94,8 +93,4 @@ async function loadInstallStatus() {
   } catch {
     return null;
   }
-}
-
-function isFeatureEnabled(feature?: string) {
-  return feature !== "api" || settingsStore.apiEnabled();
 }

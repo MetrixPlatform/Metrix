@@ -61,8 +61,8 @@ def decode_access_token(token: str) -> str | None:
         return None
     if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
         return None
-    subject = payload.get("sub")
-    return str(subject) if subject else None
+    subject = str(payload.get("sub") or "")
+    return subject if subject.isdigit() else None
 
 
 def create_api_token() -> str:

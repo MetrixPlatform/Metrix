@@ -64,6 +64,8 @@ class UserService:
             department=payload.department,
             password_hash=hash_password(payload.password),
             approval_status="approved",
+            approved_by=actor.id,
+            approved_at=utc_now(),
             is_active=True,
             roles=self._roles_or_default(payload.role_ids),
         )
@@ -82,7 +84,7 @@ class UserService:
 
     def update_user(self, actor: User, user_id: int, payload: UserUpdateRequest) -> User:
         user = self.get_user(user_id)
-        before = _user_profile_snapshot(user)
+        before = user_profile_snapshot(user)
         user.full_name = payload.full_name
         user.phone = payload.phone
         user.email = payload.email
@@ -95,7 +97,7 @@ class UserService:
             "user",
             str(user.id),
             user.username,
-            audit_detail(user.username, audit_changes(before, _user_profile_snapshot(user))),
+            audit_detail(user.username, audit_changes(before, user_profile_snapshot(user))),
         )
         self.db.commit()
         return user
@@ -209,7 +211,7 @@ class UserService:
 
     def assign_roles(self, actor: User, user_id: int, payload: AssignRolesRequest) -> User:
         user = self.get_user(user_id)
-        roles = self.roles.by_ids(payload.role_ids)
+        roles = self._roles_by_ids_strict(payload.role_ids)
         self._guard_last_admin_role_change(user, roles)
         self._guard_self_admin_role(actor, user, roles)
         before = {"roles": _role_codes(user.roles)}
@@ -231,11 +233,17 @@ class UserService:
             raise forbidden("error.lastAdminRequired", "The last administrator cannot be changed")
 
     def _roles_or_default(self, role_ids: list[int] | None) -> list[Role]:
-        roles = self.roles.by_ids(role_ids or [])
-        if roles:
-            return roles
+        if role_ids:
+            return self._roles_by_ids_strict(role_ids)
         default_role = self.roles.get_by_code(USER_ROLE)
         return [default_role] if default_role else []
+
+    def _roles_by_ids_strict(self, role_ids: list[int]) -> list[Role]:
+        unique_ids = list(set(role_ids))
+        roles = self.roles.by_ids(unique_ids)
+        if len(roles) != len(unique_ids):
+            raise bad_request("error.roleNotFound", "Role not found")
+        return roles
 
     def _guard_last_admin_role_change(self, target: User, roles: list[Role]) -> None:
         if not any(role.code == ADMIN_ROLE for role in target.roles) or self.users.count_admins() > 1:
@@ -254,7 +262,7 @@ def _role_codes(roles: list[Role]) -> list[str]:
     return sorted(role.code for role in roles)
 
 
-def _user_profile_snapshot(user: User) -> dict[str, str]:
+def user_profile_snapshot(user: User) -> dict[str, str]:
     return {
         "full_name": user.full_name,
         "phone": user.phone,
@@ -267,7 +275,7 @@ def _user_profile_snapshot(user: User) -> dict[str, str]:
 def _user_snapshot(user: User) -> dict[str, object]:
     return {
         "username": user.username,
-        **_user_profile_snapshot(user),
+        **user_profile_snapshot(user),
         "approval_status": user.approval_status,
         "is_active": user.is_active,
     }

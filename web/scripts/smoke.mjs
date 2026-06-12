@@ -13,6 +13,7 @@ const appConfig = readOptionalJson(path.join(projectDir, "app.config.json"));
 const moduleEntries = new Map();
 
 assert(requiredLocales.length > 0, "No base locale files found");
+assertSameJsonKeys(baseMessages, "i18n/locales");
 assertModuleFilters(appConfig, moduleNames);
 
 for (const moduleName of moduleNames) {
