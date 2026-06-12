@@ -454,6 +454,19 @@ def test_storage_test_endpoint_and_connect_failure(tmp_path, monkeypatch):
     assert reused.status_code == 200
     assert created_clients[-1].record["password"] == "FtpPass123"
 
+    health = client.get("/api/storages/test-reuse/health", headers=admin_headers)
+    assert health.status_code == 200
+    assert health.json()["code"] == "storage.connectionOk"
+    assert created_clients[-1].closed
+
+    missing_base_conn = client.post(
+        "/api/storages", json=storage_payload(storage_id="bad-base", base_path="/missing"), headers=admin_headers
+    )
+    assert missing_base_conn.status_code == 200
+    unhealthy = client.get("/api/storages/bad-base/health", headers=admin_headers)
+    assert unhealthy.status_code == 400
+    assert unhealthy.json()["detail"]["code"] == "error.storageBasePathMissing"
+
     def failing_factory(protocol, host, port, username, password):
         raise StorageConnectError("connection refused")
 
@@ -462,6 +475,10 @@ def test_storage_test_endpoint_and_connect_failure(tmp_path, monkeypatch):
     assert failed.status_code == 503
     assert failed.json()["detail"]["code"] == "error.storageConnectFailed"
     assert failed.json()["detail"]["params"]["reason"] == "connection refused"
+
+    failed_health = client.get("/api/storages/test-reuse/health", headers=admin_headers)
+    assert failed_health.status_code == 503
+    assert failed_health.json()["detail"]["code"] == "error.storageConnectFailed"
 
 
 def test_storage_api_token_access_and_openapi_visibility(tmp_path, monkeypatch):
@@ -479,6 +496,10 @@ def test_storage_api_token_access_and_openapi_visibility(tmp_path, monkeypatch):
     token = client.post("/api/tokens", json={"name": "外部集成", "expires_at": None}, headers=admin_headers)
     assert token.status_code == 200
     api_headers = {"Authorization": f"Bearer {token.json()['token']}"}
+
+    api_health = client.get("/api/storages/api-shared/health", headers=api_headers)
+    assert api_health.status_code == 200
+    assert api_health.json()["code"] == "storage.connectionOk"
 
     api_listing = client.get("/api/storages/api-shared/files", headers=api_headers)
     assert api_listing.status_code == 200
@@ -501,6 +522,7 @@ def test_storage_api_token_access_and_openapi_visibility(tmp_path, monkeypatch):
     assert openapi.status_code == 200
     schema = openapi.json()
     paths = schema["paths"]
+    assert "/api/storages/{storage_id}/health" in paths
     assert "/api/storages/{storage_id}/files" in paths
     assert "/api/storages/{storage_id}/upload" in paths
     assert "/api/storages" not in paths

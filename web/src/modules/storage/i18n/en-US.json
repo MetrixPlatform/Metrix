@@ -104,6 +104,10 @@
       "storage-files": "Storage files"
     },
     "operation": {
+      "check_storage_health_api_storages__storage_id__health_get": {
+        "summary": "Check connectivity",
+        "description": "Verify that the storage connection can log in to the remote server and the base path is accessible; returns storage.connectionOk on success."
+      },
       "list_storage_files_api_storages__storage_id__files_get": {
         "summary": "List directory entries",
         "description": "List files and directories under a path; combine keyword with recursive to search or enumerate the whole subtree."

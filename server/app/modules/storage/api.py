@@ -82,6 +82,16 @@ def delete_storage(
     return message_response("storage.deleted", "Storage connection deleted")
 
 
+@router.get("/{storage_id}/health", response_model=MessageResponse, tags=FILE_TAGS, summary="Check storage connectivity")
+def check_storage_health(
+    storage_id: str,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(STORAGE_READ)),
+) -> MessageResponse:
+    StorageService(db).check_connection(actor, storage_id)
+    return message_response("storage.connectionOk", "Storage connection is healthy")
+
+
 @router.get("/{storage_id}/files", response_model=StorageFileListResponse, tags=FILE_TAGS, summary="List directory entries")
 def list_storage_files(
     storage_id: str,

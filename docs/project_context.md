@@ -739,3 +739,4 @@
 - 验证：后端 `pytest` 42 passed；前端 `test:smoke`、`vue-tsc`、`build` 通过。
 - 长表单弹窗规范：储存连接弹窗按钮移入 `n-modal` 的 `#action` 插槽（`modal-fixed-actions`），`main.css` 为 `.modal-card > .n-card__action` 定样式并用 `:has()` 收紧带 action 弹窗的内容区最大高度——按钮固定底部、仅表单滚动；规范已写入 `DEVELOPMENT_GUIDE.md`。
 - API 文档 i18n 机制确认与修正：前端 `ApiDocsView` 通过 `openapi.*` 命名空间翻译文档（`openapi.tag.<tag>`、`openapi.operation.<operationId>.summary/description`、`openapi.parameter.common.<参数名>`、`openapi.schema.property.<属性名>`、`openapi.response.<code>`），后端 OpenAPI JSON 保持稳定英文。storage 模块语言包原误用 `api.*` 命名空间导致不生效，已改为 `openapi.*` 并补齐 `storage-files` tag 与 6 个文件 API 的中英文 summary/description。
+- 新增对外连接检查接口 `GET /api/storages/{storage_id}/health`（tag `storage-files`，`STORAGE_READ` 权限，API Token 可调）：按存量连接登录远端并校验根目录可访问，成功返回 `storage.connectionOk`，失败返回 503 `error.storageConnectFailed` 或 400 `error.storageBasePathMissing`；范围规则与文件 API 一致（本人/共享/manage_others，禁用连接 400）。已补 operation 中英文翻译与测试断言。

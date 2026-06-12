@@ -104,6 +104,10 @@
       "storage-files": "储存文件"
     },
     "operation": {
+      "check_storage_health_api_storages__storage_id__health_get": {
+        "summary": "检查连接状态",
+        "description": "校验该储存连接能否登录远端服务器且根目录可访问，成功返回 storage.connectionOk。"
+      },
       "list_storage_files_api_storages__storage_id__files_get": {
         "summary": "查询目录列表",
         "description": "列出指定路径下的文件和目录；keyword 配合 recursive 可在子树内搜索或枚举全部条目。"

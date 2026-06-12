@@ -162,6 +162,15 @@ class StorageService:
         finally:
             client.close()
 
+    def check_connection(self, actor: User, storage_id: str) -> None:
+        connection = self._get_usable(actor, storage_id)
+        client = self._connect(connection)
+        try:
+            if not client.is_dir(connection.base_path or "/"):
+                raise bad_request("error.storageBasePathMissing", "Base path does not exist")
+        finally:
+            client.close()
+
     def list_files(
         self,
         actor: User,
