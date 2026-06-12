@@ -704,3 +704,9 @@
 - smoke 增强：`web/scripts/smoke.mjs` 新增基础语言包 `i18n/locales/*.json` 的 key 一致性校验（原来只校验模块语言包）。
 - 有意保留的重复/设计边界：`modules/core.py` 与 `core/permissions.py` 的 READ 常量重复用于避免循环 import；`creator_usernames`/`actor_usernames` 在各模块 repository 重复属于模块自包含约定；dashboard API 和 `/api/audit-logs/export` 作为 API 契约保留；列表页分页/筛选模式按脚手架约定逐页实现，不抽公共 composable。
 - 验证结果：后端 `compileall` 通过、`pytest` 36 passed（新增 2 个用例）；前端 `npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build`、`npm run test:regression`（4 passed）全部通过。
+
+## 2026-06-12：framework-stable 合并进 main
+
+- `framework-stable` 与 `main` 无分叉，仅领先 1 个提交（`f20af7a`）；已在本地对 `main` 执行 `--ff-only` 快进合并，两分支现均指向 `f20af7a`。
+- 合并后复验：`.venv` 下 `pytest` 36 passed、`npm run test:smoke` 通过。
+- `origin/main` 已推送至 `f20af7a`，与 `origin/framework-stable` 对齐。
