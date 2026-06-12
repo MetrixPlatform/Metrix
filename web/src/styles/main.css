@@ -550,6 +550,20 @@ a {
   overflow-y: auto;
 }
 
+.modal-card > .n-card__action {
+  padding: 12px 24px;
+  background: var(--card-bg);
+}
+
+.modal-card:has(> .n-card__action) > .n-card__content,
+.modal-card:has(> .n-card__action) > .n-card-content {
+  max-height: calc(76vh - 176px);
+}
+
+.modal-fixed-actions {
+  margin-top: 0;
+}
+
 .muted-link {
   color: var(--primary-color);
   cursor: pointer;

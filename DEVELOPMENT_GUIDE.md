@@ -65,6 +65,7 @@ export default defineModule({
 - 表格统一 `remote` + 后端分页（`page`/`page_size`/`total`），`flex-height` + `page-data-table`，列宽可拖拽（`withResizableColumns` + `columnWidths` + `@unstable-column-resize`）。
 - 操作列 `fixed: "right"`，使用 `table-action-group` 包裹圆形 `quaternary` 图标按钮（`circle` + `NIcon` + `title` 提示），不用文字按钮。
 - 对应后端列表接口要支持这些筛选与排序参数，筛选在数据库层完成，不在前端内存过滤。
+- 弹窗表单较长需要滚动时，操作按钮放 `n-modal` 的 `#action` 插槽（`form-actions modal-fixed-actions`），按钮固定在弹窗底部，只有表单内容滚动。
 
 ## 3. 后端模块
 

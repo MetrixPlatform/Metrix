@@ -75,12 +75,14 @@
             <template #unchecked>{{ t("common.disabled") }}</template>
           </n-switch>
         </n-form-item>
-        <div class="form-actions">
+      </n-form>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
           <n-button :loading="testing" @click="testFormConnection">{{ t("common.test") }}</n-button>
           <n-button @click="showModal = false">{{ t("common.cancel") }}</n-button>
           <n-button type="primary" :loading="saving" @click="saveConnection">{{ t("common.save") }}</n-button>
         </div>
-      </n-form>
+      </template>
     </n-modal>
 
     <file-manager-modal v-model:show="showFiles" :connection="managingItem" />

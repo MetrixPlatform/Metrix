@@ -737,3 +737,4 @@
 - `StorageManageView` 对齐规范：协议下拉从工具栏移到列头筛选，新增 共享/私有、状态、创建人 列头筛选与创建时间列头排序；操作列改为 管理（FolderOpen）/测试（PlugConnected）/编辑/删除 图标按钮，行内测试按 id 复用存量密码。
 - 后端 `GET /api/storages` 扩展 `shared`（shared/private）、`is_active`、`created_by`（me）、`sort_order` 参数，repository 数据库层过滤排序；`test_storage.py` 补筛选与排序断言。
 - 验证：后端 `pytest` 42 passed；前端 `test:smoke`、`vue-tsc`、`build` 通过。
+- 长表单弹窗规范：储存连接弹窗按钮移入 `n-modal` 的 `#action` 插槽（`modal-fixed-actions`），`main.css` 为 `.modal-card > .n-card__action` 定样式并用 `:has()` 收紧带 action 弹窗的内容区最大高度——按钮固定底部、仅表单滚动；规范已写入 `DEVELOPMENT_GUIDE.md`。
