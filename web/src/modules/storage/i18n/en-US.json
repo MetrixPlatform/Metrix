@@ -44,6 +44,8 @@
     "private": "Private",
     "idPlaceholder": "Leave empty to auto-generate",
     "passwordKeep": "Leave empty to keep unchanged",
+    "creatorAll": "All users",
+    "creatorMe": "Only mine",
     "field": {
       "name": "Name",
       "address": "Address",

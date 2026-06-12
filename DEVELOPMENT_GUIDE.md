@@ -55,8 +55,16 @@ export default defineModule({
 
 - 新页面不要手工修改 `web/src/router/index.ts`、`AppShell.vue` 或主菜单。
 - 需要显示到侧边栏才配置 `menu`；不需要菜单入口的页面可以只声明路由。
-- 列表页优先沿用 `demo-crud` 的分页、筛选、固定操作列和表格布局。
 - 按钮权限优先复用 `PermissionButton`，不要只靠前端隐藏保护接口。
+
+列表页统一使用以下标准布局（参考 `AnnouncementManageView.vue`、`UserManageView.vue`、`StorageManageView.vue`）：
+
+- 工具栏一行放完：左侧 `<page>-filter-row`（grid 布局）只放关键字输入、可选时间范围和查询按钮；右侧放批量操作和新增按钮。
+- 枚举类筛选（状态、类型、范围、创建人等）不放工具栏，统一放列头筛选：受控写法 `filter` + `filterMultiple: false` + `filterOptionValue` + `filterOptions`，在 `@update:filters` 中转成后端查询参数并重新加载。
+- 时间列用列头排序：`sorter: true` + 受控 `sortOrder`，在 `@update:sorter` 中转成后端 `sort_order`。
+- 表格统一 `remote` + 后端分页（`page`/`page_size`/`total`），`flex-height` + `page-data-table`，列宽可拖拽（`withResizableColumns` + `columnWidths` + `@unstable-column-resize`）。
+- 操作列 `fixed: "right"`，使用 `table-action-group` 包裹圆形 `quaternary` 图标按钮（`circle` + `NIcon` + `title` 提示），不用文字按钮。
+- 对应后端列表接口要支持这些筛选与排序参数，筛选在数据库层完成，不在前端内存过滤。
 
 ## 3. 后端模块
 

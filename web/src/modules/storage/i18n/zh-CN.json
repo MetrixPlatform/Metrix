@@ -44,6 +44,8 @@
     "private": "私有",
     "idPlaceholder": "留空自动生成",
     "passwordKeep": "留空保持不变",
+    "creatorAll": "全部人",
+    "creatorMe": "仅自己",
     "field": {
       "name": "名称",
       "address": "地址",

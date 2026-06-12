@@ -43,11 +43,28 @@ class StorageService:
         actor: User,
         keyword: str = "",
         protocol: str = "",
+        shared: str = "",
+        is_active: bool | None = None,
+        created_by: str = "",
+        sort_order: str = "descend",
         page: int = 1,
         page_size: int = 20,
     ) -> StorageConnectionListResponse:
         visible_to = None if has_permission(actor, STORAGE_MANAGE_OTHERS) else actor.id
-        rows, total = self.storages.list(keyword, protocol, visible_to, page, page_size)
+        is_shared = {"shared": True, "private": False}.get(shared)
+        created_by_user_id = actor.id if created_by == "me" else None
+        created_at_order = "ascend" if sort_order == "ascend" else "descend"
+        rows, total = self.storages.list(
+            keyword,
+            protocol,
+            is_shared,
+            is_active,
+            created_by_user_id,
+            visible_to,
+            created_at_order,
+            page,
+            page_size,
+        )
         return StorageConnectionListResponse(
             items=self._with_creator_usernames(rows),
             total=total,

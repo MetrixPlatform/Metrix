@@ -31,12 +31,16 @@ FILE_TAGS = ["storage-files"]
 def list_storages(
     keyword: str = "",
     protocol: str = "",
+    shared: str = "",
+    is_active: bool | None = None,
+    created_by: str = "",
+    sort_order: str = "descend",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=500),
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(STORAGE_READ)),
 ) -> StorageConnectionListResponse:
-    return StorageService(db).list_connections(actor, keyword, protocol, page, page_size)
+    return StorageService(db).list_connections(actor, keyword, protocol, shared, is_active, created_by, sort_order, page, page_size)
 
 
 @router.post("", response_model=StorageConnectionItem, tags=MANAGE_TAGS, dependencies=MANAGE_DEPENDENCIES)

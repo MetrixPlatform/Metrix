@@ -46,6 +46,10 @@ export interface StorageTestPayload {
 export interface StorageConnectionFilters {
   keyword?: string;
   protocol?: StorageProtocol | "";
+  shared?: "shared" | "private" | "";
+  is_active?: boolean | null;
+  created_by?: "all" | "me" | "";
+  sort_order?: "ascend" | "descend";
   page?: number;
   page_size?: number;
 }

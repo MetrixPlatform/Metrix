@@ -1,15 +1,8 @@
 <template>
   <section class="work-card table-page-card">
     <div class="toolbar">
-      <div class="toolbar-group">
+      <div class="storage-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('storage.searchPlaceholder')" clearable />
-        <n-select
-          v-model:value="filters.protocol"
-          class="storage-protocol-filter"
-          :options="protocolOptions"
-          :placeholder="t('storage.protocolAll')"
-          clearable
-        />
         <n-button @click="searchConnections">{{ t("common.search") }}</n-button>
       </div>
       <permission-button :permission="STORAGE_CREATE" type="primary" @click="openCreate">{{ t("storage.add") }}</permission-button>
@@ -26,8 +19,10 @@
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
       @unstable-column-resize="handleColumnResize"
+      @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
+      @update:sorter="handleSorter"
     />
 
     <n-modal v-model:show="showModal" preset="card" class="modal-card" :title="editingItem ? t('storage.edit') : t('storage.add')">
@@ -81,7 +76,7 @@
           </n-switch>
         </n-form-item>
         <div class="form-actions">
-          <n-button :loading="testing" @click="testConnection">{{ t("common.test") }}</n-button>
+          <n-button :loading="testing" @click="testFormConnection">{{ t("common.test") }}</n-button>
           <n-button @click="showModal = false">{{ t("common.cancel") }}</n-button>
           <n-button type="primary" :loading="saving" @click="saveConnection">{{ t("common.save") }}</n-button>
         </div>
@@ -94,32 +89,32 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
+import { Delete20Regular, Edit20Regular, FolderOpen20Regular, PlugConnected20Regular } from "@vicons/fluent";
 import {
   NButton,
   NDataTable,
   NForm,
   NFormItem,
+  NIcon,
   NInput,
   NInputNumber,
   NModal,
   NRadioButton,
   NRadioGroup,
-  NSelect,
-  NSpace,
   NSwitch,
   NTag,
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, FormInst, FormItemRule, FormRules } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableSortState, FormInst, FormItemRule, FormRules } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import StatusTag from "../../../components/StatusTag.vue";
-import { t } from "../../../i18n";
+import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { copyText } from "../../../utils/clipboard";
 import { messageText, showError } from "../../../utils/message";
-import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from "../../../utils/validation";
 import {
   createStorage,
@@ -134,6 +129,10 @@ import {
 import FileManagerModal from "../components/FileManagerModal.vue";
 import { STORAGE_CREATE, STORAGE_DELETE, STORAGE_MANAGE_OTHERS, STORAGE_UPDATE } from "../permissions";
 
+type SharedFilter = "shared" | "private";
+type ActiveFilter = "true" | "false";
+type CreatorFilter = "all" | "me";
+
 const STORAGE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$/;
 const DEFAULT_PORTS: Record<StorageProtocol, number> = { ftp: 21, sftp: 22 };
 
@@ -142,15 +141,27 @@ const dialog = useDialog();
 const loading = ref(false);
 const saving = ref(false);
 const testing = ref(false);
+const testingRowId = ref<number | null>(null);
 const showModal = ref(false);
 const showFiles = ref(false);
 const formRef = ref<FormInst | null>(null);
 const editingItem = ref<StorageConnection | null>(null);
 const managingItem = ref<StorageConnection | null>(null);
 const items = ref<StorageConnection[]>([]);
-const filters = reactive<{ keyword: string; protocol: StorageProtocol | null }>({
+const filters = reactive<{
+  keyword: string;
+  protocol: StorageProtocol | null;
+  shared: SharedFilter | null;
+  is_active: ActiveFilter | null;
+  created_by: CreatorFilter | null;
+  sort_order: "ascend" | "descend";
+}>({
   keyword: "",
-  protocol: null
+  protocol: null,
+  shared: null,
+  is_active: null,
+  created_by: null,
+  sort_order: "descend"
 });
 const form = reactive<StorageConnectionPayload>({
   name: "",
@@ -172,10 +183,6 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
-const protocolOptions = computed(() => [
-  { label: "FTP", value: "ftp" },
-  { label: "SFTP", value: "sftp" }
-]);
 const rules = computed<FormRules>(() => ({
   name: [requiredRule(t("storage.field.name")), maxLengthRule(t("storage.field.name"), 120)],
   storage_id: storageIdRule(),
@@ -185,16 +192,33 @@ const rules = computed<FormRules>(() => ({
   password: editingItem.value ? maxLengthRule(t("field.password"), 255) : requiredRule(t("field.password")),
   base_path: maxLengthRule(t("field.basePath"), 500)
 }));
+const protocolOptions = computed(() => [
+  { label: "FTP", value: "ftp" },
+  { label: "SFTP", value: "sftp" }
+]);
+const sharedOptions = computed(() => [
+  { label: t("storage.shared"), value: "shared" },
+  { label: t("storage.private"), value: "private" }
+]);
+const activeOptions = computed(() => [
+  { label: t("common.enabled"), value: "true" },
+  { label: t("common.disabled"), value: "false" }
+]);
+const creatorOptions = computed(() => [
+  { label: t("storage.creatorAll"), value: "all" },
+  { label: t("storage.creatorMe"), value: "me" }
+]);
 const columnWidths = reactive<Record<string, number>>({
-  name: 150,
-  storageId: 190,
-  protocol: 90,
-  address: 180,
-  basePath: 130,
-  shared: 90,
-  isActive: 90,
-  creator: 110,
-  actions: 200
+  name: 140,
+  storageId: 180,
+  protocol: 96,
+  address: 170,
+  basePath: 120,
+  shared: 96,
+  isActive: 96,
+  creator: 120,
+  createdAt: 170,
+  actions: 150
 });
 const columnWidthKeys: Record<string, string> = {
   name: "name",
@@ -204,7 +228,8 @@ const columnWidthKeys: Record<string, string> = {
   base_path: "basePath",
   is_shared: "shared",
   is_active: "isActive",
-  created_by_username: "creator"
+  created_by_username: "creator",
+  created_at: "createdAt"
 };
 const tableScrollX = computed(() => sumColumnWidths(columnWidths));
 const statusLabels = computed(() => ({ true: t("common.enabled"), false: t("common.disabled") }));
@@ -229,14 +254,28 @@ const columns = computed<DataTableColumns<StorageConnection>>(() =>
       title: t("field.protocol"),
       key: "protocol",
       width: columnWidths.protocol,
+      filter: (value, row) => row.protocol === value,
+      filterMultiple: false,
+      filterOptionValue: filters.protocol,
+      filterOptions: protocolOptions.value,
       render: (row) => h(NTag, { size: "small", bordered: false }, () => row.protocol.toUpperCase())
     },
-    { title: t("storage.field.address"), key: "address", width: columnWidths.address, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
+    {
+      title: t("storage.field.address"),
+      key: "address",
+      width: columnWidths.address,
+      ellipsis: { tooltip: true },
+      render: (row) => `${row.host}:${row.port}`
+    },
     { title: t("field.basePath"), key: "base_path", width: columnWidths.basePath, ellipsis: { tooltip: true } },
     {
       title: t("storage.field.shared"),
       key: "is_shared",
       width: columnWidths.shared,
+      filter: (value, row) => row.is_shared === (value === "shared"),
+      filterMultiple: false,
+      filterOptionValue: filters.shared,
+      filterOptions: sharedOptions.value,
       render: (row) =>
         h(
           NTag,
@@ -248,34 +287,83 @@ const columns = computed<DataTableColumns<StorageConnection>>(() =>
       title: t("field.status"),
       key: "is_active",
       width: columnWidths.isActive,
+      filter: (value, row) => row.is_active === (value === "true"),
+      filterMultiple: false,
+      filterOptionValue: filters.is_active,
+      filterOptions: activeOptions.value,
       render: (row) => h(StatusTag, { status: row.is_active, labels: statusLabels.value })
     },
     {
       title: t("field.creator"),
       key: "created_by_username",
       width: columnWidths.creator,
+      filter: () => true,
+      filterMultiple: false,
+      filterOptionValue: filters.created_by,
+      filterOptions: creatorOptions.value,
       render: (row) => row.created_by_username || t("common.none")
+    },
+    {
+      title: t("field.createdAt"),
+      key: "created_at",
+      width: columnWidths.createdAt,
+      sorter: true,
+      sortOrder: filters.sort_order,
+      render: (row) => formatDateTime(row.created_at)
     },
     {
       title: t("common.actions"),
       key: "actions",
       width: columnWidths.actions,
       fixed: "right",
-      align: "center",
       render: (row) =>
-        h(NSpace, { size: 6, wrap: false, justify: "center" }, () => [
-          h(
-            NButton,
-            { size: "small", quaternary: true, type: "primary", disabled: !row.is_active, onClick: () => openFiles(row) },
-            () => t("storage.manage")
-          ),
-          canManage(row) && authStore.has(STORAGE_UPDATE)
-            ? h(NButton, { size: "small", quaternary: true, onClick: () => openEdit(row) }, () => t("common.edit"))
-            : null,
-          canManage(row) && authStore.has(STORAGE_DELETE)
-            ? h(NButton, { size: "small", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => t("common.delete"))
-            : null
-        ])
+        h(
+          "div",
+          { class: "table-action-group" },
+          [
+            h(
+              NButton,
+              {
+                size: "small",
+                quaternary: true,
+                circle: true,
+                type: "primary",
+                title: t("storage.manage"),
+                disabled: !row.is_active,
+                onClick: () => openFiles(row)
+              },
+              { icon: () => h(NIcon, { component: FolderOpen20Regular }) }
+            ),
+            canManage(row) && authStore.has(STORAGE_UPDATE)
+              ? h(
+                  NButton,
+                  {
+                    size: "small",
+                    quaternary: true,
+                    circle: true,
+                    title: t("common.test"),
+                    loading: testingRowId.value === row.id,
+                    onClick: () => void testRowConnection(row)
+                  },
+                  { icon: () => h(NIcon, { component: PlugConnected20Regular }) }
+                )
+              : null,
+            canManage(row) && authStore.has(STORAGE_UPDATE)
+              ? h(
+                  NButton,
+                  { size: "small", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEdit(row) },
+                  { icon: () => h(NIcon, { component: Edit20Regular }) }
+                )
+              : null,
+            canManage(row) && authStore.has(STORAGE_DELETE)
+              ? h(
+                  NButton,
+                  { size: "small", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
+                  { icon: () => h(NIcon, { component: Delete20Regular }) }
+                )
+              : null
+          ].filter(Boolean)
+        )
     }
   ])
 );
@@ -288,6 +376,10 @@ async function loadConnections() {
     const result = await listStorages({
       keyword: filters.keyword,
       protocol: filters.protocol || "",
+      shared: filters.shared || "",
+      is_active: filters.is_active ? filters.is_active === "true" : null,
+      created_by: filters.created_by || "",
+      sort_order: filters.sort_order,
       page: pagination.page,
       page_size: pagination.pageSize
     });
@@ -314,6 +406,26 @@ function handlePageChange(page: number) {
 
 function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize;
+  pagination.page = 1;
+  void loadConnections();
+}
+
+function handleTableFilters(filterState: DataTableFilterState) {
+  const protocol = singleFilterValue(filterState, "protocol");
+  const shared = singleFilterValue(filterState, "is_shared");
+  const active = singleFilterValue(filterState, "is_active");
+  const creator = singleFilterValue(filterState, "created_by_username");
+  filters.protocol = protocol === "ftp" || protocol === "sftp" ? protocol : null;
+  filters.shared = shared === "shared" || shared === "private" ? shared : null;
+  filters.is_active = active === "true" || active === "false" ? active : null;
+  filters.created_by = creator === "all" || creator === "me" ? creator : null;
+  pagination.page = 1;
+  void loadConnections();
+}
+
+function handleSorter(sortState: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(sortState) ? sortState[0] : sortState;
+  filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadConnections();
 }
@@ -387,7 +499,7 @@ async function saveConnection() {
   }
 }
 
-async function testConnection() {
+async function testFormConnection() {
   if (!(await validateForm(formRef.value))) return;
   testing.value = true;
   try {
@@ -405,6 +517,26 @@ async function testConnection() {
     showError(message, error);
   } finally {
     testing.value = false;
+  }
+}
+
+async function testRowConnection(item: StorageConnection) {
+  testingRowId.value = item.id;
+  try {
+    const result = await testStorage({
+      id: item.id,
+      protocol: item.protocol,
+      host: item.host,
+      port: item.port,
+      username: item.username,
+      password: "",
+      base_path: item.base_path
+    });
+    message.success(messageText(result, "storage.connectionOk"));
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    testingRowId.value = null;
   }
 }
 

@@ -1977,8 +1977,13 @@ a {
   max-height: min(86vh, 820px);
 }
 
-.storage-protocol-filter {
-  width: 130px;
+.storage-filter-row {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(220px, 420px) max-content;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
 }
 
 .copyable-cell {

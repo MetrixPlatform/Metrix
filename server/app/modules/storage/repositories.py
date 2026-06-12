@@ -21,7 +21,11 @@ class StorageConnectionRepository:
         self,
         keyword: str = "",
         protocol: str = "",
+        is_shared: bool | None = None,
+        is_active: bool | None = None,
+        created_by_user_id: int | None = None,
         visible_to_user_id: int | None = None,
+        created_at_order: str = "descend",
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[StorageConnection], int]:
@@ -37,18 +41,22 @@ class StorageConnectionRepository:
             )
         if protocol:
             query = query.filter(StorageConnection.protocol == protocol)
+        if is_shared is not None:
+            query = query.filter(StorageConnection.is_shared == is_shared)
+        if is_active is not None:
+            query = query.filter(StorageConnection.is_active == is_active)
+        if created_by_user_id is not None:
+            query = query.filter(StorageConnection.created_by == created_by_user_id)
         if visible_to_user_id is not None:
             query = query.filter(
                 or_(StorageConnection.created_by == visible_to_user_id, StorageConnection.is_shared.is_(True))
             )
         total = query.count()
-        rows = (
-            query.order_by(StorageConnection.created_at.desc(), StorageConnection.id.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-            .all()
-        )
-        return rows, total
+        if created_at_order == "ascend":
+            query = query.order_by(StorageConnection.created_at.asc(), StorageConnection.id.asc())
+        else:
+            query = query.order_by(StorageConnection.created_at.desc(), StorageConnection.id.desc())
+        return query.offset((page - 1) * page_size).limit(page_size).all(), total
 
     def create(self, connection: StorageConnection) -> StorageConnection:
         self.db.add(connection)

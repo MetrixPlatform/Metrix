@@ -223,6 +223,17 @@ def test_storage_connection_crud_and_id_rules(tmp_path, monkeypatch):
     engine.dispose()
     assert decrypt_secret(unchanged) == "FtpPass123"
 
+    filtered_shared = client.get("/api/storages", params={"shared": "shared"}, headers=admin_headers)
+    assert [item["storage_id"] for item in page_items(filtered_shared)] == ["my-storage_01"]
+    filtered_private = client.get("/api/storages", params={"shared": "private"}, headers=admin_headers)
+    assert [item["storage_id"] for item in page_items(filtered_private)] == [generated_item["storage_id"]]
+    filtered_protocol = client.get("/api/storages", params={"protocol": "sftp"}, headers=admin_headers)
+    assert page_items(filtered_protocol) == []
+    ascending = client.get("/api/storages", params={"sort_order": "ascend"}, headers=admin_headers)
+    assert [item["storage_id"] for item in page_items(ascending)] == ["my-storage_01", generated_item["storage_id"]]
+    only_mine = client.get("/api/storages", params={"created_by": "me"}, headers=admin_headers)
+    assert len(page_items(only_mine)) == 2
+
     deleted = client.delete(f"/api/storages/{generated_item['id']}", headers=admin_headers)
     assert deleted.status_code == 200
     remaining = client.get("/api/storages", headers=admin_headers)

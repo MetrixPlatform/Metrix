@@ -726,3 +726,14 @@
 - FTP 实现细节：列目录 MLSD 优先，500/502 不支持时回退 LIST 解析（unix/IIS 两种格式）；下载用 `transfercmd` 真流式；编码 UTF-8。
 - 测试：`server/tests/test_storage.py` 6 个用例（CRUD 与 ID 规则、加密落库校验、共享/私有可见性与越权、假客户端文件全操作与路径逃逸、test 端点与连接失败 503、API Token 全链路与 OpenAPI 可见性、并发隔离）；`test_auth_rbac.py` 中 3 处模块清单断言同步加入 storage。
 - 验证：后端 `compileall` + `pytest` 42 passed；前端 `test:smoke`、`vue-tsc`（含 unused 检查）、`build`、`test:regression` 4 passed 全部通过。真实 FTP/SFTP 服务器联调待内网环境验证。
+
+## 2026-06-12：确立列表页标准布局规范并对齐储存页
+
+- 以公告管理、用户管理页为基准确立列表页统一布局，规范正文写入 `DEVELOPMENT_GUIDE.md` 第 2 节，后续所有列表页按此开发：
+  - 工具栏一行：左侧 `<page>-filter-row` grid 只放关键字、可选时间范围和查询按钮；右侧放批量操作和新增按钮；枚举筛选一律不放工具栏。
+  - 枚举筛选放列头：受控 `filter` + `filterMultiple: false` + `filterOptionValue` + `filterOptions`，`@update:filters` 转后端参数重查；时间列用受控 `sorter` + `@update:sorter`。
+  - 表格统一 `remote` 后端分页、`flex-height` + `page-data-table`、列宽可拖拽；操作列 `fixed: "right"` + `table-action-group` 圆形 quaternary 图标按钮（`circle` + `NIcon` + `title`），不用文字按钮。
+  - 后端列表接口必须支持对应筛选与排序参数，数据库层过滤。
+- `StorageManageView` 对齐规范：协议下拉从工具栏移到列头筛选，新增 共享/私有、状态、创建人 列头筛选与创建时间列头排序；操作列改为 管理（FolderOpen）/测试（PlugConnected）/编辑/删除 图标按钮，行内测试按 id 复用存量密码。
+- 后端 `GET /api/storages` 扩展 `shared`（shared/private）、`is_active`、`created_by`（me）、`sort_order` 参数，repository 数据库层过滤排序；`test_storage.py` 补筛选与排序断言。
+- 验证：后端 `pytest` 42 passed；前端 `test:smoke`、`vue-tsc`、`build` 通过。
