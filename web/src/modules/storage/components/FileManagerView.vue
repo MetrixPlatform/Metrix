@@ -46,6 +46,7 @@
       :loading="loading"
       :row-key="(row) => row.path"
       size="small"
+      @update:sorter="handleSorter"
     />
 
     <n-modal v-model:show="nameModal.show" preset="card" class="modal-card" :title="nameModalTitle">
@@ -82,7 +83,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
+import type { DataTableColumns, DataTableSortState } from "naive-ui";
 import { ArrowLeft20Regular, ArrowUp20Regular, Document20Regular, Folder20Regular, Search20Regular } from "@vicons/fluent";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
@@ -115,6 +116,7 @@ const path = ref("/");
 const keyword = ref("");
 const recursive = ref(true);
 const searchActive = ref(false);
+const sortState = ref<{ columnKey: string; order: "ascend" | "descend" } | null>(null);
 const truncated = ref(false);
 const entries = ref<StorageEntry[]>([]);
 const uploadInput = ref<HTMLInputElement | null>(null);
@@ -136,10 +138,23 @@ const nameModalTitle = computed(() =>
   nameModal.mode === "mkdir" ? t("storage.files.mkdir") : t("storage.files.renameTitle")
 );
 const showParentRow = computed(() => !searchActive.value && path.value !== "/");
+const sortedEntries = computed<StorageEntry[]>(() => {
+  const state = sortState.value;
+  if (!state) return entries.value;
+  const list = [...entries.value];
+  list.sort((a, b) => {
+    const cmp =
+      state.columnKey === "size"
+        ? a.size - b.size
+        : (a.modified_at || "").localeCompare(b.modified_at || "");
+    return state.order === "ascend" ? cmp : -cmp;
+  });
+  return list;
+});
 const tableData = computed<StorageEntry[]>(() => {
-  if (!showParentRow.value) return entries.value;
+  if (!showParentRow.value) return sortedEntries.value;
   const parentRow: StorageEntry = { name: "..", path: PARENT_ROW_PATH, is_dir: true, size: -1, modified_at: "" };
-  return [parentRow, ...entries.value];
+  return [parentRow, ...sortedEntries.value];
 });
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
@@ -169,14 +184,16 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
       title: t("storage.files.size"),
       key: "size",
       width: 96,
-      sorter: (a, b) => parentAwareSort(a, b, () => a.size - b.size),
+      sorter: true,
+      sortOrder: sortState.value?.columnKey === "size" ? sortState.value.order : false,
       render: (row) => (row.path === PARENT_ROW_PATH || row.is_dir ? "-" : formatSize(row.size))
     },
     {
       title: t("storage.files.modifiedAt"),
       key: "modified_at",
       width: 160,
-      sorter: (a, b) => parentAwareSort(a, b, () => (a.modified_at || "").localeCompare(b.modified_at || "")),
+      sorter: true,
+      sortOrder: sortState.value?.columnKey === "modified_at" ? sortState.value.order : false,
       render: (row) => (row.modified_at ? formatDateTime(row.modified_at) : "-")
     },
     {
@@ -264,10 +281,13 @@ function goUp() {
   navigateTo(parentPath(path.value));
 }
 
-function parentAwareSort(a: StorageEntry, b: StorageEntry, compare: () => number) {
-  if (a.path === PARENT_ROW_PATH) return -1;
-  if (b.path === PARENT_ROW_PATH) return 1;
-  return compare();
+function handleSorter(options: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(options) ? options[0] : options;
+  if (!state || !state.order) {
+    sortState.value = null;
+    return;
+  }
+  sortState.value = { columnKey: String(state.columnKey), order: state.order };
 }
 
 function pickFiles() {
