@@ -2013,54 +2013,29 @@ a {
   white-space: nowrap;
 }
 
-.file-manager-head {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
+.file-manager-toolbar {
   gap: 8px;
-}
-
-.file-manager-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.file-manager-info {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.file-manager-actions {
-  flex: 0 0 auto;
 }
 
 .file-manager-title {
   font-weight: 600;
   white-space: nowrap;
+}
+
+.file-manager-breadcrumb {
+  flex: 1 1 0;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
 }
 
-.file-manager-host {
-  color: var(--muted-color);
-  font-size: 13px;
-  white-space: nowrap;
+.file-manager-spacer {
+  flex: 1 1 0;
 }
 
-.file-search-input {
-  width: 180px;
-}
-
-.file-breadcrumb-bar {
-  padding: 6px 10px;
-  background: var(--panel-bg);
-  border-radius: 4px;
-  overflow-x: auto;
-  white-space: nowrap;
+.file-search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .file-breadcrumb {

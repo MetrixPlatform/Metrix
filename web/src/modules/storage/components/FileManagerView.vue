@@ -1,35 +1,37 @@
 <template>
   <section class="work-card table-page-card file-manager-view">
-    <div class="file-manager-head">
-      <div class="file-manager-row">
-        <div class="toolbar-group file-manager-info">
-          <n-button size="small" quaternary @click="emit('close')">
-            <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+    <div class="toolbar file-manager-toolbar">
+      <n-button size="small" quaternary @click="emit('close')">
+        <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+      </n-button>
+      <span class="file-manager-title">{{ connection.name }}</span>
+      <n-tag size="small" :bordered="false">{{ connection.protocol.toUpperCase() }}</n-tag>
+      <n-breadcrumb class="file-manager-breadcrumb" separator="/">
+        <n-breadcrumb-item @click="navigateTo('/')">
+          <n-icon :component="Folder20Regular" />
+        </n-breadcrumb-item>
+        <n-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path" @click="navigateTo(crumb.path)">
+          {{ crumb.name }}
+        </n-breadcrumb-item>
+      </n-breadcrumb>
+      <div class="file-manager-spacer" />
+      <n-popover trigger="click" placement="bottom-end" :width="280">
+        <template #trigger>
+          <n-button>
+            <template #icon><n-icon :component="Search20Regular" /></template>
+            {{ t("common.search") }}
           </n-button>
-          <span class="file-manager-title">{{ connection.name }}</span>
-          <n-tag size="small" :bordered="false">{{ connection.protocol.toUpperCase() }}</n-tag>
-          <span class="file-manager-host">{{ connection.host }}:{{ connection.port }}</span>
-        </div>
-        <div class="toolbar-group file-manager-actions">
-          <n-input v-model:value="keyword" class="file-search-input" :placeholder="t('storage.files.search')" clearable @keyup.enter="search" @clear="clearSearch" />
+        </template>
+        <div class="file-search-panel">
+          <n-input v-model:value="keyword" :placeholder="t('storage.files.search')" clearable @keyup.enter="search" @clear="clearSearch" />
           <n-checkbox v-model:checked="recursive" size="small">{{ t("storage.files.includeSubdirs") }}</n-checkbox>
-          <n-button @click="search">{{ t("common.search") }}</n-button>
-          <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
-          <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">{{ t("storage.files.upload") }}</permission-button>
-          <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
-          <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
+          <n-button type="primary" block @click="search">{{ t("common.search") }}</n-button>
         </div>
-      </div>
-      <div class="file-breadcrumb-bar">
-        <n-breadcrumb separator="/">
-          <n-breadcrumb-item @click="navigateTo('/')">
-            <n-icon :component="Folder20Regular" />
-          </n-breadcrumb-item>
-          <n-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path" @click="navigateTo(crumb.path)">
-            {{ crumb.name }}
-          </n-breadcrumb-item>
-        </n-breadcrumb>
-      </div>
+      </n-popover>
+      <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
+      <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">{{ t("storage.files.upload") }}</permission-button>
+      <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
+      <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
     </div>
 
     <n-alert v-if="truncated" type="warning" :bordered="false" class="file-truncated-alert">
@@ -74,13 +76,14 @@ import {
   NIcon,
   NInput,
   NModal,
+  NPopover,
   NSpace,
   NTag,
   useDialog,
   useMessage
 } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { ArrowLeft20Regular, Document20Regular, Folder20Regular } from "@vicons/fluent";
+import { ArrowLeft20Regular, Document20Regular, Folder20Regular, Search20Regular } from "@vicons/fluent";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
