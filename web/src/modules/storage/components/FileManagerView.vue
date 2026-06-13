@@ -1,55 +1,53 @@
 <template>
-  <n-modal
-    :show="show"
-    preset="card"
-    class="modal-card storage-file-modal"
-    :title="connection ? `${connection.name} (${connection.storage_id})` : ''"
-    @update:show="emit('update:show', $event)"
-  >
-    <div class="file-manager">
-      <div class="toolbar">
-        <div class="toolbar-group file-breadcrumb">
-          <n-breadcrumb separator="/">
-            <n-breadcrumb-item @click="navigateTo('/')">
-              <n-icon :component="Folder20Regular" />
-            </n-breadcrumb-item>
-            <n-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path" @click="navigateTo(crumb.path)">
-              {{ crumb.name }}
-            </n-breadcrumb-item>
-          </n-breadcrumb>
-        </div>
-        <div class="toolbar-group">
-          <n-input
-            v-model:value="keyword"
-            class="filter-keyword"
-            :placeholder="t('storage.files.search')"
-            clearable
-            @keyup.enter="search"
-            @clear="clearSearch"
-          />
-          <n-button @click="search">{{ t("common.search") }}</n-button>
-          <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
-          <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">
-            {{ t("storage.files.upload") }}
-          </permission-button>
-          <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
-          <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
-        </div>
+  <section class="work-card table-page-card file-manager-view">
+    <div class="toolbar">
+      <div class="toolbar-group file-breadcrumb">
+        <n-button size="small" quaternary @click="emit('close')">
+          <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+        </n-button>
+        <span class="file-manager-title">{{ connection.name }}</span>
+        <n-tag size="small" :bordered="false">{{ connection.protocol.toUpperCase() }}</n-tag>
+        <n-breadcrumb separator="/">
+          <n-breadcrumb-item @click="navigateTo('/')">
+            <n-icon :component="Folder20Regular" />
+          </n-breadcrumb-item>
+          <n-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path" @click="navigateTo(crumb.path)">
+            {{ crumb.name }}
+          </n-breadcrumb-item>
+        </n-breadcrumb>
       </div>
-
-      <n-alert v-if="truncated" type="warning" :bordered="false" class="file-truncated-alert">
-        {{ t("storage.files.truncated", { count: entries.length }) }}
-      </n-alert>
-
-      <n-data-table
-        :columns="columns"
-        :data="entries"
-        :loading="loading"
-        :row-key="(row) => row.path"
-        flex-height
-        size="small"
-      />
+      <div class="toolbar-group">
+        <n-input
+          v-model:value="keyword"
+          class="filter-keyword"
+          :placeholder="t('storage.files.search')"
+          clearable
+          @keyup.enter="search"
+          @clear="clearSearch"
+        />
+        <n-button @click="search">{{ t("common.search") }}</n-button>
+        <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
+        <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">
+          {{ t("storage.files.upload") }}
+        </permission-button>
+        <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
+        <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
+      </div>
     </div>
+
+    <n-alert v-if="truncated" type="warning" :bordered="false" class="file-truncated-alert">
+      {{ t("storage.files.truncated", { count: entries.length }) }}
+    </n-alert>
+
+    <n-data-table
+      class="page-data-table"
+      flex-height
+      :columns="columns"
+      :data="entries"
+      :loading="loading"
+      :row-key="(row) => row.path"
+      size="small"
+    />
 
     <n-modal v-model:show="nameModal.show" preset="card" class="modal-card" :title="nameModalTitle">
       <n-form class="form-stack inline-form" @submit.prevent>
@@ -62,11 +60,11 @@
         </div>
       </n-form>
     </n-modal>
-  </n-modal>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { computed, h, reactive, ref, watch } from "vue";
+import { computed, h, onMounted, reactive, ref } from "vue";
 import {
   NAlert,
   NBreadcrumb,
@@ -79,11 +77,12 @@ import {
   NInput,
   NModal,
   NSpace,
+  NTag,
   useDialog,
   useMessage
 } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { Document20Regular, Folder20Regular } from "@vicons/fluent";
+import { ArrowLeft20Regular, Document20Regular, Folder20Regular } from "@vicons/fluent";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
@@ -102,11 +101,8 @@ import {
 } from "../api";
 import { STORAGE_OPERATE } from "../permissions";
 
-const props = defineProps<{
-  show: boolean;
-  connection: StorageConnection | null;
-}>();
-const emit = defineEmits<{ (event: "update:show", value: boolean): void }>();
+const props = defineProps<{ connection: StorageConnection }>();
+const emit = defineEmits<{ (event: "close"): void }>();
 
 const message = useMessage();
 const dialog = useDialog();
@@ -126,7 +122,7 @@ const nameModal = reactive({
   saving: false
 });
 
-const storageId = computed(() => props.connection?.storage_id ?? "");
+const storageId = computed(() => props.connection.storage_id);
 const canOperate = computed(() => authStore.has(STORAGE_OPERATE));
 const breadcrumbs = computed(() => {
   const segments = path.value.split("/").filter(Boolean);
@@ -195,20 +191,9 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
   return list;
 });
 
-watch(
-  () => props.show,
-  (visible) => {
-    if (visible && props.connection) {
-      path.value = "/";
-      keyword.value = "";
-      searchActive.value = false;
-      void load();
-    }
-  }
-);
+onMounted(load);
 
 async function load() {
-  if (!storageId.value) return;
   loading.value = true;
   try {
     const result = await listStorageFiles(storageId.value, path.value, searchActive.value ? keyword.value : "", searchActive.value);
@@ -262,7 +247,7 @@ async function handleUpload(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files ?? []);
   input.value = "";
-  if (!files.length || !storageId.value) return;
+  if (!files.length) return;
   uploading.value = true;
   let uploaded = 0;
   try {

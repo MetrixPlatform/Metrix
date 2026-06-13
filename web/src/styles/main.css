@@ -2013,30 +2013,16 @@ a {
   white-space: nowrap;
 }
 
-.storage-file-modal {
-  width: min(980px, calc(100vw - 32px));
-  max-height: min(86vh, 820px);
+.file-manager-view .toolbar {
+  flex-wrap: wrap;
 }
 
-.storage-file-modal > .n-card__content,
-.storage-file-modal > .n-card-content {
-  display: flex;
-  flex-direction: column;
-  height: calc(min(86vh, 820px) - 64px);
-  max-height: none;
+.file-manager-title {
+  font-weight: 600;
+  white-space: nowrap;
   overflow: hidden;
-}
-
-.storage-file-modal .file-manager {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-}
-
-.storage-file-modal .file-manager .n-data-table {
-  flex: 1;
-  min-height: 0;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .file-breadcrumb {

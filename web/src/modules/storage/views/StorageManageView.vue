@@ -1,5 +1,7 @@
 <template>
-  <section class="work-card table-page-card">
+  <file-manager-view v-if="managingItem" :connection="managingItem" @close="closeFiles" />
+
+  <section v-else class="work-card table-page-card">
     <div class="toolbar">
       <div class="storage-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('storage.searchPlaceholder')" clearable />
@@ -84,8 +86,6 @@
         </div>
       </template>
     </n-modal>
-
-    <file-manager-modal v-model:show="showFiles" :connection="managingItem" />
   </section>
 </template>
 
@@ -128,7 +128,7 @@ import {
   type StorageConnectionPayload,
   type StorageProtocol
 } from "../api";
-import FileManagerModal from "../components/FileManagerModal.vue";
+import FileManagerView from "../components/FileManagerView.vue";
 import { STORAGE_CREATE, STORAGE_DELETE, STORAGE_MANAGE_OTHERS, STORAGE_UPDATE } from "../permissions";
 
 type SharedFilter = "shared" | "private";
@@ -145,7 +145,6 @@ const saving = ref(false);
 const testing = ref(false);
 const testingRowId = ref<number | null>(null);
 const showModal = ref(false);
-const showFiles = ref(false);
 const formRef = ref<FormInst | null>(null);
 const editingItem = ref<StorageConnection | null>(null);
 const managingItem = ref<StorageConnection | null>(null);
@@ -245,11 +244,7 @@ const columns = computed<DataTableColumns<StorageConnection>>(() =>
       render: (row) =>
         h("span", { class: "copyable-cell" }, [
           h("code", null, row.storage_id),
-          h(
-            NButton,
-            { size: "tiny", quaternary: true, onClick: () => copyStorageId(row.storage_id) },
-            () => t("common.copy")
-          )
+          h(NButton, { size: "tiny", quaternary: true, onClick: () => copyStorageId(row.storage_id) }, () => t("common.copy"))
         ])
     },
     {
@@ -279,10 +274,8 @@ const columns = computed<DataTableColumns<StorageConnection>>(() =>
       filterOptionValue: filters.shared,
       filterOptions: sharedOptions.value,
       render: (row) =>
-        h(
-          NTag,
-          { size: "small", bordered: false, type: row.is_shared ? "info" : "default" },
-          () => (row.is_shared ? t("storage.shared") : t("storage.private"))
+        h(NTag, { size: "small", bordered: false, type: row.is_shared ? "info" : "default" }, () =>
+          row.is_shared ? t("storage.shared") : t("storage.private")
         )
     },
     {
@@ -439,16 +432,8 @@ function handleColumnResize(_: number, limitedWidth: number, column: { key?: str
 function openCreate() {
   editingItem.value = null;
   Object.assign(form, {
-    name: "",
-    storage_id: "",
-    protocol: "ftp",
-    host: "",
-    port: 21,
-    username: "",
-    password: "",
-    base_path: "/",
-    is_shared: false,
-    is_active: true
+    name: "", storage_id: "", protocol: "ftp", host: "", port: 21,
+    username: "", password: "", base_path: "/", is_shared: false, is_active: true
   });
   showModal.value = true;
 }
@@ -456,23 +441,19 @@ function openCreate() {
 function openEdit(item: StorageConnection) {
   editingItem.value = item;
   Object.assign(form, {
-    name: item.name,
-    storage_id: item.storage_id,
-    protocol: item.protocol,
-    host: item.host,
-    port: item.port,
-    username: item.username,
-    password: "",
-    base_path: item.base_path,
-    is_shared: item.is_shared,
-    is_active: item.is_active
+    name: item.name, storage_id: item.storage_id, protocol: item.protocol,
+    host: item.host, port: item.port, username: item.username, password: "",
+    base_path: item.base_path, is_shared: item.is_shared, is_active: item.is_active
   });
   showModal.value = true;
 }
 
 function openFiles(item: StorageConnection) {
   managingItem.value = item;
-  showFiles.value = true;
+}
+
+function closeFiles() {
+  managingItem.value = null;
 }
 
 function handleProtocolChange(protocol: StorageProtocol) {
@@ -507,12 +488,8 @@ async function testFormConnection() {
   try {
     const result = await testStorage({
       id: editingItem.value?.id ?? null,
-      protocol: form.protocol,
-      host: form.host,
-      port: form.port,
-      username: form.username,
-      password: form.password,
-      base_path: form.base_path
+      protocol: form.protocol, host: form.host, port: form.port,
+      username: form.username, password: form.password, base_path: form.base_path
     });
     message.success(messageText(result, "storage.connectionOk"));
   } catch (error) {
@@ -526,13 +503,8 @@ async function testRowConnection(item: StorageConnection) {
   testingRowId.value = item.id;
   try {
     const result = await testStorage({
-      id: item.id,
-      protocol: item.protocol,
-      host: item.host,
-      port: item.port,
-      username: item.username,
-      password: "",
-      base_path: item.base_path
+      id: item.id, protocol: item.protocol, host: item.host, port: item.port,
+      username: item.username, password: "", base_path: item.base_path
     });
     message.success(messageText(result, "storage.connectionOk"));
   } catch (error) {
