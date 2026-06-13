@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { Delete20Regular, Edit20Regular, FolderOpen20Regular, PlugConnected20Regular } from "@vicons/fluent";
+import { Copy20Regular, Delete20Regular, Edit20Regular, FolderOpen20Regular, PlugConnected20Regular } from "@vicons/fluent";
 import {
   NButton,
   NDataTable,
@@ -253,7 +253,11 @@ const columns = computed<DataTableColumns<StorageConnection>>(() =>
       render: (row) =>
         h("span", { class: "copyable-cell" }, [
           h("code", null, row.storage_id),
-          h(NButton, { size: "tiny", quaternary: true, onClick: () => copyStorageId(row.storage_id) }, () => t("common.copy"))
+          h(
+            NButton,
+            { size: "tiny", quaternary: true, circle: true, title: t("common.copy"), onClick: () => copyStorageId(row.storage_id) },
+            { icon: () => h(NIcon, { component: Copy20Regular }) }
+          )
         ])
     },
     {
