@@ -32,9 +32,9 @@
       @update:sorter="handleSorter"
     />
     <n-modal v-model:show="showApproveModal" preset="card" class="modal-card" :title="t('user.approveTitle')">
-      <n-checkbox-group v-model:value="roleIds">
+      <n-checkbox-group :value="roleIds" @update:value="handleRoleSelect">
         <n-space>
-          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
+          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id" :disabled="isRoleDisabled(role)">{{ roleName(role) }}</n-checkbox>
         </n-space>
       </n-checkbox-group>
       <div class="form-actions">
@@ -77,9 +77,9 @@
           <n-input v-model:value="userForm.department" placeholder="" />
         </n-form-item>
         <n-form-item v-if="!editingUser" :label="t('field.role')">
-          <n-checkbox-group v-model:value="roleIds">
+          <n-checkbox-group :value="roleIds" @update:value="handleRoleSelect">
             <n-space>
-              <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
+              <n-checkbox v-for="role in roles" :key="role.id" :value="role.id" :disabled="isRoleDisabled(role)">{{ roleName(role) }}</n-checkbox>
             </n-space>
           </n-checkbox-group>
         </n-form-item>
@@ -90,9 +90,9 @@
       </n-form>
     </n-modal>
     <n-modal v-model:show="showRoleModal" preset="card" class="modal-card" :title="t('user.assignRoles')">
-      <n-checkbox-group v-model:value="roleIds">
+      <n-checkbox-group :value="roleIds" @update:value="handleRoleSelect">
         <n-space>
-          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id">{{ roleName(role) }}</n-checkbox>
+          <n-checkbox v-for="role in roles" :key="role.id" :value="role.id" :disabled="isRoleDisabled(role)">{{ roleName(role) }}</n-checkbox>
         </n-space>
       </n-checkbox-group>
       <div class="form-actions">
@@ -164,6 +164,9 @@ const approvalTarget = ref<UserListItem | null>(null);
 const roleTarget = ref<UserListItem | null>(null);
 const passwordTarget = ref<UserListItem | null>(null);
 const roleIds = ref<number[]>([]);
+const ADMIN_ROLE_CODE = "admin";
+const USER_ROLE_CODE = "user";
+const defaultRoleId = computed(() => roles.value.find((role) => role.code === USER_ROLE_CODE)?.id ?? null);
 const passwordForm = reactive({ password: "" });
 const rejectForm = reactive({ reason: "" });
 type UserApprovalFilter = "pending" | "approved" | "rejected";
@@ -401,8 +404,21 @@ async function loadRoles() {
 function openCreate() {
   editingUser.value = null;
   Object.assign(userForm, { username: "", password: "", full_name: "", phone: "", email: "", company: "", department: "" });
-  roleIds.value = [];
+  roleIds.value = defaultRoleId.value !== null ? [defaultRoleId.value] : [];
   showUserModal.value = true;
+}
+
+function handleRoleSelect(values: Array<string | number>) {
+  const ids = values.map(Number);
+  if (adminRoleId.value !== null && ids.includes(adminRoleId.value) && ids.length > 1) {
+    roleIds.value = [adminRoleId.value];
+  } else {
+    roleIds.value = ids;
+  }
+}
+
+function isRoleDisabled(role: RoleBrief) {
+  return adminRoleId.value !== null && role.code !== ADMIN_ROLE_CODE && roleIds.value.includes(adminRoleId.value);
 }
 
 function openEdit(user: UserListItem) {
