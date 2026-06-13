@@ -2013,8 +2013,13 @@ a {
   white-space: nowrap;
 }
 
-.file-manager-view .toolbar {
+.file-manager-toolbar {
   flex-wrap: wrap;
+}
+
+.file-manager-header {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .file-manager-title {
@@ -2022,7 +2027,22 @@ a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 240px;
+}
+
+.file-manager-host {
+  color: var(--muted-color);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.file-breadcrumb-bar {
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: var(--panel-bg);
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .file-breadcrumb {
