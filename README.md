@@ -54,7 +54,7 @@ cd server
 python main.py
 ```
 
-前端：
+前端（开发模式，双端口）：
 
 ```bash
 cd web
@@ -62,7 +62,21 @@ npm install
 npm run dev
 ```
 
-访问 `http://127.0.0.1:5173/install` 初始化系统。安装页会选择 SQLite 或 MySQL，并创建第一个管理员账号；项目没有硬编码默认管理员账号。
+开发时访问 `http://127.0.0.1:5173/install` 初始化系统。
+
+单端口部署（前后端同一端口）：
+
+```bash
+cd web
+npm install
+npm run build
+cd ../server
+python main.py
+```
+
+构建完成后 `python main.py` 会自动检测 `web/dist/`，如果存在就在同一端口（默认 8000）同时提供 API 和前端页面，无需 Nginx。访问 `http://127.0.0.1:8000/install` 初始化系统。如果 `web/dist/` 不存在则只启动 API 后端。
+
+安装页会选择 SQLite 或 MySQL，并创建第一个管理员账号；项目没有硬编码默认管理员账号。
 
 SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `python main.py`，启动入口会默认把 `METRIX_RUNTIME_DIR` 指向项目根目录下的 `runtime/`，避免写入 `server/runtime/`。如果使用虚拟环境，请先按当前系统和 shell 的标准方式激活，或直接使用对应环境中的 `python`。
 

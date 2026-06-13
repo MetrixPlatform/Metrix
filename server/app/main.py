@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from swagger_ui_bundle import swagger_ui_path
 
-from app.core.config import get_settings
+from app.core.config import PROJECT_DIR, get_settings
 from app.core.deps import require_api_feature_enabled, require_permission
 from app.core.permissions import API_DOCS_READ
 from app.models import User
@@ -78,7 +78,24 @@ def create_app() -> FastAPI:
             swagger_favicon_url="/static/swagger-ui/favicon-32x32.png",
         )
 
+    _mount_frontend(app)
+
     return app
+
+
+def _mount_frontend(app: FastAPI) -> None:
+    dist_dir = PROJECT_DIR / "web" / "dist"
+    index_html = dist_dir / "index.html"
+    if not index_html.is_file():
+        return
+    assets_dir = dist_dir / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend-assets")
+    cached_index = index_html.read_bytes()
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa_fallback(path: str) -> Response:
+        return Response(content=cached_index, media_type="text/html")
 
 
 def filtered_openapi_schema(schema: dict) -> dict:
