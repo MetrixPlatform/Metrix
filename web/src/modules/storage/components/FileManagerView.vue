@@ -1,31 +1,20 @@
 <template>
   <section class="work-card table-page-card file-manager-view">
     <div class="toolbar file-manager-toolbar">
-      <div class="toolbar-group file-manager-header">
-        <n-button size="small" quaternary @click="emit('close')">
-          <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
-        </n-button>
-        <span class="file-manager-title">{{ connection.name }}</span>
-        <n-tag size="small" :bordered="false">{{ connection.protocol.toUpperCase() }}</n-tag>
-        <span class="file-manager-host">{{ connection.host }}:{{ connection.port }}</span>
-      </div>
-      <div class="toolbar-group">
-        <n-input
-          v-model:value="keyword"
-          class="filter-keyword"
-          :placeholder="t('storage.files.search')"
-          clearable
-          @keyup.enter="search"
-          @clear="clearSearch"
-        />
-        <n-button @click="search">{{ t("common.search") }}</n-button>
-        <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
-        <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">
-          {{ t("storage.files.upload") }}
-        </permission-button>
-        <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
-        <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
-      </div>
+      <n-button size="small" quaternary @click="emit('close')">
+        <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+      </n-button>
+      <span class="file-manager-title">{{ connection.name }}</span>
+      <n-tag size="small" :bordered="false">{{ connection.protocol.toUpperCase() }}</n-tag>
+      <span class="file-manager-host">{{ connection.host }}:{{ connection.port }}</span>
+      <div class="file-manager-spacer" />
+      <n-input v-model:value="keyword" class="file-search-input" :placeholder="t('storage.files.search')" clearable @keyup.enter="search" @clear="clearSearch" />
+      <n-checkbox v-model:checked="recursive" size="small">{{ t("storage.files.includeSubdirs") }}</n-checkbox>
+      <n-button @click="search">{{ t("common.search") }}</n-button>
+      <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
+      <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">{{ t("storage.files.upload") }}</permission-button>
+      <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
+      <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
     </div>
     <div class="file-breadcrumb-bar">
       <n-breadcrumb separator="/">
@@ -73,6 +62,7 @@ import {
   NBreadcrumb,
   NBreadcrumbItem,
   NButton,
+  NCheckbox,
   NDataTable,
   NForm,
   NFormItem,
@@ -113,6 +103,7 @@ const loading = ref(false);
 const uploading = ref(false);
 const path = ref("/");
 const keyword = ref("");
+const recursive = ref(true);
 const searchActive = ref(false);
 const truncated = ref(false);
 const entries = ref<StorageEntry[]>([]);
@@ -199,7 +190,9 @@ onMounted(load);
 async function load() {
   loading.value = true;
   try {
-    const result = await listStorageFiles(storageId.value, path.value, searchActive.value ? keyword.value : "", searchActive.value);
+    const useRecursive = searchActive.value && recursive.value;
+    const searchPath = useRecursive ? "/" : path.value;
+    const result = await listStorageFiles(storageId.value, searchPath, searchActive.value ? keyword.value : "", useRecursive);
     entries.value = result.entries;
     truncated.value = result.truncated;
   } catch (error) {
@@ -219,7 +212,6 @@ function search() {
     return;
   }
   searchActive.value = true;
-  path.value = "/";
   void load();
 }
 

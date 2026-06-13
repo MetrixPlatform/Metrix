@@ -52,7 +52,8 @@
       "shared": "Shared"
     },
     "files": {
-      "search": "Search current directory",
+      "search": "Search file name",
+      "includeSubdirs": "Include subdirs",
       "upload": "Upload",
       "mkdir": "New folder",
       "renameTitle": "Rename",

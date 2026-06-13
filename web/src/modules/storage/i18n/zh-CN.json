@@ -52,7 +52,8 @@
       "shared": "共享"
     },
     "files": {
-      "search": "搜索当前目录",
+      "search": "搜索文件名",
+      "includeSubdirs": "含子目录",
       "upload": "上传",
       "mkdir": "新建目录",
       "renameTitle": "重命名",

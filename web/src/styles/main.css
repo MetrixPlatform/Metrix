@@ -2014,12 +2014,8 @@ a {
 }
 
 .file-manager-toolbar {
-  flex-wrap: wrap;
-}
-
-.file-manager-header {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .file-manager-title {
@@ -2027,13 +2023,24 @@ a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 200px;
+  flex: 0 1 auto;
 }
 
 .file-manager-host {
   color: var(--muted-color);
   font-size: 13px;
   white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.file-manager-spacer {
+  flex: 1 1 0;
+}
+
+.file-search-input {
+  width: 200px;
+  flex: 0 0 auto;
 }
 
 .file-breadcrumb-bar {
