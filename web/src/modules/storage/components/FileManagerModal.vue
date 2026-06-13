@@ -151,11 +151,18 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
           [h(NIcon, { component: row.is_dir ? Folder20Regular : Document20Regular }), h("span", null, row.name)]
         )
     },
-    { title: t("storage.files.size"), key: "size", width: 96, render: (row) => (row.is_dir ? "-" : formatSize(row.size)) },
+    {
+      title: t("storage.files.size"),
+      key: "size",
+      width: 96,
+      sorter: (a, b) => a.size - b.size,
+      render: (row) => (row.is_dir ? "-" : formatSize(row.size))
+    },
     {
       title: t("storage.files.modifiedAt"),
       key: "modified_at",
       width: 160,
+      sorter: (a, b) => (a.modified_at || "").localeCompare(b.modified_at || ""),
       render: (row) => (row.modified_at ? formatDateTime(row.modified_at) : "-")
     },
     {
