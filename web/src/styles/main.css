@@ -2048,6 +2048,132 @@ a {
   gap: 10px;
 }
 
+.database-workbench {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.database-workbench-toolbar {
+  flex: 0 0 auto;
+}
+
+.database-workbench-title {
+  font-weight: 600;
+}
+
+.database-workbench-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.database-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--panel-bg-hover);
+  overflow: hidden;
+}
+
+.database-sidebar-actions,
+.database-tree-actions,
+.database-sub-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.database-table-list {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.database-table-item {
+  width: 100%;
+  display: block;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-color);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.database-table-item:hover,
+.database-table-item.active {
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+}
+
+.database-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.database-main .n-tabs {
+  height: 100%;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.database-main .n-tabs-pane-wrapper,
+.database-main .n-tab-pane {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.database-sub-toolbar {
+  margin-bottom: 10px;
+}
+
+.database-toolbar-select {
+  width: 150px;
+}
+
+.database-sql-editor {
+  height: 260px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.monaco-editor-box {
+  width: 100%;
+  height: 100%;
+}
+
+.database-result-table,
+.database-query-table {
+  min-height: 220px;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.muted-text {
+  color: var(--muted-color);
+}
+
 .file-breadcrumb {
   flex: 1 1 240px;
   min-width: 0;

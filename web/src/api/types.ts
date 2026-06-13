@@ -145,6 +145,7 @@ export interface PublicSettings {
 
 export interface SystemSettings extends PublicSettings {
   log_retention_days: 7 | 30 | 90 | 180 | 365;
+  data_job_max_workers: number;
 }
 
 export interface ApiTokenItem {

@@ -26,6 +26,7 @@ class PublicSettings(BaseModel):
 
 class SystemSettings(PublicSettings):
     log_retention_days: LogRetentionDays
+    data_job_max_workers: int = Field(default=2, ge=1, le=16)
 
 
 class SystemSettingsUpdate(BaseModel):
@@ -37,3 +38,4 @@ class SystemSettingsUpdate(BaseModel):
     default_locale: LocaleCode
     api_enabled: bool
     api_token_reveal_enabled: bool
+    data_job_max_workers: int = Field(default=2, ge=1, le=16)

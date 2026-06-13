@@ -1,0 +1,193 @@
+{
+  "route": {
+    "database": "数据库管理",
+    "databaseJobs": "数据任务"
+  },
+  "permission": {
+    "group": {
+      "database": "数据库管理"
+    },
+    "route:database": "数据库管理",
+    "route:database_jobs": "数据任务",
+    "action:database:create": "新增数据库连接",
+    "action:database:read": "查询数据库",
+    "action:database:update": "修改数据库连接",
+    "action:database:delete": "删除数据库连接",
+    "action:database:operate": "操作数据库",
+    "action:database:manage_others": "管理他人数据库连接",
+    "action:sql_script:create": "新增 SQL 脚本",
+    "action:sql_script:read": "查询 SQL 脚本",
+    "action:sql_script:update": "修改 SQL 脚本",
+    "action:sql_script:delete": "删除 SQL 脚本",
+    "action:sql_script:manage_others": "管理他人 SQL 脚本"
+  },
+  "field": {
+    "connId": "连接 ID",
+    "database": "数据库",
+    "databaseType": "数据库类型",
+    "table": "数据表",
+    "format": "格式",
+    "file": "文件",
+    "creator": "创建人",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "dataJobMaxWorkers": "数据任务并发数"
+  },
+  "validation": {
+    "connId": "连接 ID 需为 3-64 位字母、数字、- 或 _"
+  },
+  "error": {
+    "databasePasswordRequired": "请输入密码",
+    "databaseIdTaken": "连接 ID 已存在",
+    "databaseTypeUnsupported": "暂不支持该数据库类型",
+    "databaseConnectionFailed": "数据库连接失败",
+    "databasePasswordInvalid": "数据库凭据无法解密，请重新设置密码",
+    "databaseInactive": "数据库连接已禁用",
+    "databaseSqlFailed": "SQL 执行失败",
+    "databaseRowKeyRequired": "缺少行定位键",
+    "databaseRowValuesRequired": "缺少行数据",
+    "databaseColumnTypeInvalid": "字段类型不合法",
+    "databaseColumnDefaultInvalid": "字段默认值不合法",
+    "databaseAlterInvalid": "表结构修改动作不合法",
+    "databaseSchemaAlterEmpty": "请填写要修改的库选项",
+    "databaseOptionInvalid": "选项不合法",
+    "databaseExportFormatUnsupported": "不支持该导出格式",
+    "databaseImportFormatUnsupported": "不支持该导入格式",
+    "databaseCsvSingleOnly": "CSV 仅支持单表或单查询导出",
+    "databaseExportReadOnly": "导出只支持查询语句",
+    "databaseTargetTableRequired": "请选择目标表",
+    "databaseImportNoColumns": "导入文件没有可用字段",
+    "sqlScriptContentRequired": "请输入 SQL 脚本",
+    "dataJobNotDownloadable": "任务暂不可下载",
+    "dataJobFileMissing": "任务文件不存在",
+    "dataJobInterrupted": "任务因服务重启中断"
+  },
+  "database": {
+    "searchPlaceholder": "搜索名称、ID、主机、库名",
+    "add": "新增连接",
+    "edit": "编辑连接",
+    "connection": "连接",
+    "shared": "共享",
+    "private": "私有",
+    "creatorAll": "全部人",
+    "creatorMe": "仅自己",
+    "idPlaceholder": "留空自动生成",
+    "passwordKeep": "留空保持不变",
+    "defaultDatabaseHint": "留空可操作全部库",
+    "allSchemas": "全部库",
+    "connectionOk": "连接正常",
+    "deleteConfirm": "确认删除连接 {name}？仅删除连接信息。",
+    "tabs": {
+      "data": "数据",
+      "sql": "SQL",
+      "scripts": "脚本"
+    },
+    "schema": {
+      "create": "新建库",
+      "name": "库名"
+    },
+    "table": {
+      "create": "新建表",
+      "drop": "删表",
+      "dropConfirm": "确认删除当前表？",
+      "name": "表名",
+      "search": "搜索当前表数据"
+    },
+    "row": {
+      "add": "新增行",
+      "edit": "编辑行",
+      "deleteConfirm": "确认删除该行？"
+    },
+    "sql": {
+      "execute": "执行",
+      "executed": "执行完成",
+      "affectedRows": "影响行数"
+    },
+    "script": {
+      "search": "搜索脚本",
+      "save": "保存脚本",
+      "load": "载入",
+      "run": "执行",
+      "result": "执行 {count} 条语句",
+      "untitled": "未命名脚本"
+    },
+    "export": {
+      "title": "导出",
+      "result": "导出结果"
+    },
+    "import": {
+      "title": "导入",
+      "mode": "模式",
+      "append": "追加",
+      "overwrite": "覆盖",
+      "upsert": "更新插入",
+      "createTable": "自动建表",
+      "tableHint": "SQL/SQLite 可留空",
+      "submit": "提交导入",
+      "fileRequired": "请选择导入文件"
+    },
+    "jobs": {
+      "view": "任务",
+      "id": "任务 ID",
+      "kind": "类型",
+      "status": "状态",
+      "export": "导出",
+      "import": "导入",
+      "pending": "排队中",
+      "running": "执行中",
+      "success": "成功",
+      "failed": "失败",
+      "rows": "行数",
+      "size": "大小",
+      "expiresAt": "过期时间",
+      "error": "错误",
+      "submitted": "任务已提交：{id}",
+      "deleteConfirm": "确认删除该任务？"
+    }
+  },
+  "settings": {
+    "dataJobs": "数据任务",
+    "dataJobsDesc": "设置导入/导出任务的后台并发数。"
+  },
+  "auditLog": {
+    "action": {
+      "database": {
+        "create": "新增数据库连接",
+        "update": "修改数据库连接",
+        "delete": "删除数据库连接",
+        "query": "执行 SQL",
+        "run_script": "执行 SQL 脚本",
+        "row_create": "新增数据行",
+        "row_update": "修改数据行",
+        "row_delete": "删除数据行",
+        "table_create": "新建表",
+        "table_alter": "修改表结构",
+        "table_rename": "重命名表",
+        "table_truncate": "清空表",
+        "table_delete": "删除表",
+        "schema_create": "新建库",
+        "schema_alter": "修改库",
+        "schema_delete": "删除库",
+        "export_submit": "提交导出",
+        "export_download": "下载导出",
+        "import_submit": "提交导入"
+      },
+      "sql_script": {
+        "create": "新增 SQL 脚本",
+        "update": "修改 SQL 脚本",
+        "delete": "删除 SQL 脚本"
+      }
+    },
+    "target": {
+      "database": "数据库连接",
+      "sql_script": "SQL 脚本",
+      "data_job": "数据任务"
+    }
+  },
+  "openapi": {
+    "tag": {
+      "database-data": "数据库数据",
+      "data-jobs": "数据任务"
+    }
+  }
+}

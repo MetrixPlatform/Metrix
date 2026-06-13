@@ -14,6 +14,7 @@ from app.core.deps import require_api_feature_enabled, require_permission
 from app.core.permissions import API_DOCS_READ
 from app.models import User
 from app.modules.registry import get_openapi_hidden_path_prefixes, get_openapi_hidden_tags, load_module_routers
+from app.modules.database.jobs import data_job_cleanup_loop, reset_interrupted_jobs, shutdown_data_job_executor
 from app.services.maintenance import audit_log_prune_loop
 
 OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head"}
@@ -21,15 +22,23 @@ OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "hea
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await asyncio.to_thread(reset_interrupted_jobs)
     audit_log_prune_task = asyncio.create_task(audit_log_prune_loop())
+    data_job_cleanup_task = asyncio.create_task(data_job_cleanup_loop())
     try:
         yield
     finally:
         audit_log_prune_task.cancel()
+        data_job_cleanup_task.cancel()
         try:
             await audit_log_prune_task
         except asyncio.CancelledError:
             pass
+        try:
+            await data_job_cleanup_task
+        except asyncio.CancelledError:
+            pass
+        shutdown_data_job_executor()
 
 
 def create_app() -> FastAPI:

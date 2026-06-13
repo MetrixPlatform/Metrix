@@ -77,6 +77,18 @@
           </section>
         </n-tab-pane>
 
+        <n-tab-pane name="dataJobs" :tab="t('settings.dataJobs')" display-directive="show">
+          <section class="settings-section settings-section-compact">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.dataJobs") }}</h2>
+              <p>{{ t("settings.dataJobsDesc") }}</p>
+            </div>
+            <n-form-item :label="t('field.dataJobMaxWorkers')" path="data_job_max_workers">
+              <n-input-number v-model:value="form.data_job_max_workers" :min="1" :max="16" :show-button="false" />
+            </n-form-item>
+          </section>
+        </n-tab-pane>
+
         <n-tab-pane name="backup" :tab="t('settings.backup')" display-directive="show">
           <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
@@ -106,7 +118,7 @@
 
 <script setup lang="ts">
 import { Archive20Regular } from "@vicons/fluent";
-import { NCheckbox, NForm, NFormItem, NIcon, NInput, NSelect, NSwitch, NTabPane, NTabs, useMessage } from "naive-ui";
+import { NCheckbox, NForm, NFormItem, NIcon, NInput, NInputNumber, NSelect, NSwitch, NTabPane, NTabs, useMessage } from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 
@@ -119,7 +131,7 @@ import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
-type SettingsTab = "basic" | "registration" | "api" | "audit" | "backup";
+type SettingsTab = "basic" | "registration" | "api" | "audit" | "dataJobs" | "backup";
 
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
@@ -139,7 +151,8 @@ const form = reactive<SystemSettings>({
   log_retention_days: 90,
   default_locale: "zh-CN",
   api_enabled: true,
-  api_token_reveal_enabled: true
+  api_token_reveal_enabled: true,
+  data_job_max_workers: 2
 });
 
 const rules = computed<FormRules>(() => ({
@@ -205,6 +218,7 @@ function assignSettings(settings: SystemSettings) {
   form.default_locale = settings.default_locale;
   form.api_enabled = settings.api_enabled;
   form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
+  form.data_job_max_workers = settings.data_job_max_workers;
 }
 
 </script>

@@ -3,6 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 pymysql
+openpyxl
 paramiko
 python-multipart
 zipstream-ng

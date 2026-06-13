@@ -1,0 +1,193 @@
+{
+  "route": {
+    "database": "Databases",
+    "databaseJobs": "Data jobs"
+  },
+  "permission": {
+    "group": {
+      "database": "Database"
+    },
+    "route:database": "Databases",
+    "route:database_jobs": "Data jobs",
+    "action:database:create": "Create database connections",
+    "action:database:read": "Read databases",
+    "action:database:update": "Update database connections",
+    "action:database:delete": "Delete database connections",
+    "action:database:operate": "Operate databases",
+    "action:database:manage_others": "Manage others' database connections",
+    "action:sql_script:create": "Create SQL scripts",
+    "action:sql_script:read": "Read SQL scripts",
+    "action:sql_script:update": "Update SQL scripts",
+    "action:sql_script:delete": "Delete SQL scripts",
+    "action:sql_script:manage_others": "Manage others' SQL scripts"
+  },
+  "field": {
+    "connId": "Connection ID",
+    "database": "Database",
+    "databaseType": "Database type",
+    "table": "Table",
+    "format": "Format",
+    "file": "File",
+    "creator": "Creator",
+    "createdAt": "Created at",
+    "updatedAt": "Updated at",
+    "dataJobMaxWorkers": "Data job workers"
+  },
+  "validation": {
+    "connId": "Connection ID must be 3-64 letters, digits, - or _"
+  },
+  "error": {
+    "databasePasswordRequired": "Password is required",
+    "databaseIdTaken": "Connection ID already exists",
+    "databaseTypeUnsupported": "Unsupported database type",
+    "databaseConnectionFailed": "Database connection failed",
+    "databasePasswordInvalid": "Stored database credential cannot be decrypted, please reset the password",
+    "databaseInactive": "Database connection is disabled",
+    "databaseSqlFailed": "SQL execution failed",
+    "databaseRowKeyRequired": "Row key is required",
+    "databaseRowValuesRequired": "Row values are required",
+    "databaseColumnTypeInvalid": "Invalid column type",
+    "databaseColumnDefaultInvalid": "Invalid column default",
+    "databaseAlterInvalid": "Invalid table alter action",
+    "databaseSchemaAlterEmpty": "No schema option provided",
+    "databaseOptionInvalid": "Invalid option",
+    "databaseExportFormatUnsupported": "Unsupported export format",
+    "databaseImportFormatUnsupported": "Unsupported import format",
+    "databaseCsvSingleOnly": "CSV export supports one table or one query",
+    "databaseExportReadOnly": "Only read SQL can be exported",
+    "databaseTargetTableRequired": "Target table is required",
+    "databaseImportNoColumns": "No import columns found",
+    "sqlScriptContentRequired": "SQL script content is required",
+    "dataJobNotDownloadable": "Data job is not downloadable",
+    "dataJobFileMissing": "Data job file is missing",
+    "dataJobInterrupted": "Job interrupted by service restart"
+  },
+  "database": {
+    "searchPlaceholder": "Search name, ID, host or database",
+    "add": "New connection",
+    "edit": "Edit connection",
+    "connection": "Connection",
+    "shared": "Shared",
+    "private": "Private",
+    "creatorAll": "All users",
+    "creatorMe": "Only mine",
+    "idPlaceholder": "Leave empty to auto-generate",
+    "passwordKeep": "Leave empty to keep unchanged",
+    "defaultDatabaseHint": "Leave empty to access all databases",
+    "allSchemas": "All databases",
+    "connectionOk": "Connection is healthy",
+    "deleteConfirm": "Delete connection {name}? Only connection info is removed.",
+    "tabs": {
+      "data": "Data",
+      "sql": "SQL",
+      "scripts": "Scripts"
+    },
+    "schema": {
+      "create": "New database",
+      "name": "Database name"
+    },
+    "table": {
+      "create": "New table",
+      "drop": "Drop table",
+      "dropConfirm": "Drop the selected table?",
+      "name": "Table name",
+      "search": "Search current table"
+    },
+    "row": {
+      "add": "Add row",
+      "edit": "Edit row",
+      "deleteConfirm": "Delete this row?"
+    },
+    "sql": {
+      "execute": "Run",
+      "executed": "Executed",
+      "affectedRows": "Affected rows"
+    },
+    "script": {
+      "search": "Search scripts",
+      "save": "Save script",
+      "load": "Load",
+      "run": "Run",
+      "result": "Executed {count} statement(s)",
+      "untitled": "Untitled script"
+    },
+    "export": {
+      "title": "Export",
+      "result": "Export result"
+    },
+    "import": {
+      "title": "Import",
+      "mode": "Mode",
+      "append": "Append",
+      "overwrite": "Overwrite",
+      "upsert": "Upsert",
+      "createTable": "Create table",
+      "tableHint": "Optional for SQL/SQLite",
+      "submit": "Submit import",
+      "fileRequired": "Please choose an import file"
+    },
+    "jobs": {
+      "view": "Jobs",
+      "id": "Job ID",
+      "kind": "Kind",
+      "status": "Status",
+      "export": "Export",
+      "import": "Import",
+      "pending": "Pending",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "rows": "Rows",
+      "size": "Size",
+      "expiresAt": "Expires at",
+      "error": "Error",
+      "submitted": "Job submitted: {id}",
+      "deleteConfirm": "Delete this job?"
+    }
+  },
+  "settings": {
+    "dataJobs": "Data jobs",
+    "dataJobsDesc": "Configure background concurrency for import/export jobs."
+  },
+  "auditLog": {
+    "action": {
+      "database": {
+        "create": "Create database connection",
+        "update": "Update database connection",
+        "delete": "Delete database connection",
+        "query": "Run SQL",
+        "run_script": "Run SQL script",
+        "row_create": "Create row",
+        "row_update": "Update row",
+        "row_delete": "Delete row",
+        "table_create": "Create table",
+        "table_alter": "Alter table",
+        "table_rename": "Rename table",
+        "table_truncate": "Truncate table",
+        "table_delete": "Delete table",
+        "schema_create": "Create database",
+        "schema_alter": "Alter database",
+        "schema_delete": "Delete database",
+        "export_submit": "Submit export",
+        "export_download": "Download export",
+        "import_submit": "Submit import"
+      },
+      "sql_script": {
+        "create": "Create SQL script",
+        "update": "Update SQL script",
+        "delete": "Delete SQL script"
+      }
+    },
+    "target": {
+      "database": "Database connection",
+      "sql_script": "SQL script",
+      "data_job": "Data job"
+    }
+  },
+  "openapi": {
+    "tag": {
+      "database-data": "Database data",
+      "data-jobs": "Data jobs"
+    }
+  }
+}

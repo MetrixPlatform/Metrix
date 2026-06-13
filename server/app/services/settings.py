@@ -20,7 +20,9 @@ SETTING_LOG_RETENTION_DAYS = "log_retention_days"
 SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
+SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
 DEFAULT_LOG_RETENTION_DAYS = 90
+DEFAULT_DATA_JOB_MAX_WORKERS = 2
 
 
 class SettingService:
@@ -55,6 +57,7 @@ class SettingService:
                 SETTING_DEFAULT_LOCALE: payload.default_locale,
                 SETTING_API_ENABLED: _dump_bool(payload.api_enabled),
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
+                SETTING_DATA_JOB_MAX_WORKERS: str(payload.data_job_max_workers),
             }
         )
         after = _settings_snapshot(self.get_settings())
@@ -115,6 +118,12 @@ class SettingService:
             default_locale=_parse_locale(raw.get(SETTING_DEFAULT_LOCALE), defaults.default_locale),
             api_enabled=_parse_bool(raw.get(SETTING_API_ENABLED), defaults.api_enabled),
             api_token_reveal_enabled=_parse_bool(raw.get(SETTING_API_TOKEN_REVEAL_ENABLED), defaults.api_token_reveal_enabled),
+            data_job_max_workers=_parse_int(
+                raw.get(SETTING_DATA_JOB_MAX_WORKERS),
+                defaults.data_job_max_workers,
+                minimum=1,
+                maximum=16,
+            ),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -141,6 +150,7 @@ def _default_settings() -> SystemSettings:
         default_locale="zh-CN",
         api_enabled=True,
         api_token_reveal_enabled=True,
+        data_job_max_workers=DEFAULT_DATA_JOB_MAX_WORKERS,
     )
 
 
@@ -154,6 +164,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "default_locale": settings.default_locale,
         "api_enabled": settings.api_enabled,
         "api_token_reveal_enabled": settings.api_token_reveal_enabled,
+        "data_job_max_workers": settings.data_job_max_workers,
     }
 
 
@@ -191,3 +202,11 @@ def _parse_retention_days(value: str | None, fallback: int) -> int:
 
 def _parse_locale(value: str | None, fallback: str):
     return value if value in {"zh-CN", "en-US"} else fallback
+
+
+def _parse_int(value: str | None, fallback: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value or "")
+    except ValueError:
+        return fallback
+    return min(max(parsed, minimum), maximum)

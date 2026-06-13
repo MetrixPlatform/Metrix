@@ -1,12 +1,12 @@
 # Metrix
 
-Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
+Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理、数据库管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
 
 新增页面、业务模块、权限、API 或数据库变更时，先阅读 [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md)。
 
 ## 技术栈
 
-- 前端：Vue 3、TypeScript、Vite、Naive UI、vue-i18n
+- 前端：Vue 3、TypeScript、Vite、Naive UI、vue-i18n、Monaco Editor
 - 后端：Python、FastAPI、SQLAlchemy、Pydantic
 - 数据库：SQLite 或 MySQL
 - 权限：账号密码登录、RBAC 路由权限、功能权限、本人/他人数据范围权限
@@ -94,6 +94,8 @@ SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `p
 | `METRIX_DISABLED_MODULES` | 后端禁用指定模块，逗号分隔，不能禁用 `core` | 空 |
 
 前端开发代理只代理 `/api/` 和 `/openapi.json` 到 `http://127.0.0.1:8000`。不要把代理前缀改成宽泛的 `/api`，否则 `/api-docs` 页面刷新会被误转发到后端。
+
+数据库管理模块支持 MySQL/MariaDB 连接、库表浏览、SQL 工作台、行级图形化增删改、SQL 脚本管理和 CSV/XLSX/SQLite/SQL 异步导入导出。导入/导出使用后台数据任务，系统设置页可调整“数据任务并发数”（默认 2，范围 1-16），任务完成后导出文件保留 24 小时或下载后清理。
 
 ## 初始化与数据库
 

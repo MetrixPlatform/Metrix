@@ -751,3 +751,16 @@
 - 部署：先 `cd web && npm run build`，再 `cd server && python main.py`，单端口 8000 同时服务 API 和前端页面，无需 Nginx。
 - `web/dist/` 已在 `.gitignore` 中，构建产物不入仓库。
 - 验证：后端 `pytest` 42 passed，`npm run build` 通过，路由挂载确认 SPA fallback 和 assets mount 均存在。
+
+## 2026-06-14：新增数据库管理模块
+
+- 新增前后端 `database` 业务模块（`server/app/modules/database`、`web/src/modules/database`），后端声明 `route:database`、`route:database_jobs`、`action:database:*` 与 `action:sql_script:*`，管理类接口隐藏 OpenAPI，数据与任务接口允许 API Token 调用。
+- 数据模型新增 `db_connections`、`sql_scripts`、`data_jobs`：连接密码复用 `encrypt_secret`/`decrypt_secret` 加密存储；连接共享/私有、本人/他人 `manage_others` 范围规则沿用 storage；SQL 脚本有独立资源权限；任务记录保存导入/导出状态、产物路径、行数、过期时间和下载时间。
+- 方言抽象 `engines.py` 通过 SQLAlchemy `Inspector` 提供 schema/table/column/primary key 元数据，当前 UI/API 支持 MySQL 与 MariaDB，内部保留 SQLite 路径用于可重复自动化测试；每次请求独立创建外部库 engine/connection，使用 `NullPool`，完成后 `dispose()`，避免跨用户共享连接状态。
+- SQL 安全边界：`SELECT/SHOW/DESC/DESCRIBE/EXPLAIN/WITH` 单语句判定为 read，其余或多语句判定为 operate；`/query` 按分类动态校验 `database:read` 或 `database:operate`，`/run-script` 统一要求 operate，支持接口直接传 `content` 或按 `script_id` 执行已保存脚本。
+- 数据 API 覆盖元数据、表数据分页、SQL 执行、多语句脚本执行、行级增删改、建表/改表/重命名/清空/删表、建库/改库/删库，以及导入/导出任务提交、任务查询、下载和删除。
+- 异步数据任务：`jobs.py` 使用专用 `ThreadPoolExecutor`，并发数来自系统设置 `data_job_max_workers`（默认 2，范围 1-16），提交即返回 `job_id`，超出 worker 的任务在线程池队列排队；worker 使用独立平台 session 和独立外部库 engine。启动时把残留 pending/running 标为 failed，后台每 30 分钟清理过期或已下载任务文件与记录；导出成功保留 24 小时，下载流结束后删除文件并标记 downloaded。
+- 导出器支持 CSV（单表/单查询）、XLSX（多表多 sheet，`openpyxl` write_only）、SQLite、SQL；导入器支持 CSV/XLSX/SQLite/SQL，提供 append/overwrite/upsert 与可选自动建表，均按批读取/写入，避免一次性加载大数据。
+- 前端新增 `/database` 连接列表与页内 SQL 工作台：列表沿用 storage 规范，点击名称进入工作台；工作台包含库/表选择、表数据网格、行 JSON 编辑、新建库/表、删表、Monaco SQL 编辑器、执行结果表、导出结果、脚本保存/载入/执行和导入向导。新增 `/database/jobs` 数据任务页，按类型/状态筛选，轮询运行中任务，支持下载成功导出与删除任务。
+- 前端依赖新增 `monaco-editor`，后端依赖新增 `openpyxl`，均可随离线包安装；系统设置页新增“数据任务”标签，可调整导入/导出并发数。
+- 验证：`compileall server/app` 通过；`pytest server/tests -q` 43 passed；`npm run test:smoke` 通过；`npm run build` 通过；ReadLints 无新增诊断。本地 MySQL `127.0.0.1:3306 root/123456` API 级集成验证通过（创建连接、测试连接、元数据、查询、写入、XLSX 异步导出与下载）。Docker MariaDB 验证因本机无 `mariadb:11` 镜像且 Docker Hub 拉取超时未完成，需要在有镜像或可访问 Docker Hub 的环境补跑。
