@@ -2072,6 +2072,15 @@ a {
   color: var(--primary-strong);
 }
 
+.file-entry-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.file-entry-disabled .n-icon {
+  color: var(--muted-color);
+}
+
 .api-detail-modal > .n-card__content,
 .api-detail-modal > .n-card-content {
   max-height: calc(86vh - 112px);

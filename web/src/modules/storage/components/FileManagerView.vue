@@ -137,7 +137,7 @@ const breadcrumbs = computed(() => {
 const nameModalTitle = computed(() =>
   nameModal.mode === "mkdir" ? t("storage.files.mkdir") : t("storage.files.renameTitle")
 );
-const showParentRow = computed(() => !searchActive.value && path.value !== "/");
+const showParentRow = computed(() => !searchActive.value);
 const sortedEntries = computed<StorageEntry[]>(() => {
   const state = sortState.value;
   if (!state) return entries.value;
@@ -164,9 +164,15 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
       ellipsis: { tooltip: true },
       render: (row) => {
         if (row.path === PARENT_ROW_PATH) {
+          const disabled = path.value === "/";
           return h(
             "span",
-            { class: "file-entry file-entry-dir file-entry-parent", onClick: goUp },
+            {
+              class: disabled
+                ? "file-entry file-entry-parent file-entry-disabled"
+                : "file-entry file-entry-dir file-entry-parent",
+              onClick: disabled ? undefined : goUp
+            },
             [h(NIcon, { component: ArrowUp20Regular }), h("span", null, "..")]
           );
         }
