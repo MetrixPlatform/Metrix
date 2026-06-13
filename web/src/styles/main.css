@@ -2000,6 +2000,16 @@ a {
   min-width: 0;
 }
 
+.storage-name-link {
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.storage-name-link:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
+}
+
 .copyable-cell {
   display: inline-flex;
   align-items: center;

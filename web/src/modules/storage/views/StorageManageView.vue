@@ -236,7 +236,16 @@ const tableScrollX = computed(() => sumColumnWidths(columnWidths));
 const statusLabels = computed(() => ({ true: t("common.enabled"), false: t("common.disabled") }));
 const columns = computed<DataTableColumns<StorageConnection>>(() =>
   withResizableColumns([
-    { title: t("storage.field.name"), key: "name", width: columnWidths.name, ellipsis: { tooltip: true } },
+    {
+      title: t("storage.field.name"),
+      key: "name",
+      width: columnWidths.name,
+      ellipsis: { tooltip: true },
+      render: (row) =>
+        row.is_active
+          ? h("span", { class: "storage-name-link", onClick: () => openFiles(row) }, row.name)
+          : row.name
+    },
     {
       title: t("field.storageId"),
       key: "storage_id",
