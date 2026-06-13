@@ -2022,6 +2022,8 @@ a {
 .storage-file-modal > .n-card-content {
   display: flex;
   flex-direction: column;
+  height: calc(min(86vh, 820px) - 64px);
+  max-height: none;
   overflow: hidden;
 }
 
