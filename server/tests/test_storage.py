@@ -382,6 +382,7 @@ def test_storage_file_operations_with_fake_client(tmp_path, monkeypatch):
         assert "docs/b.log" in names
         assert "docs/new.bin" in names
         assert zf.read("docs/b.log") == b"log-content"
+    assert created_clients[-1].closed
 
     archive_file = client.get("/api/storages/files-demo/download-archive", params={"path": "/a.txt"}, headers=admin_headers)
     assert archive_file.status_code == 400

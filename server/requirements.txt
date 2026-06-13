@@ -5,6 +5,7 @@ pydantic
 pymysql
 paramiko
 python-multipart
+zipstream-ng
 swagger-ui-bundle
 pytest
 httpx
