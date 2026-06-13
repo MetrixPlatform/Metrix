@@ -42,7 +42,7 @@
       class="page-data-table"
       flex-height
       :columns="columns"
-      :data="entries"
+      :data="tableData"
       :loading="loading"
       :row-key="(row) => row.path"
       size="small"
@@ -83,7 +83,7 @@ import {
   useMessage
 } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { ArrowLeft20Regular, Document20Regular, Folder20Regular, Search20Regular } from "@vicons/fluent";
+import { ArrowLeft20Regular, ArrowUp20Regular, Document20Regular, Folder20Regular, Search20Regular } from "@vicons/fluent";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
@@ -101,6 +101,8 @@ import {
   type StorageEntry
 } from "../api";
 import { STORAGE_OPERATE } from "../permissions";
+
+const PARENT_ROW_PATH = "__parent__";
 
 const props = defineProps<{ connection: StorageConnection }>();
 const emit = defineEmits<{ (event: "close"): void }>();
@@ -133,34 +135,48 @@ const breadcrumbs = computed(() => {
 const nameModalTitle = computed(() =>
   nameModal.mode === "mkdir" ? t("storage.files.mkdir") : t("storage.files.renameTitle")
 );
+const showParentRow = computed(() => !searchActive.value && path.value !== "/");
+const tableData = computed<StorageEntry[]>(() => {
+  if (!showParentRow.value) return entries.value;
+  const parentRow: StorageEntry = { name: "..", path: PARENT_ROW_PATH, is_dir: true, size: -1, modified_at: "" };
+  return [parentRow, ...entries.value];
+});
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
     {
       title: t("storage.files.name"),
       key: "name",
       ellipsis: { tooltip: true },
-      render: (row) =>
-        h(
+      render: (row) => {
+        if (row.path === PARENT_ROW_PATH) {
+          return h(
+            "span",
+            { class: "file-entry file-entry-dir file-entry-parent", onClick: goUp },
+            [h(NIcon, { component: ArrowUp20Regular }), h("span", null, "..")]
+          );
+        }
+        return h(
           "span",
           {
             class: row.is_dir ? "file-entry file-entry-dir" : "file-entry",
             onClick: row.is_dir ? () => openDir(row) : undefined
           },
           [h(NIcon, { component: row.is_dir ? Folder20Regular : Document20Regular }), h("span", null, row.name)]
-        )
+        );
+      }
     },
     {
       title: t("storage.files.size"),
       key: "size",
       width: 96,
-      sorter: (a, b) => a.size - b.size,
-      render: (row) => (row.is_dir ? "-" : formatSize(row.size))
+      sorter: (a, b) => parentAwareSort(a, b, () => a.size - b.size),
+      render: (row) => (row.path === PARENT_ROW_PATH || row.is_dir ? "-" : formatSize(row.size))
     },
     {
       title: t("storage.files.modifiedAt"),
       key: "modified_at",
       width: 160,
-      sorter: (a, b) => (a.modified_at || "").localeCompare(b.modified_at || ""),
+      sorter: (a, b) => parentAwareSort(a, b, () => (a.modified_at || "").localeCompare(b.modified_at || "")),
       render: (row) => (row.modified_at ? formatDateTime(row.modified_at) : "-")
     },
     {
@@ -168,8 +184,9 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
       key: "actions",
       width: 168,
       align: "center",
-      render: (row) =>
-        h(NSpace, { size: 4, wrap: false, justify: "center" }, () => [
+      render: (row) => {
+        if (row.path === PARENT_ROW_PATH) return null;
+        return h(NSpace, { size: 4, wrap: false, justify: "center" }, () => [
           row.is_dir
             ? null
             : h(NButton, { size: "tiny", quaternary: true, onClick: () => void downloadEntry(row) }, () => t("common.download")),
@@ -179,7 +196,8 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
           canOperate.value
             ? h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => t("common.delete"))
             : null
-        ])
+        ]);
+      }
     }
   ];
   if (searchActive.value) {
@@ -240,6 +258,16 @@ function navigateTo(target: string) {
 
 function openDir(entry: StorageEntry) {
   navigateTo(entry.path);
+}
+
+function goUp() {
+  navigateTo(parentPath(path.value));
+}
+
+function parentAwareSort(a: StorageEntry, b: StorageEntry, compare: () => number) {
+  if (a.path === PARENT_ROW_PATH) return -1;
+  if (b.path === PARENT_ROW_PATH) return 1;
+  return compare();
 }
 
 function pickFiles() {
