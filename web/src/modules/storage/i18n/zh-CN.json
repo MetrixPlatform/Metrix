@@ -26,6 +26,7 @@
     "storageConnectFailed": "连接失败：{reason}",
     "storageOperationFailed": "操作失败：{reason}",
     "storageBasePathMissing": "根目录不存在",
+    "storageNotDirectory": "目标不是目录",
     "storageCredentialInvalid": "存储凭据无法解密，请重新设置密码"
   },
   "storage": {
@@ -116,6 +117,10 @@
       "download_storage_file_api_storages__storage_id__download_get": {
         "summary": "下载文件",
         "description": "流式下载指定路径的文件。"
+      },
+      "download_storage_archive_api_storages__storage_id__download_archive_get": {
+        "summary": "下载目录为 ZIP",
+        "description": "将指定目录及其全部子目录和文件打包为 ZIP 压缩包下载。"
       },
       "upload_storage_file_api_storages__storage_id__upload_post": {
         "summary": "上传文件",

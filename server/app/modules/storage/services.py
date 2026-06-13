@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import posixpath
 import secrets
+import zipfile
 from collections.abc import Iterator
+from tempfile import SpooledTemporaryFile
 from typing import BinaryIO
 
 from sqlalchemy.orm import Session
@@ -31,6 +33,8 @@ GENERATED_ID_PREFIX = "stg_"
 RECURSIVE_MAX_ENTRIES = 1000
 RECURSIVE_MAX_DIRS = 500
 MAX_TREE_DEPTH = 64
+ARCHIVE_SPOOL_MAX_SIZE = 64 * 1024 * 1024
+ARCHIVE_CHUNK_SIZE = 64 * 1024
 
 
 class StorageService:
@@ -212,6 +216,28 @@ class StorageService:
             raise _operation_error(exc)
         return posixpath.basename(virtual), _closing_stream(client, stream)
 
+    def download_archive(self, actor: User, storage_id: str, path: str) -> tuple[str, Iterator[bytes]]:
+        connection = self._get_usable(actor, storage_id)
+        virtual = _virtual_path(path)
+        client = self._connect(connection)
+        spool: SpooledTemporaryFile = SpooledTemporaryFile(max_size=ARCHIVE_SPOOL_MAX_SIZE)
+        try:
+            if not client.is_dir(_remote_path(connection, virtual)):
+                raise bad_request("error.storageNotDirectory", "Target is not a directory")
+            base_name = posixpath.basename(virtual) or connection.storage_id
+            with zipfile.ZipFile(spool, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+                self._zip_dir(client, connection, virtual, base_name, archive, depth=0)
+        except StorageOperationError as exc:
+            spool.close()
+            raise _operation_error(exc)
+        except BaseException:
+            spool.close()
+            raise
+        finally:
+            client.close()
+        spool.seek(0)
+        return f"{base_name}.zip", _spool_stream(spool)
+
     def upload(self, actor: User, storage_id: str, path: str, filename: str, fileobj: BinaryIO, size: int | None) -> StorageEntry:
         connection = self._get_usable(actor, storage_id)
         directory = _virtual_path(path)
@@ -313,6 +339,31 @@ class StorageService:
                     if len(entries) >= RECURSIVE_MAX_ENTRIES:
                         return entries, True
         return entries, False
+
+    def _zip_dir(
+        self,
+        client: StorageClient,
+        connection: StorageConnection,
+        virtual_dir: str,
+        arc_prefix: str,
+        archive: zipfile.ZipFile,
+        depth: int,
+    ) -> None:
+        if depth >= MAX_TREE_DEPTH:
+            raise StorageOperationError("Directory tree too deep")
+        items = client.list_dir(_remote_path(connection, virtual_dir))
+        if not items:
+            archive.writestr(f"{arc_prefix}/", "")
+            return
+        for item in items:
+            child_virtual = posixpath.join(virtual_dir, item.name)
+            arcname = f"{arc_prefix}/{item.name}"
+            if item.is_dir:
+                self._zip_dir(client, connection, child_virtual, arcname, archive, depth + 1)
+            else:
+                with archive.open(arcname, "w") as dest:
+                    for chunk in client.open_download(_remote_path(connection, child_virtual)):
+                        dest.write(chunk)
 
     def _delete_recursive(self, client: StorageClient, remote_path: str, depth: int) -> None:
         if depth >= MAX_TREE_DEPTH:
@@ -463,3 +514,11 @@ def _closing_stream(client: StorageClient, stream: Iterator[bytes]) -> Iterator[
         yield from stream
     finally:
         client.close()
+
+
+def _spool_stream(spool: SpooledTemporaryFile) -> Iterator[bytes]:
+    try:
+        while chunk := spool.read(ARCHIVE_CHUNK_SIZE):
+            yield chunk
+    finally:
+        spool.close()

@@ -1,5 +1,6 @@
 import io
 import posixpath
+import zipfile
 
 from sqlalchemy import create_engine, text
 
@@ -372,6 +373,19 @@ def test_storage_file_operations_with_fake_client(tmp_path, monkeypatch):
     missing = client.get("/api/storages/files-demo/download", params={"path": "/nope.txt"}, headers=admin_headers)
     assert missing.status_code == 400
     assert missing.json()["detail"]["code"] == "error.storageOperationFailed"
+
+    archive = client.get("/api/storages/files-demo/download-archive", params={"path": "/docs"}, headers=admin_headers)
+    assert archive.status_code == 200
+    assert archive.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(io.BytesIO(archive.content)) as zf:
+        names = set(zf.namelist())
+        assert "docs/b.log" in names
+        assert "docs/new.bin" in names
+        assert zf.read("docs/b.log") == b"log-content"
+
+    archive_file = client.get("/api/storages/files-demo/download-archive", params={"path": "/a.txt"}, headers=admin_headers)
+    assert archive_file.status_code == 400
+    assert archive_file.json()["detail"]["code"] == "error.storageNotDirectory"
 
     mkdir = client.post("/api/storages/files-demo/mkdir", json={"path": "/docs/sub"}, headers=admin_headers)
     assert mkdir.status_code == 200

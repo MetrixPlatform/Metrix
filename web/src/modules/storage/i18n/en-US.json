@@ -26,6 +26,7 @@
     "storageConnectFailed": "Connection failed: {reason}",
     "storageOperationFailed": "Operation failed: {reason}",
     "storageBasePathMissing": "Base path does not exist",
+    "storageNotDirectory": "Target is not a directory",
     "storageCredentialInvalid": "Stored credential cannot be decrypted, please reset the password"
   },
   "storage": {
@@ -116,6 +117,10 @@
       "download_storage_file_api_storages__storage_id__download_get": {
         "summary": "Download a file",
         "description": "Stream-download the file at the given path."
+      },
+      "download_storage_archive_api_storages__storage_id__download_archive_get": {
+        "summary": "Download a directory as ZIP",
+        "description": "Package the given directory and all its subdirectories and files into a ZIP archive for download."
       },
       "upload_storage_file_api_storages__storage_id__upload_post": {
         "summary": "Upload a file",

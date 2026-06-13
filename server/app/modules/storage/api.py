@@ -119,6 +119,21 @@ def download_storage_file(
     )
 
 
+@router.get("/{storage_id}/download-archive", tags=FILE_TAGS, summary="Download a directory as ZIP")
+def download_storage_archive(
+    storage_id: str,
+    path: str,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(STORAGE_READ)),
+) -> StreamingResponse:
+    filename, stream = StorageService(db).download_archive(actor, storage_id, path)
+    return StreamingResponse(
+        stream,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
+    )
+
+
 @router.post("/{storage_id}/upload", response_model=StorageEntry, tags=FILE_TAGS, summary="Upload a file")
 def upload_storage_file(
     storage_id: str,

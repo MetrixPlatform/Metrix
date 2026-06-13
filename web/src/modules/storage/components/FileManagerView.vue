@@ -93,6 +93,7 @@ import { saveBlob } from "../../../utils/download";
 import { messageText, showError } from "../../../utils/message";
 import {
   deleteStorageEntry,
+  downloadStorageArchive,
   downloadStorageFile,
   listStorageFiles,
   mkdirStorage,
@@ -210,9 +211,7 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
       render: (row) => {
         if (row.path === PARENT_ROW_PATH) return null;
         return h(NSpace, { size: 4, wrap: false, justify: "center" }, () => [
-          row.is_dir
-            ? null
-            : h(NButton, { size: "tiny", quaternary: true, onClick: () => void downloadEntry(row) }, () => t("common.download")),
+          h(NButton, { size: "tiny", quaternary: true, onClick: () => void downloadEntry(row) }, () => t("common.download")),
           canOperate.value
             ? h(NButton, { size: "tiny", quaternary: true, onClick: () => openRename(row) }, () => t("storage.files.renameTitle"))
             : null,
@@ -328,7 +327,11 @@ async function handleUpload(event: Event) {
 
 async function downloadEntry(entry: StorageEntry) {
   try {
-    saveBlob(await downloadStorageFile(storageId.value, entry.path), entry.name);
+    if (entry.is_dir) {
+      saveBlob(await downloadStorageArchive(storageId.value, entry.path), `${entry.name}.zip`);
+    } else {
+      saveBlob(await downloadStorageFile(storageId.value, entry.path), entry.name);
+    }
   } catch (error) {
     showError(message, error);
   }

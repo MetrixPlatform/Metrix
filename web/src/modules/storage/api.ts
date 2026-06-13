@@ -98,6 +98,10 @@ export function downloadStorageFile(storageId: string, path: string) {
   return download(`/storages/${encodeURIComponent(storageId)}/download${queryString({ path })}`);
 }
 
+export function downloadStorageArchive(storageId: string, path: string) {
+  return download(`/storages/${encodeURIComponent(storageId)}/download-archive${queryString({ path })}`);
+}
+
 export function uploadStorageFile(storageId: string, path: string, file: File) {
   const body = new FormData();
   body.append("file", file);
