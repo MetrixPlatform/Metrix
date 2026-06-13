@@ -9,8 +9,10 @@
     <div class="file-manager">
       <div class="toolbar">
         <div class="toolbar-group file-breadcrumb">
-          <n-breadcrumb>
-            <n-breadcrumb-item @click="navigateTo('/')">/</n-breadcrumb-item>
+          <n-breadcrumb separator="/">
+            <n-breadcrumb-item @click="navigateTo('/')">
+              <n-icon :component="Folder20Regular" />
+            </n-breadcrumb-item>
             <n-breadcrumb-item v-for="crumb in breadcrumbs" :key="crumb.path" @click="navigateTo(crumb.path)">
               {{ crumb.name }}
             </n-breadcrumb-item>
@@ -44,7 +46,7 @@
         :data="entries"
         :loading="loading"
         :row-key="(row) => row.path"
-        :max-height="420"
+        flex-height
         size="small"
       />
     </div>
@@ -217,7 +219,12 @@ function refresh() {
 }
 
 function search() {
-  searchActive.value = Boolean(keyword.value.trim());
+  if (!keyword.value.trim()) {
+    clearSearch();
+    return;
+  }
+  searchActive.value = true;
+  path.value = "/";
   void load();
 }
 
