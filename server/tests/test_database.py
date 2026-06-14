@@ -136,6 +136,56 @@ def wait_job(client, headers, job_id: str):
     raise AssertionError("data job did not finish")
 
 
+def test_database_export_multiple_queries(tmp_path, monkeypatch):
+    import io
+
+    from openpyxl import load_workbook
+
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    headers = login(client, payload["admin_username"], payload["admin_password"])
+    target_path = tmp_path / "multi.db"
+    make_target_db(target_path)
+    create_sqlite_connection("db_multi_test", target_path)
+
+    submitted = client.post(
+        "/api/databases/db_multi_test/export",
+        json={
+            "format": "xlsx",
+            "queries": [
+                {"name": "names", "sql": "SELECT name FROM people"},
+                {"name": "ages", "sql": "SELECT age FROM people"},
+            ],
+        },
+        headers=headers,
+    )
+    assert submitted.status_code == 200
+    job = wait_job(client, headers, submitted.json()["job_id"])
+    assert job["status"] == "success"
+    assert job["row_count"] == 4
+
+    download = client.get(f"/api/data-jobs/{job['job_id']}/download", headers=headers)
+    assert download.status_code == 200
+    workbook = load_workbook(io.BytesIO(download.content), read_only=True)
+    assert set(workbook.sheetnames) == {"names", "ages"}
+    workbook.close()
+
+    csv_multi = client.post(
+        "/api/databases/db_multi_test/export",
+        json={
+            "format": "csv",
+            "queries": [
+                {"name": "names", "sql": "SELECT name FROM people"},
+                {"name": "ages", "sql": "SELECT age FROM people"},
+            ],
+        },
+        headers=headers,
+    )
+    assert csv_multi.status_code == 200
+    csv_job = wait_job(client, headers, csv_multi.json()["job_id"])
+    assert csv_job["status"] == "failed"
+
+
 def test_sql_script_is_database_scoped(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     payload = install_sqlite(client, tmp_path)

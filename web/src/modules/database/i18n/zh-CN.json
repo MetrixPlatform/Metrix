@@ -128,7 +128,11 @@
     },
     "export": {
       "title": "导出",
-      "result": "导出结果"
+      "result": "导出结果",
+      "selectTitle": "选择导出结果",
+      "resultItem": "结果 {index}",
+      "noQueries": "未检测到可导出的查询语句（需要 SELECT/WITH）",
+      "multiHint": "已选多个结果，仅支持 XLSX/SQLite/SQL"
     },
     "import": {
       "title": "导入",

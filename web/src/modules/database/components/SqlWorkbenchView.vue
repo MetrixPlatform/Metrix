@@ -69,9 +69,7 @@
                 {{ selectedDatabase || t("database.allSchemas") }}
               </n-tag>
               <n-button type="primary" :loading="executing" @click="executeSql">{{ t("database.sql.execute") }}</n-button>
-              <n-dropdown :options="exportOptions" @select="exportQuery">
-                <n-button>{{ t("database.export.result") }}</n-button>
-              </n-dropdown>
+              <n-button @click="openResultExport">{{ t("database.export.result") }}</n-button>
               <permission-button :permission="SQL_SCRIPT_CREATE" @click="openSaveScript">{{ t("database.script.save") }}</permission-button>
             </div>
             <monaco-editor v-model="sql" class="database-sql-editor" :suggestions="suggestions" />
@@ -146,6 +144,29 @@
       </template>
     </n-modal>
 
+    <n-modal v-model:show="exportModal.show" preset="card" class="modal-card" :title="t('database.export.selectTitle')">
+      <div class="form-stack database-export-form">
+        <n-empty v-if="!exportModal.statements.length" :description="t('database.export.noQueries')" />
+        <n-checkbox-group v-else v-model:value="exportModal.selected" class="database-export-list">
+          <n-checkbox v-for="(statement, index) in exportModal.statements" :key="index" :value="index" class="database-export-item">
+            {{ exportLabel(index, statement) }}
+          </n-checkbox>
+        </n-checkbox-group>
+        <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
+          <n-form-item :label="t('field.format')">
+            <n-select v-model:value="exportModal.format" :options="exportFormatOptions" />
+          </n-form-item>
+        </n-form>
+        <span v-if="exportModal.selected.length > 1" class="muted-text">{{ t("database.export.multiHint") }}</span>
+      </div>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
+          <n-button @click="exportModal.show = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :disabled="!exportModal.selected.length" @click="submitResultExport">{{ t("database.export.title") }}</n-button>
+        </div>
+      </template>
+    </n-modal>
+
     <import-wizard
       v-model:show="showImport"
       :conn-id="connection.conn_id"
@@ -157,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref, type Component, type VNode } from "vue";
+import { computed, h, onMounted, reactive, ref, watch, type Component, type VNode } from "vue";
 import {
   ArrowClockwise20Regular,
   ArrowLeft20Regular,
@@ -171,6 +192,8 @@ import {
 } from "@vicons/fluent";
 import {
   NButton,
+  NCheckbox,
+  NCheckboxGroup,
   NDataTable,
   NDropdown,
   NEmpty,
@@ -179,6 +202,7 @@ import {
   NIcon,
   NInput,
   NModal,
+  NSelect,
   NSwitch,
   NTabPane,
   NTabs,
@@ -248,6 +272,12 @@ const savingRow = ref(false);
 const savingScript = ref(false);
 const showImport = ref(false);
 const importTarget = reactive({ database: "", table: "" });
+const exportModal = reactive({
+  show: false,
+  format: "xlsx" as DataFormat,
+  statements: [] as string[],
+  selected: [] as number[]
+});
 const rowModal = reactive({
   show: false,
   mode: "add" as "add" | "edit",
@@ -283,6 +313,22 @@ const exportOptions = [
 
 const canOperate = computed(() => authStore.has(DATABASE_OPERATE));
 const canDeleteScript = computed(() => authStore.has(SQL_SCRIPT_DELETE));
+const exportFormatOptions = computed(() => {
+  const all = [
+    { label: "CSV", value: "csv" },
+    { label: "XLSX", value: "xlsx" },
+    { label: "SQLite", value: "sqlite" },
+    { label: "SQL", value: "sql" }
+  ];
+  return exportModal.selected.length > 1 ? all.filter((option) => option.value !== "csv") : all;
+});
+
+watch(
+  () => exportModal.selected.length,
+  (count) => {
+    if (count > 1 && exportModal.format === "csv") exportModal.format = "xlsx";
+  }
+);
 const objectModalTitle = computed(() => (objectModal.kind === "schema" ? t("database.schema.create") : t("database.table.create")));
 const suggestions = computed(() => [
   ...schemas.value.map((item) => item.name),
@@ -685,13 +731,94 @@ async function exportTable(format: string | number) {
   handleJobSubmitted(result.job_id);
 }
 
-async function exportQuery(format: string | number) {
+function openResultExport() {
+  const statements = splitReadStatements(sql.value);
+  exportModal.statements = statements;
+  exportModal.selected = statements.map((_, index) => index);
+  exportModal.format = statements.length > 1 ? "xlsx" : "csv";
+  exportModal.show = true;
+}
+
+function exportLabel(index: number, statement: string) {
+  const oneLine = statement.replace(/\s+/g, " ").trim();
+  const preview = oneLine.length > 60 ? `${oneLine.slice(0, 60)}…` : oneLine;
+  return `${t("database.export.resultItem", { index: index + 1 })}: ${preview}`;
+}
+
+async function submitResultExport() {
+  const picked = exportModal.selected
+    .slice()
+    .sort((a, b) => a - b)
+    .map((index) => exportModal.statements[index])
+    .filter(Boolean);
+  if (!picked.length) return;
   const result = await submitExport(props.connection.conn_id, {
-    format: format as DataFormat,
+    format: exportModal.format,
     database: selectedDatabase.value,
-    sql: sql.value
+    queries: picked.map((statement, index) => ({ name: `result_${index + 1}`, sql: statement }))
   });
+  exportModal.show = false;
   handleJobSubmitted(result.job_id);
+}
+
+function splitReadStatements(text: string): string[] {
+  return splitSqlStatements(text).filter((statement) => /^\s*(select|with)\b/i.test(statement));
+}
+
+function splitSqlStatements(text: string): string[] {
+  const statements: string[] = [];
+  let buffer = "";
+  let quote = "";
+  let index = 0;
+  while (index < text.length) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (quote) {
+      buffer += char;
+      if (char === "\\" && quote !== "`") {
+        buffer += next ?? "";
+        index += 2;
+        continue;
+      }
+      if (char === quote) quote = "";
+      index += 1;
+      continue;
+    }
+    if (char === "'" || char === '"' || char === "`") {
+      quote = char;
+      buffer += char;
+      index += 1;
+      continue;
+    }
+    if (char === "-" && next === "-") {
+      while (index < text.length && text[index] !== "\n") {
+        buffer += text[index];
+        index += 1;
+      }
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      buffer += "/*";
+      index += 2;
+      while (index < text.length && !(text[index] === "*" && text[index + 1] === "/")) {
+        buffer += text[index];
+        index += 1;
+      }
+      buffer += "*/";
+      index += 2;
+      continue;
+    }
+    if (char === ";") {
+      if (buffer.trim()) statements.push(buffer.trim());
+      buffer = "";
+      index += 1;
+      continue;
+    }
+    buffer += char;
+    index += 1;
+  }
+  if (buffer.trim()) statements.push(buffer.trim());
+  return statements;
 }
 
 function handleJobSubmitted(jobId: string) {

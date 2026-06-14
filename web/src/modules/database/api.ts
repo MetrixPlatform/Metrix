@@ -253,7 +253,10 @@ export function dropSchema(connId: string, name: string) {
   return del<ServerMessage>(`/databases/${encodeURIComponent(connId)}/schemas/${encodeURIComponent(name)}`);
 }
 
-export function submitExport(connId: string, payload: { format: DataFormat; database?: string; tables?: string[]; sql?: string }) {
+export function submitExport(
+  connId: string,
+  payload: { format: DataFormat; database?: string; tables?: string[]; sql?: string; queries?: { name: string; sql: string }[] }
+) {
   return post<JobSubmitResponse>(`/databases/${encodeURIComponent(connId)}/export`, payload);
 }
 

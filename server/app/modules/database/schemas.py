@@ -298,11 +298,17 @@ class SchemaAlterRequest(BaseModel):
     collation: str = Field(default="", max_length=80)
 
 
+class ExportQuery(BaseModel):
+    name: str = Field(default="", max_length=120)
+    sql: str = Field(min_length=1)
+
+
 class ExportRequest(BaseModel):
     format: Literal["csv", "xlsx", "sqlite", "sql"]
     database: str = Field(default="", max_length=128)
     tables: list[str] = Field(default_factory=list)
     sql: str = ""
+    queries: list[ExportQuery] = Field(default_factory=list)
 
     @field_validator("database")
     @classmethod

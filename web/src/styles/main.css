@@ -2208,6 +2208,18 @@ a {
   color: var(--muted-color);
 }
 
+.database-export-form {
+  gap: 12px;
+}
+
+.database-export-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
 .monaco-editor-box {
   width: 100%;
   height: 100%;

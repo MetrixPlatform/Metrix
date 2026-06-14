@@ -21,19 +21,20 @@ def export_data(runtime: ExternalDatabase, params: dict[str, Any], output_path: 
     database = str(params.get("database") or runtime.database or "")
     tables = [clean_identifier(str(table), "table") for table in params.get("tables") or []]
     sql = str(params.get("sql") or "").strip()
+    queries = _normalize_queries(params.get("queries") or [])
     if fmt == "csv":
-        return _export_csv(runtime, output_path, database, tables, sql)
+        return _export_csv(runtime, output_path, database, tables, sql, queries)
     if fmt == "xlsx":
-        return _export_xlsx(runtime, output_path, database, tables, sql)
+        return _export_xlsx(runtime, output_path, database, tables, sql, queries)
     if fmt == "sqlite":
-        return _export_sqlite(runtime, output_path, database, tables, sql)
+        return _export_sqlite(runtime, output_path, database, tables, sql, queries)
     if fmt == "sql":
-        return _export_sql(runtime, output_path, database, tables, sql)
+        return _export_sql(runtime, output_path, database, tables, sql, queries)
     raise bad_request("error.databaseExportFormatUnsupported", "Unsupported export format")
 
 
-def _export_csv(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str) -> int:
-    datasets = _datasets(runtime, database, tables, sql)
+def _export_csv(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str, queries: list[tuple[str, str]]) -> int:
+    datasets = _datasets(runtime, database, tables, sql, queries)
     if len(datasets) != 1:
         raise bad_request("error.databaseCsvSingleOnly", "CSV export supports one table or one query")
     row_count = 0
@@ -51,10 +52,10 @@ def _export_csv(runtime: ExternalDatabase, output_path: Path, database: str, tab
     return row_count
 
 
-def _export_xlsx(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str) -> int:
+def _export_xlsx(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str, queries: list[tuple[str, str]]) -> int:
     workbook = Workbook(write_only=True)
     row_count = 0
-    for name, columns, rows in _datasets(runtime, database, tables, sql):
+    for name, columns, rows in _datasets(runtime, database, tables, sql, queries):
         sheet = workbook.create_sheet(_safe_sheet_name(name))
         sheet.append(columns)
         for batch in rows:
@@ -67,10 +68,10 @@ def _export_xlsx(runtime: ExternalDatabase, output_path: Path, database: str, ta
     return row_count
 
 
-def _export_sqlite(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str) -> int:
+def _export_sqlite(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str, queries: list[tuple[str, str]]) -> int:
     row_count = 0
     with sqlite3.connect(output_path) as target:
-        for name, columns, rows in _datasets(runtime, database, tables, sql):
+        for name, columns, rows in _datasets(runtime, database, tables, sql, queries):
             table_name = _safe_sqlite_identifier(name)
             target.execute(f'DROP TABLE IF EXISTS "{table_name}"')
             target.execute(f'CREATE TABLE "{table_name}" ({", ".join(f"{_q_sqlite(column)} TEXT" for column in columns)})')
@@ -83,10 +84,10 @@ def _export_sqlite(runtime: ExternalDatabase, output_path: Path, database: str, 
     return row_count
 
 
-def _export_sql(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str) -> int:
+def _export_sql(runtime: ExternalDatabase, output_path: Path, database: str, tables: list[str], sql: str, queries: list[tuple[str, str]]) -> int:
     row_count = 0
     with output_path.open("w", encoding="utf-8", newline="\n") as file:
-        for name, columns, rows in _datasets(runtime, database, tables, sql):
+        for name, columns, rows in _datasets(runtime, database, tables, sql, queries):
             table_name = runtime.quote_identifier(_safe_sql_identifier(name))
             file.write(f"DROP TABLE IF EXISTS {table_name};\n")
             file.write(f"CREATE TABLE {table_name} ({', '.join(runtime.quote_identifier(column) + ' TEXT' for column in columns)});\n")
@@ -98,12 +99,31 @@ def _export_sql(runtime: ExternalDatabase, output_path: Path, database: str, tab
     return row_count
 
 
+def _normalize_queries(raw: list[Any]) -> list[tuple[str, str]]:
+    queries: list[tuple[str, str]] = []
+    for index, item in enumerate(raw, start=1):
+        statement = str(item.get("sql") if isinstance(item, dict) else "").strip()
+        if not statement:
+            continue
+        name = str(item.get("name") or "").strip() if isinstance(item, dict) else ""
+        queries.append((name or f"query_{index}", statement))
+    return queries
+
+
 def _datasets(
     runtime: ExternalDatabase,
     database: str,
     tables: list[str],
     sql: str,
+    queries: list[tuple[str, str]],
 ) -> list[tuple[str, list[str], Iterable[list[dict[str, Any]]]]]:
+    if queries:
+        datasets = []
+        for name, statement in queries:
+            if classify_sql(statement) != "read":
+                raise bad_request("error.databaseExportReadOnly", "Only read SQL can be exported")
+            datasets.append((name, _query_columns(runtime, statement), _query_batches(runtime, statement)))
+        return datasets
     if sql:
         if classify_sql(sql) != "read":
             raise bad_request("error.databaseExportReadOnly", "Only read SQL can be exported")
