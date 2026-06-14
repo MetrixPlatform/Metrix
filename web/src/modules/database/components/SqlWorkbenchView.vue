@@ -42,7 +42,7 @@
               <n-input v-model:value="tableFilter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="loadTableData" />
               <n-button :disabled="!selectedTable" @click="loadTableData">{{ t("common.search") }}</n-button>
               <permission-button :permission="DATABASE_OPERATE" :disabled="!selectedTable" @click="openAddRow">{{ t("database.row.add") }}</permission-button>
-              <permission-button :permission="DATABASE_OPERATE" :disabled="!selectedTable" @click="showImport = true">{{ t("database.import.title") }}</permission-button>
+              <permission-button :permission="DATABASE_OPERATE" :disabled="!selectedTable" @click="openImport">{{ t("database.import.title") }}</permission-button>
               <n-dropdown :options="exportOptions" :disabled="!selectedTable" @select="exportTable">
                 <n-button>{{ t("database.export.title") }}</n-button>
               </n-dropdown>
@@ -147,8 +147,8 @@
     <import-wizard
       v-model:show="showImport"
       :conn-id="connection.conn_id"
-      :database="selectedDatabase || ''"
-      :table="selectedTable || ''"
+      :database="importTarget.database"
+      :table="importTarget.table"
       @submitted="handleJobSubmitted"
     />
   </section>
@@ -245,6 +245,7 @@ const queryResult = ref<QueryResult | null>(null);
 const savingRow = ref(false);
 const savingScript = ref(false);
 const showImport = ref(false);
+const importTarget = reactive({ database: "", table: "" });
 const rowModal = reactive({
   show: false,
   mode: "add" as "add" | "edit",
@@ -372,6 +373,7 @@ function renderTreeSuffix({ option }: { option: TreeOption }) {
     return nodeActions([
       opsButton(
         [
+          { label: t("database.import.title"), key: "import" },
           { label: t("database.table.truncate"), key: "truncate" },
           { label: t("database.table.drop"), key: "drop" }
         ],
@@ -712,8 +714,21 @@ function handleSchemaOp(key: string, database: string) {
 }
 
 function handleTableOp(key: string, database: string, table: string) {
-  if (key === "truncate") truncateTableByName(database, table);
+  if (key === "import") openImportForTable(database, table);
+  else if (key === "truncate") truncateTableByName(database, table);
   else if (key === "drop") dropTableByName(database, table);
+}
+
+function openImport() {
+  importTarget.database = selectedDatabase.value;
+  importTarget.table = selectedTable.value;
+  showImport.value = true;
+}
+
+function openImportForTable(database: string, table: string) {
+  importTarget.database = database;
+  importTarget.table = table;
+  showImport.value = true;
 }
 
 function handleScriptOp(key: string, script: SqlScript) {

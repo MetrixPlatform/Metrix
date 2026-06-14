@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import { NButton, NForm, NFormItem, NInput, NModal, NSelect, NSwitch, useMessage } from "naive-ui";
 
 import { t } from "../../../i18n";
@@ -66,6 +66,16 @@ const modeOptions = [
   { label: t("database.import.overwrite"), value: "overwrite" },
   { label: t("database.import.upsert"), value: "upsert" }
 ];
+
+watch(
+  () => props.show,
+  (show) => {
+    if (!show) return;
+    form.database = props.database;
+    form.target_table = props.table;
+    file.value = null;
+  }
+);
 
 function handleFile(event: Event) {
   const input = event.target as HTMLInputElement;
