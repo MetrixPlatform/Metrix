@@ -12,13 +12,17 @@
     <div class="database-workbench-body">
       <aside class="database-sidebar">
         <div class="database-sidebar-actions">
-          <n-button size="small" @click="refreshMetadata">{{ t("common.refresh") }}</n-button>
-          <permission-button :permission="DATABASE_OPERATE" size="small" @click="createSchemaPrompt">{{ t("database.schema.create") }}</permission-button>
+          <n-button class="database-sidebar-button" size="small" @click="refreshMetadata">{{ t("common.refresh") }}</n-button>
+          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" @click="createSchemaPrompt">
+            {{ t("database.schema.create") }}
+          </permission-button>
         </div>
-        <n-select v-model:value="selectedDatabase" :options="schemaOptions" filterable clearable @update:value="handleDatabaseChange" />
+        <n-select v-model:value="selectedDatabase" class="database-schema-select" :options="schemaOptions" filterable clearable @update:value="handleDatabaseChange" />
         <div class="database-tree-actions">
-          <permission-button :permission="DATABASE_OPERATE" size="small" @click="createTablePrompt">{{ t("database.table.create") }}</permission-button>
-          <permission-button :permission="DATABASE_OPERATE" size="small" type="error" :disabled="!selectedTable" @click="dropSelectedTable">
+          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" @click="createTablePrompt">
+            {{ t("database.table.create") }}
+          </permission-button>
+          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" type="error" :disabled="!selectedTable" @click="dropSelectedTable">
             {{ t("database.table.drop") }}
           </permission-button>
         </div>
@@ -37,7 +41,7 @@
 
       <main class="database-main">
         <n-tabs v-model:value="activeTab" type="line" animated>
-          <n-tab-pane name="data" :tab="t('database.tabs.data')" display-directive="show">
+          <n-tab-pane class="database-tab-pane" name="data" :tab="t('database.tabs.data')" display-directive="show">
             <div class="database-sub-toolbar">
               <n-input v-model:value="tableFilter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="loadTableData" />
               <n-button :disabled="!selectedTable" @click="loadTableData">{{ t("common.search") }}</n-button>
@@ -62,7 +66,7 @@
             />
           </n-tab-pane>
 
-          <n-tab-pane name="sql" :tab="t('database.tabs.sql')" display-directive="show">
+          <n-tab-pane class="database-tab-pane" name="sql" :tab="t('database.tabs.sql')" display-directive="show">
             <div class="database-sub-toolbar">
               <n-select v-model:value="selectedDatabase" class="database-toolbar-select" :options="schemaOptions" clearable @update:value="handleDatabaseChange" />
               <n-button type="primary" :loading="executing" @click="executeSql">{{ t("database.sql.execute") }}</n-button>
@@ -83,7 +87,7 @@
             />
           </n-tab-pane>
 
-          <n-tab-pane name="scripts" :tab="t('database.tabs.scripts')" display-directive="show">
+          <n-tab-pane class="database-tab-pane" name="scripts" :tab="t('database.tabs.scripts')" display-directive="show">
             <div class="database-sub-toolbar">
               <n-input v-model:value="scriptKeyword" class="filter-keyword" clearable :placeholder="t('database.script.search')" @keyup.enter="loadScripts" />
               <n-button @click="loadScripts">{{ t("common.search") }}</n-button>

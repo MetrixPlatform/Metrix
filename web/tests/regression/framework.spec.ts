@@ -124,6 +124,85 @@ test("opens database management and embedded jobs without raw i18n keys", async 
   await expect.poll(() => dataJobRequests.some((url) => url.includes("sort_order=ascend"))).toBe(true);
 });
 
+test("keeps database workbench layout readable", async ({ page }) => {
+  await mockApi(page, { installed: true, session: adminSession });
+  await page.route("**/api/databases**", (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/databases/db_test/schemas") {
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify([{ name: "0421" }])
+      });
+    }
+    if (url.pathname === "/api/databases/db_test/tables") {
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify([{ name: "capacityreport" }])
+      });
+    }
+    if (url.pathname === "/api/databases/db_test/table-data") {
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          columns: [],
+          primary_keys: [],
+          rows: [],
+          total: 0,
+          page: 1,
+          page_size: 100
+        })
+      });
+    }
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: 1,
+            conn_id: "db_test",
+            name: "test",
+            db_type: "mysql",
+            host: "127.0.0.1",
+            port: 3306,
+            username: "root",
+            default_database: "0421",
+            is_shared: true,
+            is_active: true,
+            created_by: 1,
+            created_by_username: "rootadmin",
+            created_at: "2026-06-14T00:00:00Z",
+            updated_at: "2026-06-14T00:00:00Z"
+          }
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20
+      })
+    });
+  });
+  await page.route("**/api/sql-scripts**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 100 })
+    })
+  );
+  await page.addInitScript(() => {
+    localStorage.setItem("metrix.token", "browser-test-token");
+  });
+
+  await page.goto("/database");
+  await page.getByRole("button", { name: "test" }).click();
+  await expect(page.locator(".database-sidebar")).toBeVisible();
+
+  await expect.poll(() => page.locator(".database-sidebar").evaluate((node) => node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(260);
+  await expect
+    .poll(() => page.locator(".database-sidebar-actions").evaluate((node) => node.scrollWidth <= node.clientWidth + 1))
+    .toBe(true);
+
+  await page.getByText("SQL", { exact: true }).click();
+  await expect.poll(() => page.locator(".database-sql-editor").evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(280);
+});
+
 async function mockApi(
   page: Page,
   options: {
