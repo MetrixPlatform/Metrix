@@ -763,4 +763,4 @@
 - 导出器支持 CSV（单表/单查询）、XLSX（多表多 sheet，`openpyxl` write_only）、SQLite、SQL；导入器支持 CSV/XLSX/SQLite/SQL，提供 append/overwrite/upsert 与可选自动建表，均按批读取/写入，避免一次性加载大数据。
 - 前端新增 `/database` 连接列表与页内 SQL 工作台：列表沿用 storage 规范，点击名称进入工作台；工作台包含库/表选择、表数据网格、行 JSON 编辑、新建库/表、删表、Monaco SQL 编辑器、执行结果表、导出结果、脚本保存/载入/执行和导入向导。新增 `/database/jobs` 数据任务页，按类型/状态筛选，轮询运行中任务，支持下载成功导出与删除任务。
 - 前端依赖新增 `monaco-editor`，后端依赖新增 `openpyxl`，均可随离线包安装；系统设置页新增“数据任务”标签，可调整导入/导出并发数。
-- 验证：`compileall server/app` 通过；`pytest server/tests -q` 43 passed；`npm run test:smoke` 通过；`npm run build` 通过；ReadLints 无新增诊断。本地 MySQL `127.0.0.1:3306 root/123456` API 级集成验证通过（创建连接、测试连接、元数据、查询、写入、XLSX 异步导出与下载）。Docker MariaDB 验证因本机无 `mariadb:11` 镜像且 Docker Hub 拉取超时未完成，需要在有镜像或可访问 Docker Hub 的环境补跑。
+- 验证：`compileall server/app` 通过；`pytest server/tests -q` 43 passed；`npm run test:smoke` 通过；`npm run build` 通过；ReadLints 无新增诊断。本地 MySQL `127.0.0.1:3306 root/123456` API 级集成验证通过（创建连接、测试连接、元数据、查询、写入、XLSX 异步导出与下载）。Docker MariaDB 集成验证已通过：使用 `127.0.0.1:7897` 代理经 Registry API 下载/导入 `mariadb:11` 镜像后，临时容器完成创建连接、测试连接、schema/table 元数据、查询、写入、SQL 异步导出与下载验证。
