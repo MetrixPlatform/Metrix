@@ -6,6 +6,7 @@
 import * as monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import "monaco-editor/esm/vs/basic-languages/sql/sql.contribution";
+import { language as sqlLanguage } from "monaco-editor/esm/vs/basic-languages/sql/sql.js";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { appStore } from "../../../stores/app";
@@ -16,14 +17,10 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ (event: "update:modelValue", value: string): void }>();
 
-const SQL_KEYWORDS = [
-  "SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "LIMIT", "OFFSET", "JOIN", "INNER JOIN",
-  "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "ON", "AS", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN", "IS NULL",
-  "IS NOT NULL", "DISTINCT", "COUNT", "SUM", "AVG", "MIN", "MAX", "INSERT INTO", "VALUES", "UPDATE", "SET",
-  "DELETE FROM", "CREATE TABLE", "ALTER TABLE", "DROP TABLE", "TRUNCATE TABLE", "CREATE DATABASE", "DROP DATABASE",
-  "CREATE INDEX", "PRIMARY KEY", "FOREIGN KEY", "REFERENCES", "DEFAULT", "AUTO_INCREMENT", "UNION", "UNION ALL",
-  "CASE", "WHEN", "THEN", "ELSE", "END", "ASC", "DESC", "SHOW TABLES", "SHOW DATABASES", "DESCRIBE", "EXPLAIN"
-];
+// Reuse the keyword/function lists Monaco already ships with its SQL grammar
+// (monaco-editor/.../sql.js) instead of hand-maintaining a keyword list.
+const SQL_KEYWORDS = sqlLanguage.keywords;
+const SQL_FUNCTIONS = sqlLanguage.builtinFunctions;
 
 const containerRef = ref<HTMLElement | null>(null);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
@@ -51,19 +48,28 @@ onMounted(() => {
         startColumn: word.startColumn,
         endColumn: word.endColumn
       };
-      const keywords = SQL_KEYWORDS.map((label) => ({
-        label,
-        kind: monaco.languages.CompletionItemKind.Keyword,
-        insertText: label,
-        range
-      }));
       const fields = (props.suggestions || []).map((label) => ({
         label,
         kind: monaco.languages.CompletionItemKind.Field,
         insertText: label,
-        range
+        range,
+        sortText: `0_${label}`
       }));
-      return { suggestions: [...keywords, ...fields] };
+      const functions = SQL_FUNCTIONS.map((label) => ({
+        label,
+        kind: monaco.languages.CompletionItemKind.Function,
+        insertText: label,
+        range,
+        sortText: `1_${label}`
+      }));
+      const keywords = SQL_KEYWORDS.map((label) => ({
+        label,
+        kind: monaco.languages.CompletionItemKind.Keyword,
+        insertText: label,
+        range,
+        sortText: `2_${label}`
+      }));
+      return { suggestions: [...fields, ...functions, ...keywords] };
     }
   });
   editor = monaco.editor.create(containerRef.value, {

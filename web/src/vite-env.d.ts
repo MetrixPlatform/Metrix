@@ -13,3 +13,13 @@ declare module "*.vue" {
   const component: DefineComponent<object, object, unknown>;
   export default component;
 }
+
+declare module "monaco-editor/esm/vs/basic-languages/sql/sql.js" {
+  export const conf: unknown;
+  export const language: {
+    keywords: string[];
+    operators: string[];
+    builtinFunctions: string[];
+    builtinVariables: string[];
+  };
+}
