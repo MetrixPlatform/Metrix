@@ -1,7 +1,9 @@
 <template>
   <section class="work-card database-workbench">
     <div class="toolbar database-workbench-toolbar">
-      <n-button size="small" quaternary @click="emit('close')">{{ t("common.back") }}</n-button>
+      <n-button size="small" quaternary :title="t('common.back')" :aria-label="t('common.back')" @click="emit('close')">
+        <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+      </n-button>
       <span class="database-workbench-title">{{ connection.name }}</span>
       <n-tag size="small" :bordered="false">{{ connection.db_type.toUpperCase() }}</n-tag>
       <span class="muted-text">{{ connection.host }}:{{ connection.port }}</span>
@@ -154,12 +156,14 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
+import { ArrowLeft20Regular } from "@vicons/fluent";
 import {
   NButton,
   NDataTable,
   NDropdown,
   NForm,
   NFormItem,
+  NIcon,
   NInput,
   NModal,
   NScrollbar,
