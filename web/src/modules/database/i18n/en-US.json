@@ -86,8 +86,7 @@
     },
     "tabs": {
       "data": "Data",
-      "sql": "SQL",
-      "scripts": "Scripts"
+      "sql": "SQL"
     },
     "schema": {
       "create": "New database",
@@ -118,7 +117,6 @@
       "hideResult": "Collapse result"
     },
     "script": {
-      "search": "Search scripts",
       "save": "Save script",
       "load": "Load",
       "run": "Run",

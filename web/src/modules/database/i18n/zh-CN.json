@@ -86,8 +86,7 @@
     },
     "tabs": {
       "data": "数据",
-      "sql": "SQL",
-      "scripts": "脚本"
+      "sql": "SQL"
     },
     "schema": {
       "create": "新建库",
@@ -118,7 +117,6 @@
       "hideResult": "折叠结果"
     },
     "script": {
-      "search": "搜索脚本",
       "save": "保存脚本",
       "load": "载入",
       "run": "执行",
