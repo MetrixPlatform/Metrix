@@ -124,6 +124,20 @@
       </template>
     </n-modal>
 
+    <n-modal v-model:show="objectModal.show" preset="card" class="modal-card" :title="objectModalTitle">
+      <n-form class="form-stack inline-form" label-placement="left" label-width="auto" @keyup.enter="saveObject">
+        <n-form-item :label="objectModal.kind === 'schema' ? t('database.schema.name') : t('database.table.name')">
+          <n-input v-model:value="objectModal.name" />
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
+          <n-button @click="objectModal.show = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :loading="objectModal.saving" @click="saveObject">{{ t("common.save") }}</n-button>
+        </div>
+      </template>
+    </n-modal>
+
     <import-wizard
       v-model:show="showImport"
       :conn-id="connection.conn_id"
@@ -220,6 +234,12 @@ const scriptModal = reactive({
   description: "",
   is_shared: false
 });
+const objectModal = reactive({
+  show: false,
+  kind: "schema" as "schema" | "table",
+  name: "",
+  saving: false
+});
 const dataPagination = reactive({
   page: 1,
   pageSize: 100,
@@ -235,6 +255,7 @@ const exportOptions = [
   { label: "SQL", key: "sql" }
 ];
 const schemaOptions = computed(() => schemas.value.map((item) => ({ label: item.name, value: item.name })));
+const objectModalTitle = computed(() => (objectModal.kind === "schema" ? t("database.schema.create") : t("database.table.create")));
 const suggestions = computed(() => [
   ...schemas.value.map((item) => item.name),
   ...tables.value.map((item) => item.name),
@@ -432,25 +453,38 @@ function handleJobSubmitted(jobId: string) {
   message.success(t("database.jobs.submitted", { id: jobId }));
 }
 
-async function createSchemaPrompt() {
-  const name = window.prompt(t("database.schema.name"));
-  if (!name) return;
-  await createSchema(props.connection.conn_id, { name });
-  await refreshMetadata();
+function createSchemaPrompt() {
+  Object.assign(objectModal, { show: true, kind: "schema", name: "", saving: false });
 }
 
-async function createTablePrompt() {
-  const name = window.prompt(t("database.table.name"));
+function createTablePrompt() {
+  Object.assign(objectModal, { show: true, kind: "table", name: "", saving: false });
+}
+
+async function saveObject() {
+  const name = objectModal.name.trim();
   if (!name) return;
-  await createTable(props.connection.conn_id, {
-    database: selectedDatabase.value,
-    name,
-    columns: [
-      { name: "id", type: "INT", nullable: false, primary_key: true, autoincrement: true },
-      { name: "name", type: "VARCHAR(255)", nullable: true }
-    ]
-  });
-  await refreshMetadata();
+  objectModal.saving = true;
+  try {
+    if (objectModal.kind === "schema") {
+      await createSchema(props.connection.conn_id, { name });
+    } else {
+      await createTable(props.connection.conn_id, {
+        database: selectedDatabase.value,
+        name,
+        columns: [
+          { name: "id", type: "INT", nullable: false, primary_key: true, autoincrement: true },
+          { name: "name", type: "VARCHAR(255)", nullable: true }
+        ]
+      });
+    }
+    objectModal.show = false;
+    await refreshMetadata();
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    objectModal.saving = false;
+  }
 }
 
 function dropSelectedTable() {

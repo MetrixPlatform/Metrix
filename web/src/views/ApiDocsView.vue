@@ -495,7 +495,7 @@ function buildRequestUrl(operation: OperationEntry) {
       path = path.replace(`{${parameter.name}}`, encodeURIComponent(value));
     } else if (parameter.in === "query") {
       if (!value && parameter.required) {
-        throw new Error(t("apiDocs.pathParamRequired", { name: parameter.name }));
+        throw new Error(t("apiDocs.queryParamRequired", { name: parameter.name }));
       }
       if (value) {
         query.set(parameter.name, value);

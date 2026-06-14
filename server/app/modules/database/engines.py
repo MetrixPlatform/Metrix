@@ -14,22 +14,7 @@ from app.modules.database.models import DatabaseConnection
 from app.modules.database.schemas import ColumnItem, clean_identifier
 
 READ_SQL_KEYWORDS = {"SELECT", "SHOW", "DESC", "DESCRIBE", "EXPLAIN", "WITH"}
-WRITE_SQL_KEYWORDS = {
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "CREATE",
-    "ALTER",
-    "DROP",
-    "TRUNCATE",
-    "RENAME",
-    "REPLACE",
-    "CALL",
-    "GRANT",
-    "REVOKE",
-    "SET",
-    "USE",
-}
+PAGEABLE_READ_KEYWORDS = {"SELECT", "WITH"}
 MAX_PAGE_SIZE = 1000
 DEFAULT_TIMEOUT_SECONDS = 30
 
@@ -40,14 +25,13 @@ class Dialect:
     url_prefix: str
     default_port: int
     quote_char: str = "`"
-    supports_schema: bool = True
 
 
 DIALECTS = {
     "mysql": Dialect("mysql", "mysql+pymysql", 3306),
     "mariadb": Dialect("mariadb", "mysql+pymysql", 3306),
     # SQLite is kept for deterministic tests and local verification; UI only exposes MySQL/MariaDB.
-    "sqlite": Dialect("sqlite", "sqlite", 0, '"', False),
+    "sqlite": Dialect("sqlite", "sqlite", 0, '"'),
 }
 
 
@@ -134,12 +118,15 @@ class ExternalDatabase:
     def execute_sql(self, sql: str, page: int = 1, page_size: int = 100) -> tuple[list[str], list[dict[str, Any]], int, int]:
         statement = sql.strip().rstrip(";")
         page_size = clamp_page_size(page_size)
-        offset = max(page - 1, 0) * page_size
-        paged_sql = f"{statement} LIMIT :limit OFFSET :offset"
-        params = {"limit": page_size, "offset": offset}
+        keyword = first_keyword(statement)
         with self.engine.connect() as conn:
-            total = _query_total(conn, statement)
-            result = conn.execute(text(paged_sql), params)
+            if keyword in PAGEABLE_READ_KEYWORDS:
+                offset = max(page - 1, 0) * page_size
+                result = conn.execute(text(f"{statement} LIMIT :limit OFFSET :offset"), {"limit": page_size, "offset": offset})
+                total = _query_total(conn, statement)
+            else:
+                result = conn.execute(text(statement))
+                total = -1
             rows = rows_to_dicts(result.mappings().all())
             return list(result.keys()), rows, total if total >= 0 else len(rows), result.rowcount if result.rowcount > 0 else 0
 

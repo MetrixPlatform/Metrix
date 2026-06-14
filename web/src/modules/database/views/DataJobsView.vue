@@ -33,6 +33,7 @@ import type { DataTableColumns, DataTableFilterState, DataTableSortState } from 
 
 import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
+import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
 import { singleFilterValue } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
@@ -200,8 +201,6 @@ function statusType(status: string) {
 
 function formatSize(value: number) {
   if (!value) return "-";
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  return formatFileSize(value);
 }
 </script>

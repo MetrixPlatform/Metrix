@@ -4,6 +4,9 @@ from pathlib import Path
 from sqlalchemy import create_engine, text
 
 from app.core.security import decrypt_secret, encrypt_secret
+from app.modules.database.engines import ExternalDatabase
+from app.modules.database.importers import _insert_batch
+from app.modules.database.models import DatabaseConnection
 from test_auth_rbac import create_client, install_sqlite, login
 
 
@@ -125,3 +128,32 @@ def wait_job(client, headers, job_id: str):
             return payload
         time.sleep(0.1)
     raise AssertionError("data job did not finish")
+
+
+def test_database_import_uses_safe_bind_names(tmp_path):
+    target_path = tmp_path / "bind_names.db"
+    engine = create_engine(f"sqlite:///{target_path}")
+    with engine.begin() as conn:
+        conn.execute(text('CREATE TABLE special ("value$" TEXT)'))
+    engine.dispose()
+
+    connection = DatabaseConnection(
+        conn_id="bind_names",
+        name="Bind Names",
+        db_type="sqlite",
+        host=str(target_path),
+        port=0,
+        username="sqlite",
+        password_encrypted="",
+        default_database="",
+        is_shared=True,
+        is_active=True,
+        created_by=1,
+    )
+    with ExternalDatabase(connection, "") as runtime:
+        assert _insert_batch(runtime, "", "special", [{"value$": "ok"}], "append") == 1
+        columns, rows, total, _ = runtime.execute_sql('SELECT "value$" AS value FROM special')
+
+    assert columns == ["value"]
+    assert rows == [{"value": "ok"}]
+    assert total == 1

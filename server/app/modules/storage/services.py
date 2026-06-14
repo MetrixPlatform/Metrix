@@ -217,18 +217,19 @@ class StorageService:
         connection = self._get_usable(actor, storage_id)
         virtual = _virtual_path(path)
         client = self._connect(connection)
+        stream_ready = False
         try:
             if not client.is_dir(_remote_path(connection, virtual)):
                 raise bad_request("error.storageNotDirectory", "Target is not a directory")
             base_name = posixpath.basename(virtual) or connection.storage_id
             archive = ZipStream(compress_type=ZIP_DEFLATED)
             self._add_dir_to_zip(client, connection, virtual, base_name, archive, depth=0)
+            stream_ready = True
         except StorageOperationError as exc:
-            client.close()
             raise _operation_error(exc)
-        except BaseException:
-            client.close()
-            raise
+        finally:
+            if not stream_ready:
+                client.close()
         return f"{base_name}.zip", _zip_stream(archive, client)
 
     def upload(self, actor: User, storage_id: str, path: str, filename: str, fileobj: BinaryIO, size: int | None) -> StorageEntry:

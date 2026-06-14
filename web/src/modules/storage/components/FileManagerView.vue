@@ -90,6 +90,7 @@ import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { saveBlob } from "../../../utils/download";
+import { formatFileSize } from "../../../utils/format";
 import { messageText, showError } from "../../../utils/message";
 import {
   deleteStorageEntry,
@@ -403,16 +404,5 @@ function parentPath(value: string) {
   return index <= 0 ? "/" : value.slice(0, index);
 }
 
-function formatSize(size: number) {
-  if (size < 1024) return `${size} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = size;
-  let unit = "B";
-  for (const next of units) {
-    if (value < 1024) break;
-    value /= 1024;
-    unit = next;
-  }
-  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${unit}`;
-}
+const formatSize = formatFileSize;
 </script>

@@ -504,6 +504,7 @@
     "bodyPlaceholder": "JSON 请求体",
     "tokenRequired": "请先填写 API Token",
     "pathParamRequired": "请填写路径参数 {name}",
+    "queryParamRequired": "请填写查询参数 {name}",
     "invalidJson": "请求体不是有效 JSON",
     "testSuccess": "接口测试完成"
   },

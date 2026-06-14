@@ -8,7 +8,7 @@ from typing import Any
 from openpyxl import load_workbook
 
 from app.core.exceptions import bad_request
-from app.modules.database.engines import ExternalDatabase, split_sql_statements
+from app.modules.database.engines import ExternalDatabase, placeholder_name, split_sql_statements
 from app.modules.database.schemas import clean_identifier
 
 BATCH_SIZE = 500
@@ -165,7 +165,8 @@ def _insert_batch(runtime: ExternalDatabase, database: str, table: str, rows: li
     columns = list(rows[0].keys())
     table_sql = runtime.qualified_table(table, database)
     cols_sql = ", ".join(runtime.quote_identifier(column) for column in columns)
-    values_sql = ", ".join(f":{column}" for column in columns)
+    placeholders = {column: placeholder_name(column) for column in columns}
+    values_sql = ", ".join(f":{placeholders[column]}" for column in columns)
     prefix = "INSERT"
     suffix = ""
     if mode == "upsert":
@@ -178,4 +179,5 @@ def _insert_batch(runtime: ExternalDatabase, database: str, table: str, rows: li
                 f"{runtime.quote_identifier(column)} = VALUES({runtime.quote_identifier(column)})" for column in update_columns
             )
     sql = f"{prefix} INTO {table_sql} ({cols_sql}) VALUES ({values_sql}){suffix}"
-    return runtime.execute_many(sql, rows)
+    bound_rows = [{placeholders[column]: row.get(column) for column in columns} for row in rows]
+    return runtime.execute_many(sql, bound_rows)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import shutil
 import threading
 import uuid
@@ -40,6 +41,7 @@ from app.services.settings import SettingService
 
 DATA_JOB_RETENTION_HOURS = 24
 DATA_JOB_CLEANUP_INTERVAL_SECONDS = 30 * 60
+logger = logging.getLogger(__name__)
 
 _executor_lock = threading.Lock()
 _executor: ThreadPoolExecutor | None = None
@@ -185,7 +187,8 @@ def reset_interrupted_jobs() -> None:
     except HTTPException as exc:
         if exc.status_code != 503:
             raise
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
+        logger.warning("Skip interrupted data job reset: %s", exc)
         return
 
 
@@ -212,7 +215,8 @@ def cleanup_data_jobs_once() -> None:
     except HTTPException as exc:
         if exc.status_code != 503:
             raise
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
+        logger.warning("Skip data job cleanup: %s", exc)
         return
 
 
@@ -220,7 +224,7 @@ def shutdown_data_job_executor() -> None:
     global _executor, _executor_workers
     with _executor_lock:
         if _executor is not None:
-            _executor.shutdown(wait=False)
+            _executor.shutdown(wait=True, cancel_futures=False)
         _executor = None
         _executor_workers = 0
 
@@ -255,7 +259,7 @@ def _run_job(job_id: str) -> None:
                 job.status = "success"
                 job.finished_at = utc_now()
                 db.commit()
-        except BaseException as exc:
+        except Exception as exc:
             if job.kind == "import":
                 _remove_file(job.file_path)
             _fail_job(db, job, str(exc)[:120] or "error.dataJobFailed")
@@ -277,7 +281,7 @@ def _pool(db: Session) -> ThreadPoolExecutor:
             _executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="data-job")
             _executor_workers = workers
             if old is not None:
-                old.shutdown(wait=False)
+                old.shutdown(wait=True, cancel_futures=False)
         return _executor
 
 

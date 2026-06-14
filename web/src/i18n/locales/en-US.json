@@ -504,6 +504,7 @@
     "bodyPlaceholder": "JSON request body",
     "tokenRequired": "Enter an API token first",
     "pathParamRequired": "Enter path parameter {name}",
+    "queryParamRequired": "Enter query parameter {name}",
     "invalidJson": "Request body is not valid JSON",
     "testSuccess": "API test completed"
   },
