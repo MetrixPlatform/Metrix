@@ -54,6 +54,12 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     assert tables.status_code == 200
     assert {"name": "people"} in tables.json()
 
+    numeric_schema_tables = client.get("/api/databases/db_sqlite_test/tables?database=0421", headers=headers)
+    assert numeric_schema_tables.status_code == 200
+
+    invalid_schema_tables = client.get("/api/databases/db_sqlite_test/tables?database=bad-name", headers=headers)
+    assert invalid_schema_tables.status_code == 400
+
     table_data = client.get("/api/databases/db_sqlite_test/table-data?table=people&page_size=10", headers=headers)
     assert table_data.status_code == 200
     assert table_data.json()["total"] == 2

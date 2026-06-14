@@ -1,10 +1,11 @@
 <template>
-  <section class="work-card table-page-card">
-    <div class="toolbar">
-      <div class="toolbar-title-row">
-        <n-button v-if="props.embedded" size="small" quaternary @click="emit('close')">{{ t("common.back") }}</n-button>
-        <span class="database-workbench-title">{{ t("database.jobs.view") }}</span>
-      </div>
+  <section class="work-card table-page-card database-jobs-view">
+    <div class="toolbar file-manager-toolbar">
+      <n-button v-if="props.embedded" size="small" quaternary :title="t('common.back')" :aria-label="t('common.back')" @click="emit('close')">
+        <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
+      </n-button>
+      <span class="file-manager-title">{{ t("database.jobs.view") }}</span>
+      <div class="file-manager-spacer" />
       <n-button @click="loadJobs">{{ t("common.refresh") }}</n-button>
     </div>
     <n-data-table
@@ -27,7 +28,7 @@
 
 <script setup lang="ts">
 import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { Delete20Regular, ArrowDownload20Regular } from "@vicons/fluent";
+import { ArrowDownload20Regular, ArrowLeft20Regular, Delete20Regular } from "@vicons/fluent";
 import { NButton, NDataTable, NIcon, NSpace, NTag, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 

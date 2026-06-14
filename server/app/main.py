@@ -2,15 +2,17 @@ import asyncio
 from copy import deepcopy
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic_core import PydanticCustomError
 from swagger_ui_bundle import swagger_ui_path
 
 from app.core.config import PROJECT_DIR, get_settings
 from app.core.deps import require_api_feature_enabled, require_permission
+from app.core.exceptions import error_detail
 from app.core.permissions import API_DOCS_READ
 from app.models import User
 from app.modules.registry import get_openapi_hidden_path_prefixes, get_openapi_hidden_tags, load_module_routers
@@ -63,6 +65,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_exception_handler(PydanticCustomError, validation_error_response)
     for router in load_module_routers():
         app.include_router(router)
     app.mount("/static/swagger-ui", StaticFiles(directory=swagger_ui_path), name="swagger-ui")
@@ -90,6 +93,13 @@ def create_app() -> FastAPI:
     _mount_frontend(app)
 
     return app
+
+
+async def validation_error_response(_: Request, exc: PydanticCustomError) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content=error_detail(getattr(exc, "type", "validation.invalidFormat"), exc.message()),
+    )
 
 
 def _mount_frontend(app: FastAPI) -> None:

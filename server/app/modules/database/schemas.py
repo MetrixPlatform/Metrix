@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 CONN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$")
-IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,127}$")
+IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_$]{1,128}$")
 
 
 def clean_identifier(value: str, field_name: str = "identifier") -> str:
