@@ -734,16 +734,20 @@ async function saveRow() {
   }
 }
 
-function confirmDeleteRow(row: Record<string, unknown>) {
+function confirmAction(content: string, onConfirm: () => Promise<void>, positiveText: string = t("common.delete")) {
   dialog.warning({
     title: t("common.confirm"),
-    content: t("database.row.deleteConfirm"),
-    positiveText: t("common.delete"),
+    content,
+    positiveText,
     negativeText: t("common.cancel"),
-    onPositiveClick: async () => {
-      await deleteRow(props.connection.conn_id, { database: selectedDatabase.value, table: selectedTable.value, keys: rowKeys(row) });
-      await loadTableData();
-    }
+    onPositiveClick: onConfirm
+  });
+}
+
+function confirmDeleteRow(row: Record<string, unknown>) {
+  confirmAction(t("database.row.deleteConfirm"), async () => {
+    await deleteRow(props.connection.conn_id, { database: selectedDatabase.value, table: selectedTable.value, keys: rowKeys(row) });
+    await loadTableData();
   });
 }
 
@@ -929,46 +933,32 @@ async function saveObject() {
 }
 
 function dropTableByName(database: string, table: string) {
-  dialog.warning({
-    title: t("common.confirm"),
-    content: t("database.table.dropConfirm", { name: table }),
-    positiveText: t("common.delete"),
-    negativeText: t("common.cancel"),
-    onPositiveClick: async () => {
-      await dropTable(props.connection.conn_id, database, table);
-      if (selectedDatabase.value === database && selectedTable.value === table) resetTableView();
-      await reloadSchema(database);
-    }
+  confirmAction(t("database.table.dropConfirm", { name: table }), async () => {
+    await dropTable(props.connection.conn_id, database, table);
+    if (selectedDatabase.value === database && selectedTable.value === table) resetTableView();
+    await reloadSchema(database);
   });
 }
 
 function truncateTableByName(database: string, table: string) {
-  dialog.warning({
-    title: t("common.confirm"),
-    content: t("database.table.truncateConfirm", { name: table }),
-    positiveText: t("common.confirm"),
-    negativeText: t("common.cancel"),
-    onPositiveClick: async () => {
+  confirmAction(
+    t("database.table.truncateConfirm", { name: table }),
+    async () => {
       await truncateTable(props.connection.conn_id, database, table);
       if (selectedDatabase.value === database && selectedTable.value === table) await loadTableData();
-    }
-  });
+    },
+    t("common.confirm")
+  );
 }
 
 function dropSchemaByName(database: string) {
-  dialog.warning({
-    title: t("common.confirm"),
-    content: t("database.schema.dropConfirm", { name: database }),
-    positiveText: t("common.delete"),
-    negativeText: t("common.cancel"),
-    onPositiveClick: async () => {
-      await dropSchema(props.connection.conn_id, database);
-      if (selectedDatabase.value === database) {
-        selectedDatabase.value = "";
-        selectedTable.value = "";
-      }
-      await refreshMetadata();
+  confirmAction(t("database.schema.dropConfirm", { name: database }), async () => {
+    await dropSchema(props.connection.conn_id, database);
+    if (selectedDatabase.value === database) {
+      selectedDatabase.value = "";
+      selectedTable.value = "";
     }
+    await refreshMetadata();
   });
 }
 
@@ -987,15 +977,9 @@ async function executeScript(script: SqlScript) {
 }
 
 function confirmDeleteScript(script: SqlScript) {
-  dialog.warning({
-    title: t("common.confirm"),
-    content: t("database.script.deleteConfirm", { name: script.name }),
-    positiveText: t("common.delete"),
-    negativeText: t("common.cancel"),
-    onPositiveClick: async () => {
-      await deleteSqlScript(script.id);
-      await reloadScripts();
-    }
+  confirmAction(t("database.script.deleteConfirm", { name: script.name }), async () => {
+    await deleteSqlScript(script.id);
+    await reloadScripts();
   });
 }
 
