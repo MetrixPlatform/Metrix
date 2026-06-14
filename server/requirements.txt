@@ -9,4 +9,4 @@ python-multipart
 zipstream-ng
 swagger-ui-bundle
 pytest
-httpx
+httpx2
