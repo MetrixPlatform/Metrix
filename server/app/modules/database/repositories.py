@@ -86,6 +86,7 @@ class SqlScriptRepository:
         self,
         keyword: str = "",
         connection_id: int | None = None,
+        database: str | None = None,
         is_shared: bool | None = None,
         created_by_user_id: int | None = None,
         visible_to_user_id: int | None = None,
@@ -98,6 +99,8 @@ class SqlScriptRepository:
             query = query.filter(or_(SqlScript.name.ilike(pattern), SqlScript.description.ilike(pattern)))
         if connection_id is not None:
             query = query.filter(SqlScript.connection_id == connection_id)
+        if database is not None:
+            query = query.filter(SqlScript.database == database)
         if is_shared is not None:
             query = query.filter(SqlScript.is_shared == is_shared)
         if created_by_user_id is not None:

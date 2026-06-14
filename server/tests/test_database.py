@@ -136,6 +136,34 @@ def wait_job(client, headers, job_id: str):
     raise AssertionError("data job did not finish")
 
 
+def test_sql_script_is_database_scoped(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    headers = login(client, payload["admin_username"], payload["admin_password"])
+    connection_id = create_sqlite_connection("db_scripts_test", tmp_path / "scripts.db")
+
+    first = client.post(
+        "/api/sql-scripts",
+        json={"name": "report_0421", "content": "SELECT 1", "connection_id": connection_id, "database": "0421"},
+        headers=headers,
+    )
+    assert first.status_code == 200
+    assert first.json()["database"] == "0421"
+    second = client.post(
+        "/api/sql-scripts",
+        json={"name": "report_other", "content": "SELECT 2", "connection_id": connection_id, "database": "report"},
+        headers=headers,
+    )
+    assert second.status_code == 200
+
+    scoped = client.get(f"/api/sql-scripts?connection_id={connection_id}&database=0421", headers=headers)
+    assert scoped.status_code == 200
+    assert [item["name"] for item in scoped.json()["items"]] == ["report_0421"]
+
+    all_scripts = client.get(f"/api/sql-scripts?connection_id={connection_id}", headers=headers)
+    assert {item["name"] for item in all_scripts.json()["items"]} == {"report_0421", "report_other"}
+
+
 def test_database_import_uses_safe_bind_names(tmp_path):
     target_path = tmp_path / "bind_names.db"
     engine = create_engine(f"sqlite:///{target_path}")

@@ -542,6 +542,7 @@ class SqlScriptService:
         actor: User,
         keyword: str = "",
         connection_id: int | None = None,
+        database: str | None = None,
         shared: str = "",
         created_by: str = "",
         page: int = 1,
@@ -550,7 +551,7 @@ class SqlScriptService:
         visible_to = None if has_permission(actor, SQL_SCRIPT_MANAGE_OTHERS) else actor.id
         is_shared = {"shared": True, "private": False}.get(shared)
         created_by_user_id = actor.id if created_by == "me" else None
-        rows, total = self.scripts.list(keyword, connection_id, is_shared, created_by_user_id, visible_to, page, page_size)
+        rows, total = self.scripts.list(keyword, connection_id, database, is_shared, created_by_user_id, visible_to, page, page_size)
         return SqlScriptListResponse(items=[self._item(row) for row in rows], total=total, page=page, page_size=page_size)
 
     def create(self, actor: User, payload: SqlScriptPayload) -> SqlScriptItem:
@@ -560,6 +561,7 @@ class SqlScriptService:
                 name=payload.name,
                 content=payload.content,
                 connection_id=payload.connection_id,
+                database=payload.database,
                 description=payload.description,
                 is_shared=payload.is_shared,
                 created_by=actor.id,
@@ -577,6 +579,7 @@ class SqlScriptService:
         script.name = payload.name
         script.content = payload.content
         script.connection_id = payload.connection_id
+        script.database = payload.database
         script.description = payload.description
         script.is_shared = payload.is_shared
         record_audit(
@@ -650,6 +653,7 @@ def _script_snapshot(script: SqlScript) -> dict[str, object]:
     return {
         "name": script.name,
         "connection_id": script.connection_id,
+        "database": script.database,
         "description": script.description,
         "is_shared": script.is_shared,
     }

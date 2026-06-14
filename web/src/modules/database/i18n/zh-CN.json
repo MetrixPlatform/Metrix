@@ -113,6 +113,7 @@
       "execute": "执行",
       "executed": "执行完成",
       "affectedRows": "影响行数",
+      "resultTitle": "查询结果",
       "showResult": "展开结果",
       "hideResult": "折叠结果"
     },

@@ -1,4 +1,12 @@
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import (
+    AppModule,
+    action_code,
+    define_module,
+    page_permission,
+    resource_action,
+    resource_permissions,
+    table_column_sync,
+)
 
 DATABASE_CREATE = action_code("database", "create")
 DATABASE_READ = action_code("database", "read")
@@ -54,6 +62,9 @@ APP_MODULE = define_module(
                     resource_action("manage_others", 50),
                 ),
             ),
+        ),
+        table_syncs=(
+            table_column_sync("sql_scripts", {"database": "ALTER TABLE sql_scripts ADD COLUMN `database` VARCHAR(128) NOT NULL DEFAULT ''"}),
         ),
         openapi_hidden_tags=("databases", "sql-scripts"),
     )

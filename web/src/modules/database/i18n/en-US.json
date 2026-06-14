@@ -113,6 +113,7 @@
       "execute": "Run",
       "executed": "Executed",
       "affectedRows": "Affected rows",
+      "resultTitle": "Query result",
       "showResult": "Show result",
       "hideResult": "Collapse result"
     },

@@ -73,7 +73,10 @@
                 <n-button>{{ t("database.export.result") }}</n-button>
               </n-dropdown>
               <permission-button :permission="SQL_SCRIPT_CREATE" @click="openSaveScript">{{ t("database.script.save") }}</permission-button>
-              <div class="file-manager-spacer" />
+            </div>
+            <monaco-editor v-model="sql" class="database-sql-editor" :suggestions="suggestions" />
+            <div class="database-result-bar">
+              <span class="database-result-title">{{ t("database.sql.resultTitle") }}</span>
               <n-button
                 quaternary
                 size="small"
@@ -84,7 +87,6 @@
                 {{ resultCollapsed ? t("database.sql.showResult") : t("database.sql.hideResult") }}
               </n-button>
             </div>
-            <monaco-editor v-model="sql" class="database-sql-editor" :suggestions="suggestions" />
             <n-data-table
               v-show="!resultCollapsed"
               class="page-data-table database-query-table"
@@ -467,7 +469,7 @@ async function loadTableNodes(database: string): Promise<TreeOption[]> {
 }
 
 async function loadScriptNodes(database: string): Promise<TreeOption[]> {
-  const result = await listSqlScripts({ connection_id: props.connection.id, page_size: 100 });
+  const result = await listSqlScripts({ connection_id: props.connection.id, database, page_size: 100 });
   return result.items.map((item) => ({
     key: scriptNodeKey(database, item.id),
     label: item.name,
@@ -854,6 +856,7 @@ async function saveScript() {
       name: scriptModal.name || t("database.script.untitled"),
       content: sql.value,
       connection_id: props.connection.id,
+      database: selectedDatabase.value,
       description: scriptModal.description,
       is_shared: scriptModal.is_shared
     });

@@ -33,6 +33,7 @@ class SqlScript(Base):
     name: Mapped[str] = mapped_column(String(120), index=True)
     content: Mapped[str] = mapped_column(Text)
     connection_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("db_connections.id"), nullable=True, index=True)
+    database: Mapped[str] = mapped_column(String(128), default="", index=True)
     description: Mapped[str] = mapped_column(String(500), default="")
     is_shared: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)

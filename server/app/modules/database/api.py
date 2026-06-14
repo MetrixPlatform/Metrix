@@ -355,6 +355,7 @@ def submit_import(
 def list_sql_scripts(
     keyword: str = "",
     connection_id: int | None = None,
+    database: str | None = None,
     shared: str = "",
     created_by: str = "",
     page: int = Query(default=1, ge=1),
@@ -362,7 +363,7 @@ def list_sql_scripts(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(SQL_SCRIPT_READ)),
 ) -> SqlScriptListResponse:
-    return SqlScriptService(db).list_scripts(actor, keyword, connection_id, shared, created_by, page, page_size)
+    return SqlScriptService(db).list_scripts(actor, keyword, connection_id, database, shared, created_by, page, page_size)
 
 
 @scripts_router.post("", response_model=SqlScriptItem)

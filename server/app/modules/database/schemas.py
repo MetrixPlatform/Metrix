@@ -373,6 +373,7 @@ class SqlScriptPayload(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     content: str = Field(min_length=1)
     connection_id: int | None = None
+    database: str = Field(default="", max_length=128)
     description: str = Field(default="", max_length=500)
     is_shared: bool = False
 
@@ -381,12 +382,18 @@ class SqlScriptPayload(BaseModel):
     def normalize_text(cls, value: str) -> str:
         return value.strip()
 
+    @field_validator("database")
+    @classmethod
+    def validate_database(cls, value: str) -> str:
+        return clean_optional_identifier(value)
+
 
 class SqlScriptItem(BaseModel):
     id: int
     name: str
     content: str
     connection_id: int | None
+    database: str = ""
     connection_name: str = ""
     description: str
     is_shared: bool

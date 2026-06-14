@@ -126,6 +126,7 @@ export interface SqlScript {
   name: string;
   content: string;
   connection_id: number | null;
+  database: string;
   connection_name: string;
   description: string;
   is_shared: boolean;
@@ -139,6 +140,7 @@ export interface SqlScriptPayload {
   name: string;
   content: string;
   connection_id: number | null;
+  database: string;
   description: string;
   is_shared: boolean;
 }
@@ -267,7 +269,7 @@ export function submitImport(connId: string, payload: { file: File; format: Data
   return request<JobSubmitResponse>(`/databases/${encodeURIComponent(connId)}/import`, { method: "POST", body });
 }
 
-export function listSqlScripts(filters: { keyword?: string; connection_id?: number | null; shared?: string; created_by?: string; page?: number; page_size?: number } = {}) {
+export function listSqlScripts(filters: { keyword?: string; connection_id?: number | null; database?: string; shared?: string; created_by?: string; page?: number; page_size?: number } = {}) {
   return request<PageResult<SqlScript>>(`/sql-scripts${queryString(filters)}`);
 }
 
