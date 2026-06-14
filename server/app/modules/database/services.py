@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 import secrets
 from typing import Any
@@ -26,13 +25,11 @@ from app.modules.database.engines import (
     test_external_connection,
 )
 from app.modules.database.models import DatabaseConnection, SqlScript
-from app.modules.database.repositories import DatabaseConnectionRepository, DataJobRepository, SqlScriptRepository
+from app.modules.database.repositories import DatabaseConnectionRepository, SqlScriptRepository
 from app.modules.database.schemas import (
     AlterTableRequest,
     ColumnDefinition,
     CreateTableRequest,
-    DataJobItem,
-    DataJobListResponse,
     DatabaseConnectionItem,
     DatabaseConnectionListResponse,
     DatabaseConnectionPayload,
@@ -69,7 +66,6 @@ class DatabaseService:
         self.db = db
         self.connections = DatabaseConnectionRepository(db)
         self.scripts = SqlScriptRepository(db)
-        self.jobs = DataJobRepository(db)
 
     def list_connections(
         self,
@@ -435,11 +431,6 @@ class DatabaseService:
             runtime.execute_write(f"DROP DATABASE {runtime.quote_identifier(name)}")
         self._audit_operate(actor, connection, "database.schema_delete", {"schema": name})
 
-    def list_jobs(self, actor: User, kind: str = "", status: str = "", sort_order: str = "descend", page: int = 1, page_size: int = 20) -> DataJobListResponse:
-        visible_to = None if has_permission(actor, DATABASE_MANAGE_OTHERS) else actor.id
-        rows, total = self.jobs.list(kind, status, visible_to, "ascend" if sort_order == "ascend" else "descend", page, page_size)
-        return DataJobListResponse(items=[self._job_item(row) for row in rows], total=total, page=page, page_size=page_size)
-
     def _get(self, connection_id: int) -> DatabaseConnection:
         connection = self.connections.get(connection_id)
         if connection is None:
@@ -539,16 +530,6 @@ class DatabaseService:
             audit_detail(connection.name, meta=meta),
         )
         self.db.commit()
-
-    def _job_item(self, job) -> DataJobItem:
-        connection = self.connections.get(job.connection_id)
-        return DataJobItem.model_validate(job).model_copy(
-            update={
-                "conn_id": connection.conn_id if connection else "",
-                "connection_name": connection.name if connection else "",
-            }
-        )
-
 
 class SqlScriptService:
     def __init__(self, db: Session):

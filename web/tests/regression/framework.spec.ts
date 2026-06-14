@@ -34,7 +34,14 @@ const adminSession = {
     "route:dashboard",
     "route:users",
     "route:settings",
+    "route:database",
     "route:demo_crud",
+    "action:database:create",
+    "action:database:read",
+    "action:database:update",
+    "action:database:delete",
+    "action:database:operate",
+    "action:database:manage_others",
     "action:demo_item:create",
     "action:demo_item:read",
     "action:demo_item:update",
@@ -83,6 +90,38 @@ test("shows not found page for unknown authenticated routes", async ({ page }) =
 
   await expect(page).toHaveURL(/\/not-found-route$/);
   await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+});
+
+test("opens database management and embedded jobs without raw i18n keys", async ({ page }) => {
+  const dataJobRequests: string[] = [];
+  await mockApi(page, { installed: true, session: adminSession });
+  await page.route("**/api/databases**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
+    })
+  );
+  await page.route("**/api/data-jobs**", (route) => {
+    dataJobRequests.push(route.request().url());
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
+    });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("metrix.token", "browser-test-token");
+  });
+
+  await page.goto("/database");
+  await expect(page).toHaveURL(/\/database$/);
+  await expect(page.getByRole("button", { name: "任务" })).toBeVisible();
+
+  await page.getByRole("button", { name: "任务" }).click();
+  await expect(page.getByRole("button", { name: "返回" })).toBeVisible();
+  await expect(page.getByText("common.back")).toHaveCount(0);
+
+  await page.getByText("创建时间").click();
+  await expect.poll(() => dataJobRequests.some((url) => url.includes("sort_order=ascend"))).toBe(true);
 });
 
 async function mockApi(

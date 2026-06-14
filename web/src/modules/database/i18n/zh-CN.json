@@ -77,6 +77,7 @@
     "allSchemas": "全部库",
     "connectionOk": "连接正常",
     "deleteConfirm": "确认删除连接 {name}？仅删除连接信息。",
+    "rowsAffected": "已影响 {count} 行",
     "tabs": {
       "data": "数据",
       "sql": "SQL",
