@@ -59,8 +59,8 @@ export default defineModule({
 
 列表页统一使用以下标准布局（参考 `AnnouncementManageView.vue`、`UserManageView.vue`、`StorageManageView.vue`）：
 
-- 工具栏一行放完：左侧 `<page>-filter-row`（grid 布局）只放关键字输入、可选时间范围和查询按钮；右侧放批量操作和新增按钮。
-- 枚举类筛选（状态、类型、范围、创建人等）不放工具栏，统一放列头筛选：受控写法 `filter` + `filterMultiple: false` + `filterOptionValue` + `filterOptions`，在 `@update:filters` 中转成后端查询参数并重新加载。
+- 工具栏必须一行放完，不允许因为类型、状态、查询按钮等控件换行撑乱页面；左侧 `<page>-filter-row`（grid 布局）只放关键字输入、可选时间范围和查询按钮；右侧放批量操作、新增、刷新等动作按钮。
+- 枚举类筛选（状态、类型、范围、创建人等）禁止放工具栏，统一放列头筛选：受控写法 `filter` + `filterMultiple: false` + `filterOptionValue` + `filterOptions`，在 `@update:filters` 中转成后端查询参数并重新加载。
 - 时间列用列头排序：`sorter: true` + 受控 `sortOrder`，在 `@update:sorter` 中转成后端 `sort_order`。
 - 表格统一 `remote` + 后端分页（`page`/`page_size`/`total`），`flex-height` + `page-data-table`，列宽可拖拽（`withResizableColumns` + `columnWidths` + `@unstable-column-resize`）。
 - 操作列 `fixed: "right"`，使用 `table-action-group` 包裹圆形 `quaternary` 图标按钮（`circle` + `NIcon` + `title` 提示），不用文字按钮。

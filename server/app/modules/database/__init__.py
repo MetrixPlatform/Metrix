@@ -27,7 +27,6 @@ APP_MODULE = define_module(
         model_paths=("app.modules.database.models",),
         page_permissions=(
             page_permission("database", "database", 870, DATABASE_READ),
-            page_permission("database_jobs", "database", 875, DATABASE_READ),
         ),
         resource_permissions=(
             resource_permissions(

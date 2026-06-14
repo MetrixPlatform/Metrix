@@ -555,7 +555,6 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_API_DOCS: API_DOCS_READ,
         route_code("storage"): action_code("storage", "read"),
         route_code("database"): action_code("database", "read"),
-        route_code("database_jobs"): action_code("database", "read"),
         route_code("demo_crud"): action_code("demo_item", "read"),
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
@@ -580,7 +579,7 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
     assert "app.modules.storage.api:router" in routers_by_module["storage"]
     assert "app.modules.database.api:router" in routers_by_module["database"]
     assert "app.modules.demo_crud.api:router" in routers_by_module["demo_crud"]
-    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:storage", "route:database", "route:database_jobs", "route:demo_crud"}
+    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:storage", "route:database", "route:demo_crud"}
     assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement", "storage", "database", "sql_script", "demo_item"}
     models_by_module = {module.key: module.model_paths for module in modules}
     assert "app.modules.storage.models" in models_by_module["storage"]

@@ -1,10 +1,9 @@
 <template>
   <section class="work-card table-page-card">
     <div class="toolbar">
-      <div class="storage-filter-row">
-        <n-select v-model:value="filters.kind" class="database-toolbar-select" :options="kindOptions" clearable :placeholder="t('database.jobs.kind')" />
-        <n-select v-model:value="filters.status" class="database-toolbar-select" :options="statusOptions" clearable :placeholder="t('database.jobs.status')" />
-        <n-button @click="search">{{ t("common.search") }}</n-button>
+      <div class="toolbar-title-row">
+        <n-button v-if="props.embedded" size="small" quaternary @click="emit('close')">{{ t("common.back") }}</n-button>
+        <span class="database-workbench-title">{{ t("database.jobs.view") }}</span>
       </div>
       <n-button @click="loadJobs">{{ t("common.refresh") }}</n-button>
     </div>
@@ -18,8 +17,10 @@
       :pagination="pagination"
       :row-key="(row) => row.job_id"
       :scroll-x="1050"
+      @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
+      @update:sorter="handleSorter"
     />
   </section>
 </template>
@@ -27,19 +28,27 @@
 <script setup lang="ts">
 import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { Delete20Regular, ArrowDownload20Regular } from "@vicons/fluent";
-import { NButton, NDataTable, NIcon, NSelect, NSpace, NTag, useDialog, useMessage } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
+import { NButton, NDataTable, NIcon, NSpace, NTag, useDialog, useMessage } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
 import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
 import { showError } from "../../../utils/message";
+import { singleFilterValue } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
+
+const props = defineProps<{ embedded?: boolean }>();
+const emit = defineEmits<{ (event: "close"): void }>();
 
 const message = useMessage();
 const dialog = useDialog();
 const loading = ref(false);
 const items = ref<DataJob[]>([]);
-const filters = reactive({ kind: null as string | null, status: null as string | null });
+const filters = reactive({
+  kind: null as string | null,
+  status: null as string | null,
+  sort_order: "descend" as "ascend" | "descend"
+});
 const pagination = reactive({
   page: 1,
   pageSize: 20,
@@ -61,17 +70,30 @@ const statusOptions = computed(() => [
 const columns = computed<DataTableColumns<DataJob>>(() => [
   { title: t("database.jobs.id"), key: "job_id", width: 260, ellipsis: { tooltip: true } },
   { title: t("database.connection"), key: "connection_name", width: 160, render: (row) => row.connection_name || row.conn_id },
-  { title: t("database.jobs.kind"), key: "kind", width: 90, render: (row) => t(`database.jobs.${row.kind}`) },
+  {
+    title: t("database.jobs.kind"),
+    key: "kind",
+    width: 90,
+    filterOptions: kindOptions.value,
+    filterOptionValue: filters.kind,
+    filterMultiple: false,
+    filter: true,
+    render: (row) => t(`database.jobs.${row.kind}`)
+  },
   { title: t("field.format"), key: "format", width: 90, render: (row) => row.format.toUpperCase() },
   {
     title: t("database.jobs.status"),
     key: "status",
     width: 110,
+    filterOptions: statusOptions.value,
+    filterOptionValue: filters.status,
+    filterMultiple: false,
+    filter: true,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => t(`database.jobs.${row.status}`))
   },
   { title: t("database.jobs.rows"), key: "row_count", width: 100 },
   { title: t("database.jobs.size"), key: "file_size", width: 120, render: (row) => formatSize(row.file_size) },
-  { title: t("field.createdAt"), key: "created_at", width: 170, render: (row) => formatDateTime(row.created_at) },
+  { title: t("field.createdAt"), key: "created_at", width: 170, sorter: true, sortOrder: filters.sort_order, render: (row) => formatDateTime(row.created_at) },
   { title: t("database.jobs.expiresAt"), key: "expires_at", width: 170, render: (row) => (row.expires_at ? formatDateTime(row.expires_at) : "-") },
   { title: t("database.jobs.error"), key: "error_code", minWidth: 160, ellipsis: { tooltip: true }, render: (row) => row.error_code || "-" },
   {
@@ -109,6 +131,7 @@ async function loadJobs() {
     const result = await listDataJobs({
       kind: filters.kind || "",
       status: filters.status || "",
+      sort_order: filters.sort_order,
       page: pagination.page,
       page_size: pagination.pageSize
     });
@@ -121,7 +144,16 @@ async function loadJobs() {
   }
 }
 
-function search() {
+function handleTableFilters(next: DataTableFilterState) {
+  filters.kind = singleFilterValue(next, "kind") as string | null;
+  filters.status = singleFilterValue(next, "status") as string | null;
+  pagination.page = 1;
+  void loadJobs();
+}
+
+function handleSorter(sorter: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(sorter) ? sorter[0] : sorter;
+  filters.sort_order = state?.order === "ascend" ? "ascend" : "descend";
   pagination.page = 1;
   void loadJobs();
 }

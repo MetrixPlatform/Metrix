@@ -93,6 +93,24 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     assert job["status"] == "success"
     assert job["row_count"] == 3
 
+    submitted_later = client.post(
+        "/api/databases/db_sqlite_test/export",
+        json={"format": "csv", "tables": ["people"]},
+        headers=headers,
+    )
+    assert submitted_later.status_code == 200
+    later_job_id = submitted_later.json()["job_id"]
+    later_job = wait_job(client, headers, later_job_id)
+    assert later_job["status"] == "success"
+
+    jobs_asc = client.get("/api/data-jobs?sort_order=ascend", headers=headers)
+    assert jobs_asc.status_code == 200
+    assert [item["job_id"] for item in jobs_asc.json()["items"][:2]] == [job_id, later_job_id]
+
+    jobs_desc = client.get("/api/data-jobs?sort_order=descend", headers=headers)
+    assert jobs_desc.status_code == 200
+    assert [item["job_id"] for item in jobs_desc.json()["items"][:2]] == [later_job_id, job_id]
+
     download = client.get(f"/api/data-jobs/{job_id}/download", headers=headers)
     assert download.status_code == 200
     assert b"Alice" in download.content

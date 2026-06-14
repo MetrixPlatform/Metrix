@@ -435,9 +435,9 @@ class DatabaseService:
             runtime.execute_write(f"DROP DATABASE {runtime.quote_identifier(name)}")
         self._audit_operate(actor, connection, "database.schema_delete", {"schema": name})
 
-    def list_jobs(self, actor: User, kind: str = "", status: str = "", page: int = 1, page_size: int = 20) -> DataJobListResponse:
+    def list_jobs(self, actor: User, kind: str = "", status: str = "", sort_order: str = "descend", page: int = 1, page_size: int = 20) -> DataJobListResponse:
         visible_to = None if has_permission(actor, DATABASE_MANAGE_OTHERS) else actor.id
-        rows, total = self.jobs.list(kind, status, visible_to, page, page_size)
+        rows, total = self.jobs.list(kind, status, visible_to, "ascend" if sort_order == "ascend" else "descend", page, page_size)
         return DataJobListResponse(items=[self._job_item(row) for row in rows], total=total, page=page, page_size=page_size)
 
     def _get(self, connection_id: int) -> DatabaseConnection:

@@ -283,7 +283,7 @@ export function deleteSqlScript(id: number) {
   return del<ServerMessage>(`/sql-scripts/${id}`);
 }
 
-export function listDataJobs(filters: { kind?: string; status?: string; page?: number; page_size?: number } = {}) {
+export function listDataJobs(filters: { kind?: string; status?: string; sort_order?: "ascend" | "descend"; page?: number; page_size?: number } = {}) {
   return request<PageResult<DataJob>>(`/data-jobs${queryString(filters)}`);
 }
 

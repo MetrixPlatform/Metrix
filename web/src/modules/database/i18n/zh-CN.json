@@ -1,14 +1,12 @@
 {
   "route": {
-    "database": "数据库管理",
-    "databaseJobs": "数据任务"
+    "database": "数据库管理"
   },
   "permission": {
     "group": {
       "database": "数据库管理"
     },
     "route:database": "数据库管理",
-    "route:database_jobs": "数据任务",
     "action:database:create": "新增数据库连接",
     "action:database:read": "查询数据库",
     "action:database:update": "修改数据库连接",
@@ -22,9 +20,11 @@
     "action:sql_script:manage_others": "管理他人 SQL 脚本"
   },
   "field": {
+    "name": "名称",
     "connId": "连接 ID",
     "database": "数据库",
-    "databaseType": "数据库类型",
+    "databaseType": "类型",
+    "type": "类型",
     "table": "数据表",
     "format": "格式",
     "file": "文件",

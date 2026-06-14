@@ -136,7 +136,6 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
 import {
   NButton,
   NDataTable,
@@ -158,7 +157,6 @@ import type { DataTableColumns } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
-import { saveBlob } from "../../../utils/download";
 import { showError } from "../../../utils/message";
 import {
   createRow,
@@ -167,8 +165,6 @@ import {
   createTable,
   deleteRow,
   dropTable,
-  downloadDataJob,
-  getDataJob,
   getTableData,
   listSchemas,
   listSqlScripts,
@@ -176,7 +172,6 @@ import {
   queryDatabase,
   runSqlScript,
   submitExport,
-  truncateTable,
   updateRow,
   type ColumnItem,
   type DatabaseConnection,
@@ -190,11 +185,10 @@ import ImportWizard from "./ImportWizard.vue";
 import MonacoEditor from "./MonacoEditor.vue";
 
 const props = defineProps<{ connection: DatabaseConnection }>();
-const emit = defineEmits<{ (event: "close"): void }>();
+const emit = defineEmits<{ (event: "close"): void; (event: "jobs"): void }>();
 
 const message = useMessage();
 const dialog = useDialog();
-const router = useRouter();
 const activeTab = ref<"data" | "sql" | "scripts">("data");
 const schemas = ref<{ name: string }[]>([]);
 const tables = ref<TableItem[]>([]);
@@ -540,6 +534,6 @@ function formatCell(value: unknown) {
 }
 
 function goJobs() {
-  void router.push("/database/jobs");
+  emit("jobs");
 }
 </script>

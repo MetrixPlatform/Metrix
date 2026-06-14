@@ -1139,11 +1139,24 @@ a {
   margin-bottom: 14px;
 }
 
+.table-page-card > .toolbar {
+  flex-wrap: nowrap;
+}
+
 .toolbar-group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+}
+
+.toolbar-actions,
+.toolbar-title-row {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .toolbar .n-button {
@@ -2091,7 +2104,8 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .database-table-list {

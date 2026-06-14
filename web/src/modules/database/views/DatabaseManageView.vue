@@ -1,5 +1,7 @@
 <template>
-  <sql-workbench-view v-if="workingItem" :connection="workingItem" @close="closeWorkbench" />
+  <sql-workbench-view v-if="workingItem" :connection="workingItem" @close="closeWorkbench" @jobs="openJobs" />
+
+  <data-jobs-view v-else-if="showJobs" embedded @close="closeJobs" />
 
   <section v-else class="work-card table-page-card">
     <div class="toolbar">
@@ -7,7 +9,10 @@
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('database.searchPlaceholder')" clearable />
         <n-button @click="searchConnections">{{ t("common.search") }}</n-button>
       </div>
-      <permission-button :permission="DATABASE_CREATE" type="primary" @click="openCreate">{{ t("database.add") }}</permission-button>
+      <div class="toolbar-actions">
+        <n-button @click="openJobs">{{ t("database.jobs.view") }}</n-button>
+        <permission-button :permission="DATABASE_CREATE" type="primary" @click="openCreate">{{ t("database.add") }}</permission-button>
+      </div>
     </div>
 
     <n-data-table
@@ -34,7 +39,7 @@
         <n-form-item :label="t('field.connId')" path="conn_id">
           <n-input v-model:value="form.conn_id" :disabled="editingItem !== null" :placeholder="editingItem ? '' : t('database.idPlaceholder')" />
         </n-form-item>
-        <n-form-item :label="t('field.databaseType')" path="db_type">
+        <n-form-item :label="t('field.type')" path="db_type">
           <n-radio-group v-model:value="form.db_type" @update:value="handleTypeChange">
             <n-radio-button value="mysql" label="MySQL" />
             <n-radio-button value="mariadb" label="MariaDB" />
@@ -119,8 +124,9 @@ import {
   type DatabaseConnectionPayload,
   type DatabaseType
 } from "../api";
+import DataJobsView from "./DataJobsView.vue";
 import SqlWorkbenchView from "../components/SqlWorkbenchView.vue";
-import { DATABASE_CREATE, DATABASE_DELETE, DATABASE_MANAGE_OTHERS, DATABASE_UPDATE } from "../permissions";
+import { DATABASE_CREATE, DATABASE_MANAGE_OTHERS } from "../permissions";
 
 type SharedFilter = "shared" | "private";
 type ActiveFilter = "true" | "false";
@@ -139,6 +145,7 @@ const showModal = ref(false);
 const formRef = ref<FormInst | null>(null);
 const editingItem = ref<DatabaseConnection | null>(null);
 const workingItem = ref<DatabaseConnection | null>(null);
+const showJobs = ref(false);
 const items = ref<DatabaseConnection[]>([]);
 const filters = reactive<{
   keyword: string;
@@ -218,7 +225,16 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
         h(NButton, { quaternary: true, size: "tiny", onClick: () => void copyText(row.conn_id) }, () => h(NIcon, { component: Copy20Regular }))
       ])
   },
-  { title: t("field.databaseType"), key: "db_type", width: 110, filterOptions: dbTypeOptions, filter: true, render: (row) => row.db_type.toUpperCase() },
+  {
+    title: t("field.type"),
+    key: "db_type",
+    width: 90,
+    filterOptions: dbTypeOptions,
+    filterOptionValue: filters.db_type,
+    filterMultiple: false,
+    filter: true,
+    render: (row) => row.db_type.toUpperCase()
+  },
   { title: t("field.host"), key: "host", width: 180, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
   { title: t("field.database"), key: "default_database", width: 130, render: (row) => row.default_database || t("database.allSchemas") },
   {
@@ -226,6 +242,8 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     key: "shared",
     width: 100,
     filterOptions: sharedOptions.value,
+    filterOptionValue: filters.shared,
+    filterMultiple: false,
     filter: true,
     render: (row) => h(NTag, { size: "small", type: row.is_shared ? "success" : "default" }, () => (row.is_shared ? t("database.shared") : t("database.private")))
   },
@@ -234,10 +252,21 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     key: "is_active",
     width: 100,
     filterOptions: activeOptions.value,
+    filterOptionValue: filters.is_active,
+    filterMultiple: false,
     filter: true,
     render: (row) => h(StatusTag, { status: row.is_active })
   },
-  { title: t("field.creator"), key: "created_by", width: 120, filterOptions: creatorOptions.value, filter: true, render: (row) => row.created_by_username || "-" },
+  {
+    title: t("field.creator"),
+    key: "created_by",
+    width: 120,
+    filterOptions: creatorOptions.value,
+    filterOptionValue: filters.created_by,
+    filterMultiple: false,
+    filter: true,
+    render: (row) => row.created_by_username || "-"
+  },
   { title: t("field.createdAt"), key: "created_at", width: 170, sorter: true, sortOrder: filters.sort_order, render: (row) => formatDateTime(row.created_at) },
   {
     title: t("common.actions"),
@@ -379,11 +408,21 @@ function confirmDelete(row: DatabaseConnection) {
 }
 
 function openWorkbench(row: DatabaseConnection) {
+  showJobs.value = false;
   workingItem.value = row;
 }
 
 function closeWorkbench() {
   workingItem.value = null;
+}
+
+function openJobs() {
+  workingItem.value = null;
+  showJobs.value = true;
+}
+
+function closeJobs() {
+  showJobs.value = false;
 }
 
 function handleTypeChange(value: DatabaseType) {

@@ -136,6 +136,7 @@ class DataJobRepository:
         kind: str = "",
         status: str = "",
         visible_to_user_id: int | None = None,
+        created_at_order: str = "descend",
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[DataJob], int]:
@@ -147,7 +148,10 @@ class DataJobRepository:
         if visible_to_user_id is not None:
             query = query.filter(DataJob.created_by == visible_to_user_id)
         total = query.count()
-        query = query.order_by(DataJob.created_at.desc(), DataJob.id.desc())
+        if created_at_order == "ascend":
+            query = query.order_by(DataJob.created_at.asc(), DataJob.id.asc())
+        else:
+            query = query.order_by(DataJob.created_at.desc(), DataJob.id.desc())
         return query.offset((page - 1) * page_size).limit(page_size).all(), total
 
     def create(self, job: DataJob) -> DataJob:

@@ -398,12 +398,13 @@ def delete_sql_script(
 def list_data_jobs(
     kind: str = "",
     status: str = "",
+    sort_order: str = "descend",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=500),
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
 ) -> DataJobListResponse:
-    return DataJobService(db).list_jobs(actor, kind, status, page, page_size)
+    return DataJobService(db).list_jobs(actor, kind, status, sort_order, page, page_size)
 
 
 @jobs_router.get("/{job_id}", response_model=DataJobItem)

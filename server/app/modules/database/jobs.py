@@ -119,9 +119,9 @@ class DataJobService:
         _pool(self.db).submit(_run_job, job_id)
         return JobSubmitResponse(job_id=job_id, status="pending")
 
-    def list_jobs(self, actor: User, kind: str = "", status: str = "", page: int = 1, page_size: int = 20) -> DataJobListResponse:
+    def list_jobs(self, actor: User, kind: str = "", status: str = "", sort_order: str = "descend", page: int = 1, page_size: int = 20) -> DataJobListResponse:
         visible_to = None if has_permission(actor, DATABASE_MANAGE_OTHERS) else actor.id
-        rows, total = self.jobs.list(kind, status, visible_to, page, page_size)
+        rows, total = self.jobs.list(kind, status, visible_to, "ascend" if sort_order == "ascend" else "descend", page, page_size)
         return DataJobListResponse(items=[self._item(row) for row in rows], total=total, page=page, page_size=page_size)
 
     def get_job(self, actor: User, job_id: str) -> DataJobItem:
