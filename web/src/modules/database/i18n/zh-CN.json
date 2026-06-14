@@ -78,6 +78,8 @@
     "connectionOk": "连接正常",
     "deleteConfirm": "确认删除连接 {name}？仅删除连接信息。",
     "rowsAffected": "已影响 {count} 行",
+    "create": "新建",
+    "treeEmpty": "暂无数据库",
     "tabs": {
       "data": "数据",
       "sql": "SQL",
@@ -85,6 +87,8 @@
     },
     "schema": {
       "create": "新建库",
+      "drop": "删除库",
+      "dropConfirm": "确认删除库 {name}？库内所有表和数据都会被删除。",
       "name": "库名"
     },
     "table": {

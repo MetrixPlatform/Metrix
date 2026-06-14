@@ -8,6 +8,8 @@ import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import "monaco-editor/esm/vs/basic-languages/sql/sql.contribution";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
+import { appStore } from "../../../stores/app";
+
 const props = defineProps<{
   modelValue: string;
   suggestions?: string[];
@@ -17,6 +19,10 @@ const emit = defineEmits<{ (event: "update:modelValue", value: string): void }>(
 const containerRef = ref<HTMLElement | null>(null);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let completionDisposable: monaco.IDisposable | null = null;
+
+function editorTheme() {
+  return appStore.dark ? "vs-dark" : "vs";
+}
 
 (self as unknown as { MonacoEnvironment: { getWorker: () => Worker } }).MonacoEnvironment = {
   getWorker() {
@@ -39,6 +45,7 @@ onMounted(() => {
   editor = monaco.editor.create(containerRef.value, {
     value: props.modelValue,
     language: "sql",
+    theme: editorTheme(),
     minimap: { enabled: false },
     automaticLayout: true,
     scrollBeyondLastLine: false,
@@ -55,6 +62,11 @@ watch(
       editor.setValue(value);
     }
   }
+);
+
+watch(
+  () => appStore.dark,
+  () => monaco.editor.setTheme(editorTheme())
 );
 
 onBeforeUnmount(() => {

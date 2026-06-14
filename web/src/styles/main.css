@@ -2101,20 +2101,20 @@ a {
   overflow: hidden;
 }
 
-.database-sidebar-actions,
-.database-tree-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.database-sidebar-actions {
+  display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
 }
 
-.database-sidebar-button {
-  width: 100%;
+.database-icon-button {
+  flex: 0 0 auto;
 }
 
-.database-schema-select {
-  width: 100%;
+.database-action-button {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .database-sub-toolbar {
@@ -2126,27 +2126,23 @@ a {
   overflow-x: auto;
 }
 
-.database-table-list {
+.database-tree {
   min-height: 0;
   flex: 1 1 auto;
+  overflow: auto;
 }
 
-.database-table-item {
-  width: 100%;
-  display: block;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 6px;
-  color: var(--text-color);
-  text-align: left;
-  background: transparent;
-  cursor: pointer;
+.database-tree-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.database-table-item:hover,
-.database-table-item.active {
-  color: var(--primary-strong);
-  background: var(--primary-soft);
+.database-active-schema {
+  flex: 0 0 auto;
+  max-width: 200px;
 }
 
 .database-main {
@@ -2181,13 +2177,9 @@ a {
   margin-bottom: 10px;
 }
 
-.database-toolbar-select {
-  width: 150px;
-}
-
 .database-sql-editor {
-  flex: 0 0 280px;
-  min-height: 280px;
+  flex: 1 1 auto;
+  min-height: 300px;
   margin-bottom: 10px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -2199,8 +2191,16 @@ a {
   height: 100%;
 }
 
-.database-result-table,
+.database-result-table {
+  min-height: 220px;
+}
+
 .database-query-table {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.database-script-table {
   min-height: 220px;
 }
 

@@ -78,6 +78,8 @@
     "connectionOk": "Connection is healthy",
     "deleteConfirm": "Delete connection {name}? Only connection info is removed.",
     "rowsAffected": "{count} row(s) affected",
+    "create": "New",
+    "treeEmpty": "No databases",
     "tabs": {
       "data": "Data",
       "sql": "SQL",
@@ -85,6 +87,8 @@
     },
     "schema": {
       "create": "New database",
+      "drop": "Drop database",
+      "dropConfirm": "Drop database {name}? All tables and data inside will be removed.",
       "name": "Database name"
     },
     "table": {

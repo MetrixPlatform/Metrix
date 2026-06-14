@@ -14,31 +14,44 @@
     <div class="database-workbench-body">
       <aside class="database-sidebar">
         <div class="database-sidebar-actions">
-          <n-button class="database-sidebar-button" size="small" @click="refreshMetadata">{{ t("common.refresh") }}</n-button>
-          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" @click="createSchemaPrompt">
-            {{ t("database.schema.create") }}
-          </permission-button>
-        </div>
-        <n-select v-model:value="selectedDatabase" class="database-schema-select" :options="schemaOptions" filterable clearable @update:value="handleDatabaseChange" />
-        <div class="database-tree-actions">
-          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" @click="createTablePrompt">
-            {{ t("database.table.create") }}
-          </permission-button>
-          <permission-button class="database-sidebar-button" :permission="DATABASE_OPERATE" size="small" type="error" :disabled="!selectedTable" @click="dropSelectedTable">
-            {{ t("database.table.drop") }}
-          </permission-button>
-        </div>
-        <n-scrollbar class="database-table-list">
-          <button
-            v-for="table in tables"
-            :key="table.name"
-            class="database-table-item"
-            :class="{ active: table.name === selectedTable }"
-            @click="selectTable(table.name)"
+          <n-button
+            class="database-icon-button"
+            quaternary
+            circle
+            size="small"
+            :loading="loadingMeta"
+            :title="t('common.refresh')"
+            :aria-label="t('common.refresh')"
+            @click="refreshMetadata"
           >
-            {{ table.name }}
-          </button>
-        </n-scrollbar>
+            <template #icon><n-icon :component="ArrowClockwise20Regular" /></template>
+          </n-button>
+          <n-dropdown trigger="click" :options="createOptions" @select="handleCreateSelect">
+            <permission-button class="database-action-button" :permission="DATABASE_OPERATE" size="small">
+              <template #icon><n-icon :component="Add20Regular" /></template>
+              {{ t("database.create") }}
+            </permission-button>
+          </n-dropdown>
+          <n-dropdown trigger="click" :options="dropOptions" @select="handleDropSelect">
+            <permission-button class="database-action-button" :permission="DATABASE_OPERATE" size="small">
+              <template #icon><n-icon :component="Delete20Regular" /></template>
+              {{ t("common.delete") }}
+            </permission-button>
+          </n-dropdown>
+        </div>
+        <n-tree
+          v-if="treeData.length"
+          block-line
+          class="database-tree"
+          :data="treeData"
+          :expanded-keys="expandedKeys"
+          :selected-keys="selectedKeys"
+          :on-load="handleTreeLoad"
+          :render-prefix="renderTreePrefix"
+          @update:expanded-keys="handleExpand"
+          @update:selected-keys="handleTreeSelect"
+        />
+        <n-empty v-else class="database-tree-empty" :description="t('database.treeEmpty')" />
       </aside>
 
       <main class="database-main">
@@ -70,7 +83,10 @@
 
           <n-tab-pane class="database-tab-pane" name="sql" :tab="t('database.tabs.sql')" display-directive="show">
             <div class="database-sub-toolbar">
-              <n-select v-model:value="selectedDatabase" class="database-toolbar-select" :options="schemaOptions" clearable @update:value="handleDatabaseChange" />
+              <n-tag class="database-active-schema" size="small" :bordered="false" type="primary">
+                <template #icon><n-icon :component="Database20Regular" /></template>
+                {{ selectedDatabase || t("database.allSchemas") }}
+              </n-tag>
               <n-button type="primary" :loading="executing" @click="executeSql">{{ t("database.sql.execute") }}</n-button>
               <n-dropdown :options="exportOptions" @select="exportQuery">
                 <n-button>{{ t("database.export.result") }}</n-button>
@@ -94,7 +110,7 @@
               <n-input v-model:value="scriptKeyword" class="filter-keyword" clearable :placeholder="t('database.script.search')" @keyup.enter="loadScripts" />
               <n-button @click="loadScripts">{{ t("common.search") }}</n-button>
             </div>
-            <n-data-table size="small" :columns="scriptColumns" :data="scripts" :loading="loadingScripts" />
+            <n-data-table class="page-data-table database-script-table" flex-height size="small" :columns="scriptColumns" :data="scripts" :loading="loadingScripts" />
           </n-tab-pane>
         </n-tabs>
       </main>
@@ -156,26 +172,26 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { ArrowLeft20Regular } from "@vicons/fluent";
+import { Add20Regular, ArrowClockwise20Regular, ArrowLeft20Regular, Database20Regular, Delete20Regular, Table20Regular } from "@vicons/fluent";
 import {
   NButton,
   NDataTable,
   NDropdown,
+  NEmpty,
   NForm,
   NFormItem,
   NIcon,
   NInput,
   NModal,
-  NScrollbar,
-  NSelect,
   NSwitch,
   NTabPane,
   NTabs,
   NTag,
+  NTree,
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
+import type { DataTableColumns, DropdownOption, TreeOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
@@ -186,6 +202,7 @@ import {
   createSqlScript,
   createTable,
   deleteRow,
+  dropSchema,
   dropTable,
   getTableData,
   listSchemas,
@@ -214,6 +231,10 @@ const dialog = useDialog();
 const activeTab = ref<"data" | "sql" | "scripts">("data");
 const schemas = ref<{ name: string }[]>([]);
 const tables = ref<TableItem[]>([]);
+const treeData = ref<TreeOption[]>([]);
+const expandedKeys = ref<string[]>([]);
+const selectedKeys = ref<string[]>([]);
+const loadingMeta = ref(false);
 const selectedDatabase = ref(props.connection.default_database || "");
 const selectedTable = ref("");
 const tableColumns = ref<ColumnItem[]>([]);
@@ -262,8 +283,20 @@ const exportOptions = [
   { label: "SQLite", key: "sqlite" },
   { label: "SQL", key: "sql" }
 ];
-const schemaOptions = computed(() => schemas.value.map((item) => ({ label: item.name, value: item.name })));
+const createOptions = computed<DropdownOption[]>(() => [
+  { label: t("database.schema.create"), key: "schema" },
+  { label: t("database.table.create"), key: "table", disabled: !selectedDatabase.value }
+]);
+const dropOptions = computed<DropdownOption[]>(() => [
+  { label: t("database.schema.drop"), key: "schema", disabled: !selectedDatabase.value },
+  { label: t("database.table.drop"), key: "table", disabled: !selectedTable.value }
+]);
 const objectModalTitle = computed(() => (objectModal.kind === "schema" ? t("database.schema.create") : t("database.table.create")));
+
+function renderTreePrefix({ option }: { option: TreeOption }) {
+  const icon = option.kind === "schema" ? Database20Regular : Table20Regular;
+  return h(NIcon, { component: icon });
+}
 const suggestions = computed(() => [
   ...schemas.value.map((item) => item.name),
   ...tables.value.map((item) => item.name),
@@ -319,32 +352,113 @@ onMounted(async () => {
   await loadScripts();
 });
 
+function schemaKey(name: string) {
+  return `schema:${name}`;
+}
+
+function tableKey(database: string, table: string) {
+  return `table:${database}:${table}`;
+}
+
 async function refreshMetadata() {
+  loadingMeta.value = true;
   try {
     schemas.value = await listSchemas(props.connection.conn_id);
-    if (!selectedDatabase.value && schemas.value.length) selectedDatabase.value = schemas.value[0].name;
-    await loadTables();
+    const names = schemas.value.map((item) => item.name);
+    const initial = selectedDatabase.value && names.includes(selectedDatabase.value) ? selectedDatabase.value : names[0] || "";
+    treeData.value = schemas.value.map((schema) => ({
+      key: schemaKey(schema.name),
+      label: schema.name,
+      kind: "schema",
+      database: schema.name,
+      isLeaf: false
+    }));
+    expandedKeys.value = [];
+    selectedKeys.value = [];
+    selectedDatabase.value = initial;
+    if (initial) {
+      await openSchema(initial);
+    } else {
+      resetTableView();
+    }
   } catch (error) {
     showError(message, error);
+  } finally {
+    loadingMeta.value = false;
   }
 }
 
-async function handleDatabaseChange() {
-  selectedTable.value = "";
-  tableRows.value = [];
-  await loadTables();
+async function loadSchemaTables(database: string): Promise<TreeOption[]> {
+  const items = await listTables(props.connection.conn_id, database);
+  return items.map((item) => ({
+    key: tableKey(database, item.name),
+    label: item.name,
+    kind: "table",
+    database,
+    table: item.name,
+    isLeaf: true
+  }));
 }
 
-async function loadTables() {
-  tables.value = await listTables(props.connection.conn_id, selectedDatabase.value || "");
-  if (!selectedTable.value && tables.value.length) {
-    await selectTable(tables.value[0].name);
+async function handleTreeLoad(node: TreeOption) {
+  const children = await loadSchemaTables(node.database as string);
+  node.children = children;
+  if (node.database === selectedDatabase.value) {
+    tables.value = children.map((child) => ({ name: child.table as string }));
+  }
+}
+
+async function openSchema(database: string) {
+  const node = treeData.value.find((item) => item.database === database);
+  if (!node) return;
+  node.children = await loadSchemaTables(database);
+  tables.value = node.children.map((child) => ({ name: child.table as string }));
+  expandedKeys.value = [schemaKey(database)];
+  const match = node.children.find((child) => child.table === selectedTable.value) || node.children[0];
+  if (match) {
+    selectedKeys.value = [String(match.key)];
+    await selectTable(match.table as string);
+  } else {
+    selectedKeys.value = [schemaKey(database)];
+    resetTableView();
+  }
+}
+
+function handleExpand(keys: Array<string | number>) {
+  expandedKeys.value = keys.map(String);
+}
+
+async function handleTreeSelect(keys: Array<string | number>, options: Array<TreeOption | null>) {
+  const node = options[0];
+  if (!node) return;
+  selectedKeys.value = keys.map(String);
+  if (node.kind === "table") {
+    selectedDatabase.value = node.database as string;
+    tables.value = (treeData.value.find((item) => item.database === node.database)?.children || []).map((child) => ({ name: child.table as string }));
+    await selectTable(node.table as string);
+    return;
+  }
+  selectedDatabase.value = node.database as string;
+  selectedTable.value = "";
+  resetTableView();
+  const key = String(node.key);
+  if (!expandedKeys.value.includes(key)) {
+    expandedKeys.value = [...expandedKeys.value, key];
+    if (!node.children) await handleTreeLoad(node);
   }
 }
 
 async function selectTable(table: string) {
   selectedTable.value = table;
+  dataPagination.page = 1;
   await loadTableData();
+}
+
+function resetTableView() {
+  selectedTable.value = "";
+  tableRows.value = [];
+  tableColumns.value = [];
+  dataPagination.itemCount = 0;
 }
 
 async function loadTableData() {
@@ -466,7 +580,18 @@ function createSchemaPrompt() {
 }
 
 function createTablePrompt() {
+  if (!selectedDatabase.value) return;
   Object.assign(objectModal, { show: true, kind: "table", name: "", saving: false });
+}
+
+function handleCreateSelect(key: string) {
+  if (key === "schema") createSchemaPrompt();
+  else createTablePrompt();
+}
+
+function handleDropSelect(key: string) {
+  if (key === "schema") dropSelectedSchema();
+  else dropSelectedTable();
 }
 
 async function saveObject() {
@@ -497,13 +622,32 @@ async function saveObject() {
 
 function dropSelectedTable() {
   if (!selectedTable.value) return;
+  const database = selectedDatabase.value;
+  const table = selectedTable.value;
   dialog.warning({
     title: t("common.confirm"),
     content: t("database.table.dropConfirm"),
     positiveText: t("common.delete"),
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
-      await dropTable(props.connection.conn_id, selectedDatabase.value, selectedTable.value);
+      await dropTable(props.connection.conn_id, database, table);
+      selectedTable.value = "";
+      await refreshMetadata();
+    }
+  });
+}
+
+function dropSelectedSchema() {
+  if (!selectedDatabase.value) return;
+  const database = selectedDatabase.value;
+  dialog.warning({
+    title: t("common.confirm"),
+    content: t("database.schema.dropConfirm", { name: database }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
+    onPositiveClick: async () => {
+      await dropSchema(props.connection.conn_id, database);
+      selectedDatabase.value = "";
       selectedTable.value = "";
       await refreshMetadata();
     }

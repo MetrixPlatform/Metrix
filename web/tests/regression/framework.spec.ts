@@ -200,6 +200,11 @@ test("keeps database workbench layout readable", async ({ page }) => {
     .poll(() => page.locator(".database-sidebar-actions").evaluate((node) => node.scrollWidth <= node.clientWidth + 1))
     .toBe(true);
 
+  await expect(page.getByRole("button", { name: "新建" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "删除" })).toBeVisible();
+  await expect(page.locator(".database-tree").getByText("0421")).toBeVisible();
+  await expect(page.locator(".database-tree").getByText("capacityreport")).toBeVisible();
+
   await page.getByText("SQL", { exact: true }).click();
   await expect.poll(() => page.locator(".database-sql-editor").evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(280);
 });
