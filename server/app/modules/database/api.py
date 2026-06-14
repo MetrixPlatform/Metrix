@@ -153,11 +153,12 @@ def table_data(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=1000),
     order_by: str = "",
+    order_desc: bool = False,
     filter: str = "",
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
 ) -> TableDataResponse:
-    return DatabaseService(db).table_data(actor, conn_id, database, table, page, page_size, order_by, filter)
+    return DatabaseService(db).table_data(actor, conn_id, database, table, page, page_size, order_by, order_desc, filter)
 
 
 @router.post("/{conn_id}/query", response_model=QueryResponse, tags=DATA_TAGS)

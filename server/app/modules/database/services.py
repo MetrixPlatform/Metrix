@@ -220,6 +220,7 @@ class DatabaseService:
         page: int,
         page_size: int,
         order_by: str = "",
+        order_desc: bool = False,
         filter_value: str = "",
     ) -> TableDataResponse:
         connection = self._get_usable(actor, conn_id)
@@ -230,7 +231,7 @@ class DatabaseService:
             primary_keys = runtime.primary_keys(table, database)
             where_sql, params = _filter_clause(runtime, columns, filter_value)
             total = runtime.table_total(table, database, where_sql, params)
-            rows = runtime.table_rows(table, database, page, page_size, order_by, where_sql, params)
+            rows = runtime.table_rows(table, database, page, page_size, order_by, order_desc, where_sql, params)
         return TableDataResponse(columns=columns, primary_keys=primary_keys, rows=rows, total=total, page=page, page_size=page_size)
 
     def query(self, actor: User, conn_id: str, payload: QueryRequest) -> QueryResponse:

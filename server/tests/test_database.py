@@ -65,6 +65,12 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     assert table_data.json()["total"] == 2
     assert table_data.json()["primary_keys"] == ["id"]
 
+    ordered_desc = client.get("/api/databases/db_sqlite_test/table-data?table=people&order_by=name&order_desc=true&page_size=10", headers=headers)
+    assert ordered_desc.status_code == 200
+    assert [row["name"] for row in ordered_desc.json()["rows"]] == ["Bob", "Alice"]
+    ordered_asc = client.get("/api/databases/db_sqlite_test/table-data?table=people&order_by=name&page_size=10", headers=headers)
+    assert [row["name"] for row in ordered_asc.json()["rows"]] == ["Alice", "Bob"]
+
     selected = client.post("/api/databases/db_sqlite_test/query", json={"sql": "SELECT name FROM people ORDER BY id"}, headers=headers)
     assert selected.status_code == 200
     assert [row["name"] for row in selected.json()["rows"]] == ["Alice", "Bob"]

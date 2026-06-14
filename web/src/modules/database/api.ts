@@ -203,9 +203,9 @@ export function listColumns(connId: string, database: string, table: string) {
   return request<ColumnItem[]>(`/databases/${encodeURIComponent(connId)}/columns${queryString({ database, table })}`);
 }
 
-export function getTableData(connId: string, database: string, table: string, page = 1, pageSize = 100, orderBy = "", filter = "") {
+export function getTableData(connId: string, database: string, table: string, page = 1, pageSize = 100, orderBy = "", orderDesc = false, filter = "") {
   return request<TableData>(
-    `/databases/${encodeURIComponent(connId)}/table-data${queryString({ database, table, page, page_size: pageSize, order_by: orderBy, filter })}`
+    `/databases/${encodeURIComponent(connId)}/table-data${queryString({ database, table, page, page_size: pageSize, order_by: orderBy, order_desc: orderDesc, filter })}`
   );
 }
 

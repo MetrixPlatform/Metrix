@@ -56,7 +56,8 @@
               :data="tableRows"
               :loading="loadingData"
               :pagination="dataPagination"
-              :scroll-x="Math.max(900, dataColumns.length * 160)"
+              :scroll-x="Math.max(960, dataColumns.length * 180)"
+              @update:sorter="handleDataSorter"
               @update:page="handleDataPage"
               @update:page-size="handleDataPageSize"
             />
@@ -93,7 +94,7 @@
               :columns="queryColumns"
               :data="queryRows"
               :loading="executing"
-              :scroll-x="Math.max(900, queryColumns.length * 160)"
+              :scroll-x="Math.max(960, queryColumns.length * 180)"
             />
           </n-tab-pane>
         </n-tabs>
@@ -211,7 +212,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, DropdownOption, TreeOption } from "naive-ui";
+import type { DataTableColumns, DataTableSortState, DropdownOption, TreeOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { t } from "../../../i18n";
@@ -263,6 +264,7 @@ const tableColumns = ref<ColumnItem[]>([]);
 const tableRows = ref<Record<string, unknown>[]>([]);
 const primaryKeys = ref<string[]>([]);
 const tableFilter = ref("");
+const dataSort = reactive<{ columnKey: string | null; order: "ascend" | "descend" | false }>({ columnKey: null, order: false });
 const loadingData = ref(false);
 const executing = ref(false);
 const resultCollapsed = ref(false);
@@ -348,7 +350,11 @@ const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() => [
   ...tableColumns.value.map((column) => ({
     title: column.name,
     key: column.name,
-    minWidth: 140,
+    width: 180,
+    minWidth: 80,
+    resizable: true,
+    sorter: true,
+    sortOrder: dataSort.columnKey === column.name ? dataSort.order : false,
     ellipsis: { tooltip: true },
     render: (row: Record<string, unknown>) => formatCell(row[column.name])
   })),
@@ -357,6 +363,7 @@ const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() => [
     key: "actions",
     fixed: "right",
     width: 150,
+    resizable: false,
     render: (row: Record<string, unknown>) =>
       h("div", { class: "table-actions" }, [
         h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row) }, () => t("common.edit")),
@@ -369,7 +376,16 @@ const queryColumns = computed<DataTableColumns<Record<string, unknown>>>(() => {
   if (!columns.length && queryResult.value?.statement_type === "write") {
     return [{ title: t("database.sql.affectedRows"), key: "affected_rows", render: () => queryResult.value?.affected_rows ?? 0 }];
   }
-  return columns.map((column) => ({ title: column, key: column, minWidth: 140, ellipsis: { tooltip: true }, render: (row) => formatCell(row[column]) }));
+  return columns.map((column) => ({
+    title: column,
+    key: column,
+    width: 180,
+    minWidth: 80,
+    resizable: true,
+    sorter: "default" as const,
+    ellipsis: { tooltip: true },
+    render: (row) => formatCell(row[column])
+  }));
 });
 const queryRows = computed(() => queryResult.value?.rows || []);
 
@@ -629,6 +645,19 @@ function resetTableView() {
   dataPagination.itemCount = 0;
 }
 
+function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | null) {
+  const state = Array.isArray(sorter) ? sorter[0] : sorter;
+  if (!state || !state.order) {
+    dataSort.columnKey = null;
+    dataSort.order = false;
+  } else {
+    dataSort.columnKey = String(state.columnKey);
+    dataSort.order = state.order;
+  }
+  dataPagination.page = 1;
+  void loadTableData();
+}
+
 async function loadTableData() {
   if (!selectedTable.value) return;
   loadingData.value = true;
@@ -639,7 +668,8 @@ async function loadTableData() {
       selectedTable.value,
       dataPagination.page,
       dataPagination.pageSize,
-      "",
+      dataSort.columnKey || "",
+      dataSort.order === "descend",
       tableFilter.value
     );
     tableColumns.value = result.columns;

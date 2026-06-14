@@ -103,12 +103,15 @@ class ExternalDatabase:
         page: int = 1,
         page_size: int = 100,
         order_by: str = "",
+        order_desc: bool = False,
         where_sql: str = "",
         params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         page_size = clamp_page_size(page_size)
         offset = max(page - 1, 0) * page_size
-        order = f" ORDER BY {self.quote_identifier(clean_identifier(order_by, 'order_by'))}" if order_by else ""
+        order = ""
+        if order_by:
+            order = f" ORDER BY {self.quote_identifier(clean_identifier(order_by, 'order_by'))}{' DESC' if order_desc else ' ASC'}"
         sql = f"SELECT * FROM {self.qualified_table(table, database)}{where_sql}{order} LIMIT :limit OFFSET :offset"
         query_params = dict(params or {})
         query_params.update({"limit": page_size, "offset": offset})
