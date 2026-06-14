@@ -98,7 +98,6 @@ import {
   NModal,
   NRadioButton,
   NRadioGroup,
-  NSpace,
   NSwitch,
   NTag,
   useDialog,
@@ -275,11 +274,31 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     fixed: "right",
     align: "center",
     render: (row) =>
-      h(NSpace, { size: 4, justify: "center", wrap: false }, () => [
-        h(NButton, { size: "tiny", quaternary: true, onClick: () => openWorkbench(row) }, () => h(NIcon, { component: Table20Regular })),
-        h(NButton, { size: "tiny", quaternary: true, loading: testingRowId.value === row.id, onClick: () => testExisting(row) }, () => h(NIcon, { component: PlugConnected20Regular })),
-        canManage(row) ? h(NButton, { size: "tiny", quaternary: true, onClick: () => openEdit(row) }, () => h(NIcon, { component: Edit20Regular })) : null,
-        canManage(row) ? h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => h(NIcon, { component: Delete20Regular })) : null
+      h("div", { class: "table-action-group" }, [
+        h(
+          NButton,
+          { size: "small", quaternary: true, circle: true, type: "primary", title: t("database.manage"), onClick: () => openWorkbench(row) },
+          { icon: () => h(NIcon, { component: Table20Regular }) }
+        ),
+        h(
+          NButton,
+          { size: "small", quaternary: true, circle: true, title: t("common.test"), loading: testingRowId.value === row.id, onClick: () => testExisting(row) },
+          { icon: () => h(NIcon, { component: PlugConnected20Regular }) }
+        ),
+        canManage(row)
+          ? h(
+              NButton,
+              { size: "small", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEdit(row) },
+              { icon: () => h(NIcon, { component: Edit20Regular }) }
+            )
+          : null,
+        canManage(row)
+          ? h(
+              NButton,
+              { size: "small", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
+              { icon: () => h(NIcon, { component: Delete20Regular }) }
+            )
+          : null
       ])
   }
 ]);

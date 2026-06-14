@@ -66,6 +66,7 @@
     "searchPlaceholder": "Search name, ID, host or database",
     "add": "New connection",
     "edit": "Edit connection",
+    "manage": "Manage",
     "connection": "Connection",
     "shared": "Shared",
     "private": "Private",

@@ -66,6 +66,7 @@
     "searchPlaceholder": "搜索名称、ID、主机、库名",
     "add": "新增连接",
     "edit": "编辑连接",
+    "manage": "管理",
     "connection": "连接",
     "shared": "共享",
     "private": "私有",
