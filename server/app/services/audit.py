@@ -1,9 +1,9 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import csv
 from datetime import datetime
 import json
 from io import StringIO
-from typing import Any, Mapping
+from typing import Any
 
 from sqlalchemy.orm import Session
 

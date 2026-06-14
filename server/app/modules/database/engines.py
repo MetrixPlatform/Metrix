@@ -43,7 +43,7 @@ class ExternalDatabase:
         self.dialect = dialect_for(connection.db_type)
         self.engine = create_external_engine(connection, password, self.database)
 
-    def __enter__(self) -> "ExternalDatabase":
+    def __enter__(self) -> ExternalDatabase:
         return self
 
     def __exit__(self, *_: object) -> None:

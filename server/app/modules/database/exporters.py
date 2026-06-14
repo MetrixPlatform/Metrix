@@ -72,7 +72,7 @@ def _export_sqlite(runtime: ExternalDatabase, output_path: Path, database: str, 
     row_count = 0
     with sqlite3.connect(output_path) as target:
         for name, columns, rows in _datasets(runtime, database, tables, sql, queries):
-            table_name = _safe_sqlite_identifier(name)
+            table_name = _safe_identifier(name)
             target.execute(f'DROP TABLE IF EXISTS "{table_name}"')
             target.execute(f'CREATE TABLE "{table_name}" ({", ".join(f"{_q_sqlite(column)} TEXT" for column in columns)})')
             placeholders = ", ".join("?" for _ in columns)
@@ -88,7 +88,7 @@ def _export_sql(runtime: ExternalDatabase, output_path: Path, database: str, tab
     row_count = 0
     with output_path.open("w", encoding="utf-8", newline="\n") as file:
         for name, columns, rows in _datasets(runtime, database, tables, sql, queries):
-            table_name = runtime.quote_identifier(_safe_sql_identifier(name))
+            table_name = runtime.quote_identifier(_safe_identifier(name))
             file.write(f"DROP TABLE IF EXISTS {table_name};\n")
             file.write(f"CREATE TABLE {table_name} ({', '.join(runtime.quote_identifier(column) + ' TEXT' for column in columns)});\n")
             for batch in rows:
@@ -168,11 +168,7 @@ def _safe_sheet_name(value: str) -> str:
     return cleaned or "sheet"
 
 
-def _safe_sqlite_identifier(value: str) -> str:
-    return "".join(char if char.isalnum() or char == "_" else "_" for char in value) or "data"
-
-
-def _safe_sql_identifier(value: str) -> str:
+def _safe_identifier(value: str) -> str:
     return "".join(char if char.isalnum() or char == "_" else "_" for char in value) or "data"
 
 

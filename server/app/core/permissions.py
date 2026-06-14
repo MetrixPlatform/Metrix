@@ -65,7 +65,7 @@ PERMISSION_SEEDS = (
 
 def expand_permissions(codes: set[str]) -> set[str]:
     expanded = set(codes)
-    for route_code, read_code in ROUTE_READ_PERMISSIONS.items():
-        if route_code in expanded:
-            expanded.add(read_code)
+    for route_permission, read_permission in ROUTE_READ_PERMISSIONS.items():
+        if route_permission in expanded:
+            expanded.add(read_permission)
     return expanded
