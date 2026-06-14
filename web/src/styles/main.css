@@ -2101,20 +2101,22 @@ a {
   overflow: hidden;
 }
 
-.database-sidebar-actions {
-  display: flex;
+.database-node-actions {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: 8px;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
 }
 
-.database-icon-button {
-  flex: 0 0 auto;
+.database-tree .n-tree-node-wrapper:hover .database-node-actions,
+.database-tree .n-tree-node--selected .database-node-actions {
+  opacity: 1;
 }
 
-.database-action-button {
-  flex: 1 1 0;
-  min-width: 0;
+.database-tree .n-tree-node-content__suffix {
+  flex: 0 0 auto;
 }
 
 .database-sub-toolbar {
@@ -2160,7 +2162,14 @@ a {
   flex-direction: column;
 }
 
-.database-main .n-tabs-pane-wrapper,
+.database-main .n-tabs-pane-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
 .database-main .n-tab-pane {
   min-height: 0;
   flex: 1 1 auto;
@@ -2197,10 +2206,6 @@ a {
 
 .database-query-table {
   flex: 1 1 auto;
-  min-height: 220px;
-}
-
-.database-script-table {
   min-height: 220px;
 }
 

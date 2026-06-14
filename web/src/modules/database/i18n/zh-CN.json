@@ -80,6 +80,10 @@
     "rowsAffected": "已影响 {count} 行",
     "create": "新建",
     "treeEmpty": "暂无数据库",
+    "tree": {
+      "tables": "表",
+      "scripts": "脚本"
+    },
     "tabs": {
       "data": "数据",
       "sql": "SQL",
@@ -94,7 +98,9 @@
     "table": {
       "create": "新建表",
       "drop": "删表",
-      "dropConfirm": "确认删除当前表？",
+      "dropConfirm": "确认删除表 {name}？",
+      "truncate": "清空表",
+      "truncateConfirm": "确认清空表 {name}？所有数据将被删除，结构保留。",
       "name": "表名",
       "search": "搜索当前表数据"
     },
@@ -106,7 +112,9 @@
     "sql": {
       "execute": "执行",
       "executed": "执行完成",
-      "affectedRows": "影响行数"
+      "affectedRows": "影响行数",
+      "showResult": "展开结果",
+      "hideResult": "折叠结果"
     },
     "script": {
       "search": "搜索脚本",
@@ -114,7 +122,8 @@
       "load": "载入",
       "run": "执行",
       "result": "执行 {count} 条语句",
-      "untitled": "未命名脚本"
+      "untitled": "未命名脚本",
+      "deleteConfirm": "确认删除脚本 {name}？"
     },
     "export": {
       "title": "导出",

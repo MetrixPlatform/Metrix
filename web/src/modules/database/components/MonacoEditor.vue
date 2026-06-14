@@ -16,6 +16,15 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ (event: "update:modelValue", value: string): void }>();
 
+const SQL_KEYWORDS = [
+  "SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "HAVING", "LIMIT", "OFFSET", "JOIN", "INNER JOIN",
+  "LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "ON", "AS", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN", "IS NULL",
+  "IS NOT NULL", "DISTINCT", "COUNT", "SUM", "AVG", "MIN", "MAX", "INSERT INTO", "VALUES", "UPDATE", "SET",
+  "DELETE FROM", "CREATE TABLE", "ALTER TABLE", "DROP TABLE", "TRUNCATE TABLE", "CREATE DATABASE", "DROP DATABASE",
+  "CREATE INDEX", "PRIMARY KEY", "FOREIGN KEY", "REFERENCES", "DEFAULT", "AUTO_INCREMENT", "UNION", "UNION ALL",
+  "CASE", "WHEN", "THEN", "ELSE", "END", "ASC", "DESC", "SHOW TABLES", "SHOW DATABASES", "DESCRIBE", "EXPLAIN"
+];
+
 const containerRef = ref<HTMLElement | null>(null);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let completionDisposable: monaco.IDisposable | null = null;
@@ -33,14 +42,29 @@ function editorTheme() {
 onMounted(() => {
   if (!containerRef.value) return;
   completionDisposable = monaco.languages.registerCompletionItemProvider("sql", {
-    provideCompletionItems: () => ({
-      suggestions: (props.suggestions || []).map((label) => ({
+    triggerCharacters: [" ", ".", "("],
+    provideCompletionItems: (model, position) => {
+      const word = model.getWordUntilPosition(position);
+      const range: monaco.IRange = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn,
+        endColumn: word.endColumn
+      };
+      const keywords = SQL_KEYWORDS.map((label) => ({
+        label,
+        kind: monaco.languages.CompletionItemKind.Keyword,
+        insertText: label,
+        range
+      }));
+      const fields = (props.suggestions || []).map((label) => ({
         label,
         kind: monaco.languages.CompletionItemKind.Field,
         insertText: label,
-        range: undefined as unknown as monaco.IRange
-      }))
-    })
+        range
+      }));
+      return { suggestions: [...keywords, ...fields] };
+    }
   });
   editor = monaco.editor.create(containerRef.value, {
     value: props.modelValue,
@@ -49,6 +73,8 @@ onMounted(() => {
     minimap: { enabled: false },
     automaticLayout: true,
     scrollBeyondLastLine: false,
+    suggestOnTriggerCharacters: true,
+    quickSuggestions: { other: true, comments: false, strings: false },
     fontSize: 13,
     tabSize: 2
   });

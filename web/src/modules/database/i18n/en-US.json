@@ -80,6 +80,10 @@
     "rowsAffected": "{count} row(s) affected",
     "create": "New",
     "treeEmpty": "No databases",
+    "tree": {
+      "tables": "Tables",
+      "scripts": "Scripts"
+    },
     "tabs": {
       "data": "Data",
       "sql": "SQL",
@@ -94,7 +98,9 @@
     "table": {
       "create": "New table",
       "drop": "Drop table",
-      "dropConfirm": "Drop the selected table?",
+      "dropConfirm": "Drop table {name}?",
+      "truncate": "Truncate",
+      "truncateConfirm": "Truncate table {name}? All rows will be removed, structure kept.",
       "name": "Table name",
       "search": "Search current table"
     },
@@ -106,7 +112,9 @@
     "sql": {
       "execute": "Run",
       "executed": "Executed",
-      "affectedRows": "Affected rows"
+      "affectedRows": "Affected rows",
+      "showResult": "Show result",
+      "hideResult": "Collapse result"
     },
     "script": {
       "search": "Search scripts",
@@ -114,7 +122,8 @@
       "load": "Load",
       "run": "Run",
       "result": "Executed {count} statement(s)",
-      "untitled": "Untitled script"
+      "untitled": "Untitled script",
+      "deleteConfirm": "Delete script {name}?"
     },
     "export": {
       "title": "Export",
