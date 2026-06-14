@@ -191,7 +191,7 @@ test("keeps database workbench layout readable", async ({ page }) => {
   });
 
   await page.goto("/database");
-  await page.getByRole("button", { name: "test" }).click();
+  await page.locator(".storage-name-link").filter({ hasText: "test" }).click();
   await expect.poll(() => page.getByRole("button", { name: "返回" }).first().innerText()).toBe("");
   await expect(page.locator(".database-sidebar")).toBeVisible();
 

@@ -212,7 +212,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     key: "name",
     width: 160,
     ellipsis: { tooltip: true },
-    render: (row) => h("button", { class: "storage-name-link", onClick: () => openWorkbench(row) }, row.name)
+    render: (row) => h("span", { class: "storage-name-link", title: row.name, onClick: () => openWorkbench(row) }, row.name)
   },
   {
     title: t("field.connId"),
