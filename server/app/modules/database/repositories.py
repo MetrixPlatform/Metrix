@@ -136,18 +136,39 @@ class DataJobRepository:
 
     def list(
         self,
+        keyword: str = "",
         kind: str = "",
         status: str = "",
+        connection_id: int | None = None,
+        created_by_user_id: int | None = None,
+        exclude_created_by_user_id: int | None = None,
         visible_to_user_id: int | None = None,
         created_at_order: str = "descend",
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[DataJob], int]:
         query = self.db.query(DataJob)
+        if keyword:
+            pattern = f"%{keyword}%"
+            query = query.join(DatabaseConnection, DatabaseConnection.id == DataJob.connection_id).filter(
+                or_(
+                    DataJob.job_id.ilike(pattern),
+                    DataJob.file_name.ilike(pattern),
+                    DataJob.error_code.ilike(pattern),
+                    DatabaseConnection.name.ilike(pattern),
+                    DatabaseConnection.conn_id.ilike(pattern),
+                )
+            )
         if kind:
             query = query.filter(DataJob.kind == kind)
         if status:
             query = query.filter(DataJob.status == status)
+        if connection_id is not None:
+            query = query.filter(DataJob.connection_id == connection_id)
+        if created_by_user_id is not None:
+            query = query.filter(DataJob.created_by == created_by_user_id)
+        if exclude_created_by_user_id is not None:
+            query = query.filter(DataJob.created_by != exclude_created_by_user_id)
         if visible_to_user_id is not None:
             query = query.filter(DataJob.created_by == visible_to_user_id)
         total = query.count()
@@ -156,6 +177,23 @@ class DataJobRepository:
         else:
             query = query.order_by(DataJob.created_at.desc(), DataJob.id.desc())
         return query.offset((page - 1) * page_size).limit(page_size).all(), total
+
+    def count_finished_exports_for_download(self, user_id: int, connection_id: int | None = None) -> int:
+        query = self.db.query(DataJob).filter(
+            DataJob.kind == "export",
+            DataJob.status == "success",
+            DataJob.created_by == user_id,
+            DataJob.downloaded_at.is_(None),
+        )
+        if connection_id is not None:
+            query = query.filter(DataJob.connection_id == connection_id)
+        return query.count()
+
+    def creator_usernames(self, user_ids: set[int]) -> dict[int, str]:
+        if not user_ids:
+            return {}
+        rows = self.db.query(User.id, User.username).filter(User.id.in_(user_ids)).all()
+        return {user_id: username for user_id, username in rows}
 
     def create(self, job: DataJob) -> DataJob:
         self.db.add(job)

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
@@ -44,7 +45,10 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     headers = login(client, payload["admin_username"], payload["admin_password"])
     target_path = tmp_path / "target.db"
     make_target_db(target_path)
-    create_sqlite_connection("db_sqlite_test", target_path)
+    connection_id = create_sqlite_connection("db_sqlite_test", target_path)
+    settings_payload = client.get("/api/settings", headers=headers).json()
+    settings_payload["data_job_retention_days"] = 30
+    assert client.put("/api/settings", json=settings_payload, headers=headers).status_code == 200
 
     schemas = client.get("/api/databases/db_sqlite_test/schemas", headers=headers)
     assert schemas.status_code == 200
@@ -107,6 +111,8 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     job = wait_job(client, headers, job_id)
     assert job["status"] == "success"
     assert job["row_count"] == 3
+    retention_seconds = (datetime.fromisoformat(job["expires_at"]) - datetime.fromisoformat(job["finished_at"])).total_seconds()
+    assert 29 * 24 * 60 * 60 < retention_seconds <= 30 * 24 * 60 * 60
 
     submitted_later = client.post(
         "/api/databases/db_sqlite_test/export",
@@ -118,22 +124,66 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     later_job = wait_job(client, headers, later_job_id)
     assert later_job["status"] == "success"
 
-    jobs_asc = client.get("/api/data-jobs?sort_order=ascend", headers=headers)
+    jobs_asc = client.get("/api/database-transfer-jobs?sort_order=ascend", headers=headers)
     assert jobs_asc.status_code == 200
     assert [item["job_id"] for item in jobs_asc.json()["items"][:2]] == [job_id, later_job_id]
 
-    jobs_desc = client.get("/api/data-jobs?sort_order=descend", headers=headers)
+    jobs_desc = client.get("/api/database-transfer-jobs?sort_order=descend", headers=headers)
     assert jobs_desc.status_code == 200
     assert [item["job_id"] for item in jobs_desc.json()["items"][:2]] == [later_job_id, job_id]
 
-    download = client.get(f"/api/data-jobs/{job_id}/download", headers=headers)
+    download_count = client.get("/api/database-transfer-jobs/download-count", headers=headers)
+    assert download_count.status_code == 200
+    assert download_count.json()["count"] == 2
+    scoped_count = client.get(f"/api/database-transfer-jobs/download-count?connection_id={connection_id}", headers=headers)
+    assert scoped_count.status_code == 200
+    assert scoped_count.json()["count"] == 2
+
+    from app.core.install import load_install_config
+
+    engine = create_engine(load_install_config().database_url)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO users "
+                "(username, full_name, phone, email, company, department, password_hash, approval_status, is_active, is_builtin, rejected_reason, created_at, updated_at) "
+                "VALUES ('other_owner', 'Other Owner', '', '', '', '', 'hash', 'approved', 1, 0, '', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            )
+        )
+        other_user_id = conn.execute(text("SELECT id FROM users WHERE username = 'other_owner'")).scalar_one()
+        conn.execute(
+            text(
+                "INSERT INTO data_jobs "
+                "(job_id, kind, connection_id, format, params_json, status, file_name, file_path, file_size, row_count, error_code, created_by, created_at, finished_at, expires_at) "
+                "VALUES ('other-export-job', 'export', :connection_id, 'csv', '{}', 'success', 'other-export.csv', '', 0, 0, '', :created_by, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            ),
+            {"connection_id": connection_id, "created_by": other_user_id},
+        )
+    engine.dispose()
+
+    own_jobs = client.get("/api/database-transfer-jobs?created_by=me", headers=headers)
+    assert own_jobs.status_code == 200
+    assert all(item["created_by_username"] == payload["admin_username"] for item in own_jobs.json()["items"])
+    other_jobs = client.get("/api/database-transfer-jobs?created_by=others", headers=headers)
+    assert other_jobs.status_code == 200
+    assert [item["job_id"] for item in other_jobs.json()["items"]] == ["other-export-job"]
+    assert other_jobs.json()["items"][0]["created_by_username"] == "other_owner"
+    keyword_jobs = client.get("/api/database-transfer-jobs?keyword=other-export", headers=headers)
+    assert keyword_jobs.status_code == 200
+    assert [item["job_id"] for item in keyword_jobs.json()["items"]] == ["other-export-job"]
+    scoped_jobs = client.get(f"/api/database-transfer-jobs?connection_id={connection_id}", headers=headers)
+    assert scoped_jobs.status_code == 200
+    assert scoped_jobs.json()["total"] >= 3
+
+    download = client.get(f"/api/database-transfer-jobs/{job_id}/download", headers=headers)
     assert download.status_code == 200
     assert b"Alice" in download.content
+    assert client.get("/api/database-transfer-jobs/download-count", headers=headers).json()["count"] == 1
 
 
 def wait_job(client, headers, job_id: str):
     for _ in range(30):
-        response = client.get(f"/api/data-jobs/{job_id}", headers=headers)
+        response = client.get(f"/api/database-transfer-jobs/{job_id}", headers=headers)
         assert response.status_code == 200
         payload = response.json()
         if payload["status"] in {"success", "failed"}:
@@ -170,7 +220,7 @@ def test_database_export_multiple_queries(tmp_path, monkeypatch):
     assert job["status"] == "success"
     assert job["row_count"] == 4
 
-    download = client.get(f"/api/data-jobs/{job['job_id']}/download", headers=headers)
+    download = client.get(f"/api/database-transfer-jobs/{job['job_id']}/download", headers=headers)
     assert download.status_code == 200
     workbook = load_workbook(io.BytesIO(download.content), read_only=True)
     assert set(workbook.sheetnames) == {"names", "ages"}

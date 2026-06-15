@@ -21,8 +21,10 @@ SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
 SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
+SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
 DEFAULT_LOG_RETENTION_DAYS = 90
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
+DEFAULT_DATA_JOB_RETENTION_DAYS = 7
 
 
 class SettingService:
@@ -58,6 +60,7 @@ class SettingService:
                 SETTING_API_ENABLED: _dump_bool(payload.api_enabled),
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
                 SETTING_DATA_JOB_MAX_WORKERS: str(payload.data_job_max_workers),
+                SETTING_DATA_JOB_RETENTION_DAYS: str(payload.data_job_retention_days),
             }
         )
         after = _settings_snapshot(self.get_settings())
@@ -124,6 +127,10 @@ class SettingService:
                 minimum=1,
                 maximum=16,
             ),
+            data_job_retention_days=_parse_retention_days(
+                raw.get(SETTING_DATA_JOB_RETENTION_DAYS),
+                defaults.data_job_retention_days,
+            ),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -151,6 +158,7 @@ def _default_settings() -> SystemSettings:
         api_enabled=True,
         api_token_reveal_enabled=True,
         data_job_max_workers=DEFAULT_DATA_JOB_MAX_WORKERS,
+        data_job_retention_days=DEFAULT_DATA_JOB_RETENTION_DAYS,
     )
 
 
@@ -165,6 +173,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "api_enabled": settings.api_enabled,
         "api_token_reveal_enabled": settings.api_token_reveal_enabled,
         "data_job_max_workers": settings.data_job_max_workers,
+        "data_job_retention_days": settings.data_job_retention_days,
     }
 
 

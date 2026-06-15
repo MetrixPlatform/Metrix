@@ -8,7 +8,9 @@
       <n-tag size="small" :bordered="false">{{ connection.db_type.toUpperCase() }}</n-tag>
       <span class="muted-text">{{ connection.host }}:{{ connection.port }}</span>
       <div class="file-manager-spacer" />
-      <n-button @click="goJobs">{{ t("database.jobs.view") }}</n-button>
+      <n-badge :value="pendingDownloadCount" :max="99" type="success" :show="pendingDownloadCount > 0">
+        <n-button @click="goJobs">{{ t("database.jobs.view") }}</n-button>
+      </n-badge>
     </div>
 
     <div class="database-workbench-body">
@@ -193,6 +195,7 @@ import {
 } from "@vicons/fluent";
 import {
   NButton,
+  NBadge,
   NCheckbox,
   NCheckboxGroup,
   NDataTable,
@@ -227,6 +230,7 @@ import {
   deleteSqlScript,
   dropSchema,
   dropTable,
+  getDataJobDownloadCount,
   getTableData,
   listSchemas,
   listSqlScripts,
@@ -248,7 +252,10 @@ import ImportWizard from "./ImportWizard.vue";
 import MonacoEditor from "./MonacoEditor.vue";
 
 const props = defineProps<{ connection: DatabaseConnection }>();
-const emit = defineEmits<{ (event: "close"): void; (event: "jobs"): void }>();
+const emit = defineEmits<{
+  (event: "close"): void;
+  (event: "jobs", scope: { connectionId: number; connectionName: string }): void;
+}>();
 
 const message = useMessage();
 const dialog = useDialog();
@@ -274,6 +281,7 @@ const savingRow = ref(false);
 const savingScript = ref(false);
 const showImport = ref(false);
 const importTarget = reactive({ database: "", table: "" });
+const pendingDownloadCount = ref(0);
 const exportModal = reactive({
   show: false,
   format: "xlsx" as DataFormat,
@@ -391,6 +399,7 @@ const queryRows = computed(() => queryResult.value?.rows || []);
 
 onMounted(async () => {
   await refreshMetadata();
+  await loadDownloadCount();
 });
 
 function schemaKey(name: string) {
@@ -857,6 +866,7 @@ function splitSqlStatements(text: string): string[] {
 
 function handleJobSubmitted(jobId: string) {
   message.success(t("database.jobs.submitted", { id: jobId }));
+  void loadDownloadCount();
 }
 
 function createSchemaPrompt() {
@@ -1028,6 +1038,14 @@ function formatCell(value: unknown) {
 }
 
 function goJobs() {
-  emit("jobs");
+  emit("jobs", { connectionId: props.connection.id, connectionName: props.connection.name });
+}
+
+async function loadDownloadCount() {
+  try {
+    pendingDownloadCount.value = (await getDataJobDownloadCount({ connection_id: props.connection.id })).count;
+  } catch {
+    pendingDownloadCount.value = 0;
+  }
 }
 </script>

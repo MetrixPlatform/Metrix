@@ -72,7 +72,7 @@ export default defineModule({
       component: () => import("../../views/SystemSettingsView.vue"),
       permission: routePermission("settings"),
       fallbackOrder: 60,
-      menu: { group: "system", icon: PeopleSettings20Regular, order: 50 }
+      menu: { group: "system", icon: PeopleSettings20Regular, order: 90 }
     }),
     definePage({
       key: "tokens",
@@ -82,7 +82,7 @@ export default defineModule({
       permission: routePermission("tokens"),
       feature: "api",
       fallbackOrder: 70,
-      menu: { group: "system", icon: Key20Regular, order: 60 }
+      menu: { group: "system", icon: Key20Regular, order: 50 }
     }),
     definePage({
       key: "apiDocs",
@@ -92,7 +92,7 @@ export default defineModule({
       permission: routePermission("api_docs"),
       feature: "api",
       fallbackOrder: 80,
-      menu: { group: "system", icon: Code20Regular, order: 70 }
+      menu: { group: "system", icon: Code20Regular, order: 60 }
     }),
     definePage({
       key: "profile",

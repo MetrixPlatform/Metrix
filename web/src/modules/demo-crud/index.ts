@@ -8,6 +8,7 @@ export default defineModule({
   order: 90,
   dependencies: ["core"],
   menuGroups: [
+    // 示例模块默认不显示在导航中；开发新页面时可给页面补回 menu，并按需启用该分组。
     defineMenuGroup({ key: "examples", labelKey: "route.group.examples", icon: Database20Regular, order: 80 })
   ],
   pages: [
@@ -17,8 +18,8 @@ export default defineModule({
       titleKey: "route.demoCrud",
       component: () => import("./views/DemoCrudView.vue"),
       permission: routePermission("demo_crud"),
-      fallbackOrder: 90,
-      menu: { group: "examples", icon: Database20Regular, order: 10 }
+      fallbackOrder: 90
+      // menu: { group: "examples", icon: Database20Regular, order: 10 }
     })
   ]
 });

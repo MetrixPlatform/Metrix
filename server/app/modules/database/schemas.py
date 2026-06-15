@@ -340,13 +340,14 @@ class ImportRequest(BaseModel):
         return clean_optional_identifier(value)
 
 
-class DataJobItem(BaseModel):
+class DatabaseTransferJobItem(BaseModel):
     id: int
     job_id: str
     kind: str
     connection_id: int
     conn_id: str = ""
     connection_name: str = ""
+    created_by_username: str = ""
     format: str
     status: str
     file_name: str
@@ -363,11 +364,15 @@ class DataJobItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DataJobListResponse(BaseModel):
-    items: list[DataJobItem]
+class DatabaseTransferJobListResponse(BaseModel):
+    items: list[DatabaseTransferJobItem]
     total: int
     page: int
     page_size: int
+
+
+class DatabaseTransferJobDownloadCount(BaseModel):
+    count: int
 
 
 class JobSubmitResponse(BaseModel):

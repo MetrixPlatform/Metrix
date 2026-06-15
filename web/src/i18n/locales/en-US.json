@@ -433,6 +433,8 @@
       "default_locale": "Default language",
       "api_enabled": "API enabled",
       "api_token_reveal_enabled": "Allow token reveal/copy",
+      "dataJobMaxWorkers": "Database import/export concurrency",
+      "dataJobRetention": "Database import/export retention",
       "token_prefix": "Token prefix",
       "expires_at": "Expires at",
       "password_changed": "Password changed",

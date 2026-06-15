@@ -23,12 +23,13 @@ from app.modules.database.jobs import DataJobService
 from app.modules.database.schemas import (
     AlterTableRequest,
     CreateTableRequest,
-    DataJobItem,
-    DataJobListResponse,
     DatabaseConnectionItem,
     DatabaseConnectionListResponse,
     DatabaseConnectionPayload,
     DatabaseTestRequest,
+    DatabaseTransferJobDownloadCount,
+    DatabaseTransferJobItem,
+    DatabaseTransferJobListResponse,
     ExportRequest,
     ImportRequest,
     JobSubmitResponse,
@@ -54,10 +55,11 @@ from app.schemas.common import MessageResponse, message_response
 
 router = APIRouter(prefix="/api/databases")
 scripts_router = APIRouter(prefix="/api/sql-scripts", tags=["sql-scripts"], dependencies=[Depends(require_web_session)])
-jobs_router = APIRouter(prefix="/api/data-jobs", tags=["data-jobs"])
+jobs_router = APIRouter(prefix="/api/database-transfer-jobs", tags=["database-transfer-jobs"])
 MANAGE_TAGS = ["databases"]
 MANAGE_DEPENDENCIES = [Depends(require_web_session)]
 DATA_TAGS = ["database-data"]
+TRANSFER_JOB_TAGS = ["database-transfer-jobs"]
 
 
 @router.get("", response_model=DatabaseConnectionListResponse, tags=MANAGE_TAGS, dependencies=MANAGE_DEPENDENCIES)
@@ -318,7 +320,7 @@ def delete_schema(
     return message_response("common.deleted", "Deleted")
 
 
-@router.post("/{conn_id}/export", response_model=JobSubmitResponse, tags=["data-jobs"])
+@router.post("/{conn_id}/export", response_model=JobSubmitResponse, tags=TRANSFER_JOB_TAGS)
 def submit_export(
     conn_id: str,
     payload: ExportRequest,
@@ -328,7 +330,7 @@ def submit_export(
     return DataJobService(db).submit_export(actor, conn_id, payload)
 
 
-@router.post("/{conn_id}/import", response_model=JobSubmitResponse, tags=["data-jobs"])
+@router.post("/{conn_id}/import", response_model=JobSubmitResponse, tags=TRANSFER_JOB_TAGS)
 def submit_import(
     conn_id: str,
     file: UploadFile = File(...),
@@ -396,30 +398,42 @@ def delete_sql_script(
     return message_response("common.deleted", "Deleted")
 
 
-@jobs_router.get("", response_model=DataJobListResponse)
-def list_data_jobs(
+@jobs_router.get("", response_model=DatabaseTransferJobListResponse)
+def list_database_transfer_jobs(
+    keyword: str = "",
     kind: str = "",
     status: str = "",
+    connection_id: int | None = None,
+    created_by: str = "",
     sort_order: str = "descend",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=500),
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
-) -> DataJobListResponse:
-    return DataJobService(db).list_jobs(actor, kind, status, sort_order, page, page_size)
+) -> DatabaseTransferJobListResponse:
+    return DataJobService(db).list_jobs(actor, keyword, kind, status, connection_id, created_by, sort_order, page, page_size)
 
 
-@jobs_router.get("/{job_id}", response_model=DataJobItem)
-def get_data_job(
+@jobs_router.get("/download-count", response_model=DatabaseTransferJobDownloadCount)
+def database_transfer_job_download_count(
+    connection_id: int | None = None,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(DATABASE_READ)),
+) -> DatabaseTransferJobDownloadCount:
+    return DataJobService(db).finished_download_count(actor, connection_id)
+
+
+@jobs_router.get("/{job_id}", response_model=DatabaseTransferJobItem)
+def get_database_transfer_job(
     job_id: str,
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
-) -> DataJobItem:
+) -> DatabaseTransferJobItem:
     return DataJobService(db).get_job(actor, job_id)
 
 
 @jobs_router.get("/{job_id}/download")
-def download_data_job(
+def download_database_transfer_job(
     job_id: str,
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
@@ -434,7 +448,7 @@ def download_data_job(
 
 
 @jobs_router.delete("/{job_id}", response_model=MessageResponse)
-def delete_data_job(
+def delete_database_transfer_job(
     job_id: str,
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),

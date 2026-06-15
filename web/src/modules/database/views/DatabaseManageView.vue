@@ -1,7 +1,7 @@
 <template>
   <sql-workbench-view v-if="workingItem" :connection="workingItem" @close="closeWorkbench" @jobs="openJobs" />
 
-  <data-jobs-view v-else-if="showJobs" embedded @close="closeJobs" />
+  <data-jobs-view v-else-if="showJobs" embedded :connection-id="jobScope.connectionId" :connection-name="jobScope.connectionName" @close="closeJobs" />
 
   <section v-else class="work-card table-page-card">
     <div class="toolbar">
@@ -10,7 +10,9 @@
         <n-button @click="searchConnections">{{ t("common.search") }}</n-button>
       </div>
       <div class="toolbar-actions">
-        <n-button @click="openJobs">{{ t("database.jobs.view") }}</n-button>
+        <n-badge :value="pendingDownloadCount" :max="99" type="success" :show="pendingDownloadCount > 0">
+          <n-button @click="() => openJobs()">{{ t("database.jobs.view") }}</n-button>
+        </n-badge>
         <permission-button :permission="DATABASE_CREATE" type="primary" @click="openCreate">{{ t("database.add") }}</permission-button>
       </div>
     </div>
@@ -24,7 +26,7 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(row) => row.id"
-      :scroll-x="1050"
+      :scroll-x="1500"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -89,6 +91,7 @@ import { computed, h, onMounted, reactive, ref } from "vue";
 import { Copy20Regular, Delete20Regular, Edit20Regular, PlugConnected20Regular, Table20Regular } from "@vicons/fluent";
 import {
   NButton,
+  NBadge,
   NDataTable,
   NForm,
   NFormItem,
@@ -116,6 +119,7 @@ import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from ".
 import {
   createDatabaseConnection,
   deleteDatabaseConnection,
+  getDataJobDownloadCount,
   listDatabaseConnections,
   testDatabaseConnection,
   updateDatabaseConnection,
@@ -145,7 +149,9 @@ const formRef = ref<FormInst | null>(null);
 const editingItem = ref<DatabaseConnection | null>(null);
 const workingItem = ref<DatabaseConnection | null>(null);
 const showJobs = ref(false);
+const jobScope = reactive<{ connectionId: number | null; connectionName: string }>({ connectionId: null, connectionName: "" });
 const items = ref<DatabaseConnection[]>([]);
+const pendingDownloadCount = ref(0);
 const filters = reactive<{
   keyword: string;
   db_type: DatabaseType | null;
@@ -211,6 +217,8 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     title: t("field.name"),
     key: "name",
     width: 160,
+    minWidth: 120,
+    resizable: true,
     ellipsis: { tooltip: true },
     render: (row) => h("span", { class: "storage-name-link", title: row.name, onClick: () => openWorkbench(row) }, row.name)
   },
@@ -218,6 +226,8 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     title: t("field.connId"),
     key: "conn_id",
     width: 180,
+    minWidth: 140,
+    resizable: true,
     render: (row) =>
       h("span", { class: "copyable-cell" }, [
         h("span", null, row.conn_id),
@@ -228,18 +238,30 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     title: t("field.type"),
     key: "db_type",
     width: 90,
+    minWidth: 80,
+    resizable: true,
     filterOptions: dbTypeOptions,
     filterOptionValue: filters.db_type,
     filterMultiple: false,
     filter: true,
     render: (row) => row.db_type.toUpperCase()
   },
-  { title: t("field.host"), key: "host", width: 180, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
-  { title: t("field.database"), key: "default_database", width: 130, render: (row) => row.default_database || t("database.allSchemas") },
+  { title: t("field.host"), key: "host", width: 190, minWidth: 140, resizable: true, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
+  {
+    title: t("field.database"),
+    key: "default_database",
+    width: 150,
+    minWidth: 120,
+    resizable: true,
+    ellipsis: { tooltip: true },
+    render: (row) => row.default_database || t("database.allSchemas")
+  },
   {
     title: t("database.shared"),
     key: "shared",
     width: 100,
+    minWidth: 90,
+    resizable: true,
     filterOptions: sharedOptions.value,
     filterOptionValue: filters.shared,
     filterMultiple: false,
@@ -250,6 +272,8 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     title: t("field.status"),
     key: "is_active",
     width: 100,
+    minWidth: 90,
+    resizable: true,
     filterOptions: activeOptions.value,
     filterOptionValue: filters.is_active,
     filterMultiple: false,
@@ -260,17 +284,29 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
     title: t("field.creator"),
     key: "created_by",
     width: 120,
+    minWidth: 100,
+    resizable: true,
     filterOptions: creatorOptions.value,
     filterOptionValue: filters.created_by,
     filterMultiple: false,
     filter: true,
     render: (row) => row.created_by_username || "-"
   },
-  { title: t("field.createdAt"), key: "created_at", width: 170, sorter: true, sortOrder: filters.sort_order, render: (row) => formatDateTime(row.created_at) },
+  {
+    title: t("field.createdAt"),
+    key: "created_at",
+    width: 180,
+    minWidth: 150,
+    resizable: true,
+    sorter: true,
+    sortOrder: filters.sort_order,
+    render: (row) => formatDateTime(row.created_at)
+  },
   {
     title: t("common.actions"),
     key: "actions",
     width: 190,
+    minWidth: 170,
     fixed: "right",
     align: "center",
     render: (row) =>
@@ -303,7 +339,10 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
   }
 ]);
 
-onMounted(loadConnections);
+onMounted(() => {
+  void loadConnections();
+  void loadDownloadCount();
+});
 
 async function loadConnections() {
   loading.value = true;
@@ -324,6 +363,14 @@ async function loadConnections() {
     showError(message, error);
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadDownloadCount() {
+  try {
+    pendingDownloadCount.value = (await getDataJobDownloadCount()).count;
+  } catch {
+    pendingDownloadCount.value = 0;
   }
 }
 
@@ -433,15 +480,22 @@ function openWorkbench(row: DatabaseConnection) {
 
 function closeWorkbench() {
   workingItem.value = null;
+  void loadDownloadCount();
 }
 
-function openJobs() {
+function openJobs(scope?: { connectionId?: number | null; connectionName?: string }) {
   workingItem.value = null;
+  jobScope.connectionId = scope?.connectionId ?? null;
+  jobScope.connectionName = scope?.connectionName ?? "";
   showJobs.value = true;
+  void loadDownloadCount();
 }
 
 function closeJobs() {
   showJobs.value = false;
+  jobScope.connectionId = null;
+  jobScope.connectionName = "";
+  void loadDownloadCount();
 }
 
 function handleTypeChange(value: DatabaseType) {

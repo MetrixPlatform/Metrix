@@ -28,8 +28,9 @@ from app.modules.database.importers import import_data
 from app.modules.database.models import DataJob, DatabaseConnection
 from app.modules.database.repositories import DataJobRepository, DatabaseConnectionRepository
 from app.modules.database.schemas import (
-    DataJobItem,
-    DataJobListResponse,
+    DatabaseTransferJobDownloadCount,
+    DatabaseTransferJobItem,
+    DatabaseTransferJobListResponse,
     ExportRequest,
     ImportRequest,
     JobSubmitResponse,
@@ -39,7 +40,6 @@ from app.services.audit import audit_detail, record_audit
 from app.services.permissions import has_permission
 from app.services.settings import SettingService
 
-DATA_JOB_RETENTION_HOURS = 24
 DATA_JOB_CLEANUP_INTERVAL_SECONDS = 30 * 60
 logger = logging.getLogger(__name__)
 
@@ -121,14 +121,43 @@ class DataJobService:
         _pool(self.db).submit(_run_job, job_id)
         return JobSubmitResponse(job_id=job_id, status="pending")
 
-    def list_jobs(self, actor: User, kind: str = "", status: str = "", sort_order: str = "descend", page: int = 1, page_size: int = 20) -> DataJobListResponse:
+    def list_jobs(
+        self,
+        actor: User,
+        keyword: str = "",
+        kind: str = "",
+        status: str = "",
+        connection_id: int | None = None,
+        created_by: str = "",
+        sort_order: str = "descend",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> DatabaseTransferJobListResponse:
         visible_to = None if has_permission(actor, DATABASE_MANAGE_OTHERS) else actor.id
-        rows, total = self.jobs.list(kind, status, visible_to, "ascend" if sort_order == "ascend" else "descend", page, page_size)
-        return DataJobListResponse(items=[self._item(row) for row in rows], total=total, page=page, page_size=page_size)
+        created_by_user_id = actor.id if created_by == "me" else None
+        exclude_created_by_user_id = actor.id if created_by == "others" and visible_to is None else None
+        rows, total = self.jobs.list(
+            keyword,
+            kind,
+            status,
+            connection_id,
+            created_by_user_id,
+            exclude_created_by_user_id,
+            visible_to,
+            "ascend" if sort_order == "ascend" else "descend",
+            page,
+            page_size,
+        )
+        usernames = self.jobs.creator_usernames({row.created_by for row in rows if row.created_by is not None})
+        return DatabaseTransferJobListResponse(items=[self._item(row, usernames) for row in rows], total=total, page=page, page_size=page_size)
 
-    def get_job(self, actor: User, job_id: str) -> DataJobItem:
+    def finished_download_count(self, actor: User, connection_id: int | None = None) -> DatabaseTransferJobDownloadCount:
+        return DatabaseTransferJobDownloadCount(count=self.jobs.count_finished_exports_for_download(actor.id, connection_id))
+
+    def get_job(self, actor: User, job_id: str) -> DatabaseTransferJobItem:
         job = self._get_visible(actor, job_id)
-        return self._item(job)
+        usernames = self.jobs.creator_usernames({job.created_by} if job.created_by is not None else set())
+        return self._item(job, usernames)
 
     def download(self, actor: User, job_id: str) -> tuple[str, BinaryIO]:
         job = self._get_visible(actor, job_id)
@@ -164,12 +193,14 @@ class DataJobService:
             return job
         raise forbidden()
 
-    def _item(self, job: DataJob) -> DataJobItem:
+    def _item(self, job: DataJob, usernames: dict[int, str] | None = None) -> DatabaseTransferJobItem:
         connection = self.connections.get(job.connection_id)
-        return DataJobItem.model_validate(job).model_copy(
+        creator_name = usernames.get(job.created_by, "") if usernames and job.created_by is not None else ""
+        return DatabaseTransferJobItem.model_validate(job).model_copy(
             update={
                 "conn_id": connection.conn_id if connection else "",
                 "connection_name": connection.name if connection else "",
+                "created_by_username": creator_name,
             }
         )
 
@@ -249,7 +280,7 @@ def _run_job(job_id: str) -> None:
                     _ensure_parent(job.file_path)
                     row_count = export_data(runtime, params, Path(job.file_path))
                     job.file_size = Path(job.file_path).stat().st_size if Path(job.file_path).is_file() else 0
-                    job.expires_at = utc_now() + timedelta(hours=DATA_JOB_RETENTION_HOURS)
+                    job.expires_at = utc_now() + timedelta(days=SettingService(db).get_settings().data_job_retention_days)
                 else:
                     row_count = import_data(runtime, params, Path(job.file_path))
                     _remove_file(job.file_path)
@@ -333,7 +364,17 @@ def _remove_file(file_path: str) -> None:
 
 
 def _cleanup_orphan_files() -> None:
+    days = _data_job_retention_days()
     for directory in (_exports_dir(), _imports_dir()):
         for path in directory.iterdir():
-            if path.is_file() and path.stat().st_mtime < (utc_now() - timedelta(hours=DATA_JOB_RETENTION_HOURS)).timestamp():
+            if path.is_file() and path.stat().st_mtime < (utc_now() - timedelta(days=days)).timestamp():
                 _remove_file(str(path))
+
+
+def _data_job_retention_days() -> int:
+    try:
+        with get_session_factory()() as db:
+            return SettingService(db).get_settings().data_job_retention_days
+    except (HTTPException, SQLAlchemyError) as exc:
+        logger.warning("Use default data job retention because settings are unavailable: %s", exc)
+        return 7

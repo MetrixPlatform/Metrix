@@ -86,6 +86,9 @@
             <n-form-item :label="t('field.dataJobMaxWorkers')" path="data_job_max_workers">
               <n-input-number v-model:value="form.data_job_max_workers" :min="1" :max="16" :show-button="false" />
             </n-form-item>
+            <n-form-item :label="t('field.dataJobRetention')" path="data_job_retention_days">
+              <n-select v-model:value="form.data_job_retention_days" :options="retentionOptions" placeholder="" />
+            </n-form-item>
           </section>
         </n-tab-pane>
 
@@ -152,7 +155,8 @@ const form = reactive<SystemSettings>({
   default_locale: "zh-CN",
   api_enabled: true,
   api_token_reveal_enabled: true,
-  data_job_max_workers: 2
+  data_job_max_workers: 2,
+  data_job_retention_days: 7
 });
 
 const rules = computed<FormRules>(() => ({
@@ -219,6 +223,7 @@ function assignSettings(settings: SystemSettings) {
   form.api_enabled = settings.api_enabled;
   form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
   form.data_job_max_workers = settings.data_job_max_workers;
+  form.data_job_retention_days = settings.data_job_retention_days;
 }
 
 </script>

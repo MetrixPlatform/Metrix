@@ -159,6 +159,7 @@ export interface DataJob {
   row_count: number;
   error_code: string;
   created_by: number | null;
+  created_by_username: string;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -288,18 +289,33 @@ export function deleteSqlScript(id: number) {
   return del<ServerMessage>(`/sql-scripts/${id}`);
 }
 
-export function listDataJobs(filters: { kind?: string; status?: string; sort_order?: "ascend" | "descend"; page?: number; page_size?: number } = {}) {
-  return request<PageResult<DataJob>>(`/data-jobs${queryString(filters)}`);
+export function listDataJobs(
+  filters: {
+    keyword?: string;
+    kind?: string;
+    status?: string;
+    connection_id?: number | null;
+    created_by?: string;
+    sort_order?: "ascend" | "descend";
+    page?: number;
+    page_size?: number;
+  } = {}
+) {
+  return request<PageResult<DataJob>>(`/database-transfer-jobs${queryString(filters)}`);
+}
+
+export function getDataJobDownloadCount(filters: { connection_id?: number | null } = {}) {
+  return request<{ count: number }>(`/database-transfer-jobs/download-count${queryString(filters)}`);
 }
 
 export function getDataJob(jobId: string) {
-  return request<DataJob>(`/data-jobs/${encodeURIComponent(jobId)}`);
+  return request<DataJob>(`/database-transfer-jobs/${encodeURIComponent(jobId)}`);
 }
 
 export function downloadDataJob(jobId: string) {
-  return download(`/data-jobs/${encodeURIComponent(jobId)}/download`);
+  return download(`/database-transfer-jobs/${encodeURIComponent(jobId)}/download`);
 }
 
 export function deleteDataJob(jobId: string) {
-  return del<ServerMessage>(`/data-jobs/${encodeURIComponent(jobId)}`);
+  return del<ServerMessage>(`/database-transfer-jobs/${encodeURIComponent(jobId)}`);
 }
