@@ -840,3 +840,4 @@
 - 新增后端依赖 `docker`；本地验证使用 fake Docker client 覆盖核心 API、权限隔离、镜像归属、导入/导出任务，不依赖真实 Docker daemon。
 - 容器管理页和 CRUD 示例页筛选栏使用 `table-filter-row`，搜索框、下拉框和查询按钮保持单行展示；容器状态下拉和状态标签必须走 i18n，不显示 Docker 内部英文状态值。无平台归属记录的 Docker 镜像视为公共镜像，可供所有用户查看和创建容器；普通用户不能删除这类镜像，只有管理员/`manage_others` 可删除。
 - Naive UI `NSelect` 的清空/未选中状态要使用 `null`，不要用空字符串作为默认值；否则没有匹配 option 时 placeholder 不显示，会出现状态筛选框默认空白的问题。
+- 系统设置新增 Docker 连接配置：`docker_connection_mode` 支持 `auto`/`manual`，`docker_host` 为手动 Host。自动模式按 `DOCKER_HOST`、`/var/run/docker.sock`、`/run/docker.sock`、Windows `npipe:////./pipe/docker_engine`、`tcp://localhost:2375`、`tcp://127.0.0.1:2375` 顺序检测并使用第一个可 ping 的 Docker Host；容器状态卡显示实际命中的 Host，不再显示 `from_env`。

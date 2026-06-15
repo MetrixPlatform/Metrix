@@ -110,7 +110,9 @@
     "host": "主机",
     "port": "端口",
     "basePath": "根目录",
-    "newName": "新名称"
+    "newName": "新名称",
+    "dockerConnectionMode": "Docker 连接模式",
+    "dockerHost": "Docker Host"
   },
   "validation": {
     "required": "请输入{label}",
@@ -436,6 +438,8 @@
       "api_token_reveal_enabled": "允许显示/复制 Token",
       "dataJobMaxWorkers": "数据库任务并发数",
       "dataJobRetention": "数据库任务保留时长",
+      "docker_connection_mode": "Docker 连接模式",
+      "docker_host": "Docker Host",
       "token_prefix": "Token 前缀",
       "expires_at": "过期时间",
       "password_changed": "密码已修改",
@@ -452,6 +456,12 @@
     "registrationDesc": "控制注册入口、审核流程和注册资料要求。",
     "api": "API 与 Token",
     "apiDesc": "控制平台 API 入口和完整 Token 显示策略。",
+    "docker": "Docker 连接",
+    "dockerDesc": "配置容器管理模块连接当前部署宿主机 Docker Engine 的方式。",
+    "dockerModeAuto": "自动检测",
+    "dockerModeManual": "手动配置",
+    "dockerHostPlaceholder": "例如 unix:///var/run/docker.sock、npipe:////./pipe/docker_engine 或 tcp://127.0.0.1:2375",
+    "dockerHostHelp": "自动模式会按 DOCKER_HOST、Linux/macOS socket、Windows named pipe 和本地 TCP 的顺序检测，使用第一个可连接的 Docker Host。手动模式会只使用这里填写的地址。",
     "audit": "日志策略",
     "auditDesc": "设置操作日志保留范围。",
     "backup": "数据备份",
@@ -644,7 +654,9 @@
         "log_retention_days": "日志保留天数。",
         "default_locale": "默认语言。",
         "api_enabled": "是否开放 API 功能。",
-        "api_token_reveal_enabled": "是否允许后续显示或复制完整 Token。"
+        "api_token_reveal_enabled": "是否允许后续显示或复制完整 Token。",
+        "docker_connection_mode": "Docker 连接模式，auto 为自动检测，manual 为手动配置。",
+        "docker_host": "手动模式下使用的 Docker Host。"
       }
     },
     "response": {

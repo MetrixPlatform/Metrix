@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,9 +15,23 @@ class DockerOperationError(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class DockerClientConfig:
+    mode: str = "auto"
+    host: str = ""
+
+
+@dataclass(frozen=True)
+class DockerHostCandidate:
+    label: str
+    base_url: str
+    use_env: bool = False
+
+
 class DockerAdapter:
-    def __init__(self, client: Any):
+    def __init__(self, client: Any, host_label: str = ""):
         self.client = client
+        self.host_label = host_label
 
     def ping(self) -> None:
         self.client.ping()
@@ -89,18 +104,69 @@ class DockerAdapter:
             self.client.volumes.create(name=name, labels={"metrix.created_by": "metrix", "metrix.resource_type": "volume"})
 
 
-def create_client() -> DockerAdapter:
+def create_client(config: DockerClientConfig | None = None) -> DockerAdapter:
     try:
         import docker
         from docker.errors import DockerException
     except Exception as exc:  # pragma: no cover - exercised when dependency is absent
         raise DockerUnavailableError("Docker SDK is not installed") from exc
 
-    try:
-        return DockerAdapter(docker.from_env())
-    except DockerException as exc:
-        raise DockerUnavailableError(str(exc)) from exc
+    errors: list[str] = []
+    for candidate in docker_host_candidates(config):
+        try:
+            client = docker.from_env(timeout=3) if candidate.use_env else docker.DockerClient(base_url=candidate.base_url, timeout=3)
+            adapter = DockerAdapter(client, candidate.label)
+            adapter.ping()
+            return adapter
+        except DockerException as exc:
+            errors.append(f"{candidate.label}: {exc}")
+        except Exception as exc:
+            errors.append(f"{candidate.label}: {exc}")
+    raise DockerUnavailableError("; ".join(errors) or "No Docker host candidates available")
 
 
-def docker_host_label() -> str:
-    return os.getenv("DOCKER_HOST", "from_env")
+def docker_host_label(config: DockerClientConfig | None = None) -> str:
+    if config and config.mode == "manual":
+        return config.host.strip() or "manual"
+    candidates = docker_host_candidates(config)
+    if candidates:
+        return "auto"
+    return "auto"
+
+
+def docker_host_candidates(config: DockerClientConfig | None = None) -> list[DockerHostCandidate]:
+    if config and config.mode == "manual":
+        host = config.host.strip()
+        return [DockerHostCandidate(host, host)] if host else []
+
+    candidates: list[DockerHostCandidate] = []
+    env_host = os.getenv("DOCKER_HOST", "").strip()
+    if env_host:
+        candidates.append(DockerHostCandidate(env_host, env_host, use_env=True))
+
+    for path in ("/var/run/docker.sock", "/run/docker.sock"):
+        if Path(path).exists():
+            candidates.append(DockerHostCandidate(f"unix://{path}", f"unix://{path}"))
+
+    if os.name == "nt":
+        candidates.append(DockerHostCandidate("npipe:////./pipe/docker_engine", "npipe:////./pipe/docker_engine"))
+
+    candidates.extend(
+        [
+            DockerHostCandidate("tcp://localhost:2375", "tcp://localhost:2375"),
+            DockerHostCandidate("tcp://127.0.0.1:2375", "tcp://127.0.0.1:2375"),
+        ]
+    )
+    return _dedupe_candidates(candidates)
+
+
+def _dedupe_candidates(candidates: list[DockerHostCandidate]) -> list[DockerHostCandidate]:
+    result: list[DockerHostCandidate] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = candidate.label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(candidate)
+    return result

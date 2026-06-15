@@ -146,7 +146,7 @@ class FakeDockerEngine:
 def install_fake_docker(monkeypatch, engine: FakeDockerEngine):
     from app.modules.containers.clients import DockerAdapter
 
-    monkeypatch.setattr("app.modules.containers.clients.create_client", lambda: DockerAdapter(engine))
+    monkeypatch.setattr("app.modules.containers.clients.create_client", lambda config=None: DockerAdapter(engine, "fake://docker"))
 
 
 def grant_container_role(client, admin_headers, code):
@@ -198,6 +198,7 @@ def test_container_permissions_and_owner_isolation(tmp_path, monkeypatch):
     status = client.get("/api/container-engine/status", headers=user_headers)
     assert status.status_code == 200
     assert status.json()["available"] is True
+    assert status.json()["docker_host"] == "fake://docker"
 
     visible = client.get("/api/container-instances", headers=user_headers)
     assert visible.status_code == 200

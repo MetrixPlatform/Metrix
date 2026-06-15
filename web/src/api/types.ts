@@ -149,6 +149,8 @@ export interface SystemSettings extends PublicSettings {
   data_job_max_workers: number;
   data_job_retention_hours: number;
   data_job_retention_days: number;
+  docker_connection_mode: "auto" | "manual";
+  docker_host: string;
 }
 
 export interface ApiTokenItem {

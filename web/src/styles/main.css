@@ -1791,6 +1791,13 @@ a {
   flex: 0 0 112px;
 }
 
+.settings-field-hint {
+  margin: -6px 0 0;
+  color: var(--muted-color);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .settings-switch-list {
   display: grid;
   gap: 8px;

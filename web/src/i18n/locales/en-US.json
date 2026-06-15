@@ -110,7 +110,9 @@
     "host": "Host",
     "port": "Port",
     "basePath": "Base path",
-    "newName": "New name"
+    "newName": "New name",
+    "dockerConnectionMode": "Docker connection mode",
+    "dockerHost": "Docker Host"
   },
   "validation": {
     "required": "Please enter {label}",
@@ -436,6 +438,8 @@
       "api_token_reveal_enabled": "Allow token reveal/copy",
       "dataJobMaxWorkers": "Database job concurrency",
       "dataJobRetention": "Database job retention",
+      "docker_connection_mode": "Docker connection mode",
+      "docker_host": "Docker Host",
       "token_prefix": "Token prefix",
       "expires_at": "Expires at",
       "password_changed": "Password changed",
@@ -452,6 +456,12 @@
     "registrationDesc": "Control registration access, approval flow, and required profile fields.",
     "api": "API and tokens",
     "apiDesc": "Control platform API access and full token reveal behavior.",
+    "docker": "Docker connection",
+    "dockerDesc": "Configure how the container module connects to the Docker Engine on the current deployment host.",
+    "dockerModeAuto": "Auto detect",
+    "dockerModeManual": "Manual",
+    "dockerHostPlaceholder": "Example: unix:///var/run/docker.sock, npipe:////./pipe/docker_engine, or tcp://127.0.0.1:2375",
+    "dockerHostHelp": "Auto mode checks DOCKER_HOST, Linux/macOS sockets, Windows named pipe, and local TCP in order, then uses the first reachable Docker Host. Manual mode uses only the address entered here.",
     "audit": "Audit policy",
     "auditDesc": "Configure operation log retention.",
     "backup": "Data backup",
@@ -644,7 +654,9 @@
         "log_retention_days": "Audit log retention days.",
         "default_locale": "Default language.",
         "api_enabled": "Whether API access is enabled.",
-        "api_token_reveal_enabled": "Whether full token reveal/copy is allowed."
+        "api_token_reveal_enabled": "Whether full token reveal/copy is allowed.",
+        "docker_connection_mode": "Docker connection mode. auto detects hosts, manual uses a configured host.",
+        "docker_host": "Docker Host used in manual mode."
       }
     },
     "response": {

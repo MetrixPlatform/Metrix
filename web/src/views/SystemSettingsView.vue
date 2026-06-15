@@ -128,6 +128,26 @@
           </section>
         </n-tab-pane>
 
+        <n-tab-pane name="docker" :tab="t('settings.docker')" display-directive="show">
+          <section class="settings-section settings-section-compact">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.docker") }}</h2>
+              <p>{{ t("settings.dockerDesc") }}</p>
+            </div>
+            <n-form-item :label="t('field.dockerConnectionMode')" path="docker_connection_mode">
+              <n-select v-model:value="form.docker_connection_mode" :options="dockerConnectionModeOptions" placeholder="" />
+            </n-form-item>
+            <n-form-item :label="t('field.dockerHost')" path="docker_host">
+              <n-input
+                v-model:value="form.docker_host"
+                :disabled="form.docker_connection_mode === 'auto'"
+                :placeholder="t('settings.dockerHostPlaceholder')"
+              />
+            </n-form-item>
+            <p class="settings-field-hint">{{ t("settings.dockerHostHelp") }}</p>
+          </section>
+        </n-tab-pane>
+
         <n-tab-pane name="audit" :tab="t('settings.audit')" display-directive="show">
           <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
@@ -221,7 +241,7 @@ import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
-type SettingsTab = "basic" | "navigation" | "registration" | "api" | "audit" | "dataJobs" | "backup";
+type SettingsTab = "basic" | "navigation" | "registration" | "api" | "docker" | "audit" | "dataJobs" | "backup";
 type NavigationMove = "up" | "down";
 type DataJobRetentionUnit = "hours" | "days";
 
@@ -252,7 +272,9 @@ const form = reactive<SystemSettings>({
   data_job_max_workers: 2,
   data_job_retention_hours: 168,
   data_job_retention_days: 7,
-  navigation_order: []
+  navigation_order: [],
+  docker_connection_mode: "auto",
+  docker_host: ""
 });
 
 const rules = computed<FormRules>(() => ({
@@ -270,6 +292,10 @@ const retentionOptions = computed(() => [
 const dataJobRetentionUnitOptions = computed(() => [
   { label: t("settings.retentionUnitHours"), value: "hours" },
   { label: t("settings.retentionUnitDays"), value: "days" }
+]);
+const dockerConnectionModeOptions = computed(() => [
+  { label: t("settings.dockerModeAuto"), value: "auto" },
+  { label: t("settings.dockerModeManual"), value: "manual" }
 ]);
 
 onMounted(async () => {
@@ -302,7 +328,9 @@ async function saveSettings() {
       api_token_reveal_enabled: form.api_token_reveal_enabled,
       data_job_max_workers: form.data_job_max_workers,
       data_job_retention_hours: form.data_job_retention_hours,
-      navigation_order: form.navigation_order
+      navigation_order: form.navigation_order,
+      docker_connection_mode: form.docker_connection_mode,
+      docker_host: form.docker_host
     });
     assignSettings(updated);
     settingsStore.setPublic(updated);
@@ -342,6 +370,8 @@ function assignSettings(settings: SystemSettings) {
   form.data_job_retention_days = settings.data_job_retention_days;
   assignDataJobRetention(form.data_job_retention_hours);
   form.navigation_order = [...settings.navigation_order];
+  form.docker_connection_mode = settings.docker_connection_mode;
+  form.docker_host = settings.docker_host;
 }
 
 function assignDataJobRetention(hours: number) {

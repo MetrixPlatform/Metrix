@@ -201,8 +201,8 @@ npm run test:regression:install
 
 ## 9. 容器管理开发边界
 
-- 容器管理模块只管理当前部署宿主机 Docker Engine，后端通过 Docker SDK 读取 `DOCKER_HOST`、TLS 环境变量或本地 socket。
-- Linux 容器部署优先挂载 `/var/run/docker.sock` 并设置 `DOCKER_HOST=unix:///var/run/docker.sock`；Windows/macOS Docker Desktop 建议使用 Linux containers 模式。
+- 容器管理模块只管理当前部署宿主机 Docker Engine，Docker 连接配置保存在系统设置中，默认自动检测 `DOCKER_HOST`、Linux/macOS socket、Windows named pipe 和本地 TCP，并使用第一个可连接地址；也支持手动填写 Docker Host。
+- Linux 容器部署优先挂载 `/var/run/docker.sock`；Windows/macOS Docker Desktop 建议使用 Linux containers 模式，Windows 原生后端开发可手动填写 `npipe:////./pipe/docker_engine`。
 - Docker socket 基本等同宿主机 Docker 高权限控制面，容器管理接口必须保持 Web 登录、RBAC 和审计，不要默认给 API Token 或不可信用户开放高危操作。
 - 单 Docker daemon 下的用户隔离是平台逻辑隔离：容器使用 `metrix.owner_user_id` labels 过滤，镜像通过平台数据库记录归属和公共/私有状态；不要把它描述成强安全隔离。
 - 创建容器默认禁止 `privileged`、宿主网络、Docker socket 挂载和任意宿主目录挂载；如后续要开放，必须先补显式权限、审计和安全提示。

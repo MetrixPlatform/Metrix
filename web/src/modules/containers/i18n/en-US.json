@@ -103,7 +103,7 @@
     "visibilityUpdated": "Visibility updated",
     "logTitle": "Container logs - {name}",
     "emptyHint": "Containers and images cannot be loaded while Docker is disconnected. Check deployment configuration.",
-    "socketHint": "For container deployment, mount /var/run/docker.sock and set DOCKER_HOST=unix:///var/run/docker.sock. Use Linux containers mode on Windows/macOS Docker Desktop.",
+    "socketHint": "Configure Docker connection in System Settings with auto detection or a manual Docker Host. Container deployment usually needs /var/run/docker.sock mounted.",
     "envPlaceholder": "One KEY=VALUE per line. Sensitive keys are filtered by the backend",
     "portPlaceholder": "Example: 8080:80/tcp, one per line",
     "volumePlaceholder": "Example: data_volume:/data:rw, one per line. Only Docker volumes are supported, not arbitrary host paths",

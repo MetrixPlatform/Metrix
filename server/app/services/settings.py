@@ -26,6 +26,8 @@ SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
 SETTING_DATA_JOB_RETENTION_HOURS = "data_job_retention_hours"
 SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
 SETTING_NAVIGATION_ORDER = "navigation_order"
+SETTING_DOCKER_CONNECTION_MODE = "docker_connection_mode"
+SETTING_DOCKER_HOST = "docker_host"
 DEFAULT_LOG_RETENTION_DAYS = 90
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
 DEFAULT_DATA_JOB_RETENTION_HOURS = 168
@@ -70,6 +72,8 @@ class SettingService:
                 SETTING_DATA_JOB_RETENTION_HOURS: str(data_job_retention_hours),
                 SETTING_DATA_JOB_RETENTION_DAYS: str(_hours_to_days(data_job_retention_hours)),
                 SETTING_NAVIGATION_ORDER: json.dumps(_clean_navigation_order(payload.navigation_order)),
+                SETTING_DOCKER_CONNECTION_MODE: payload.docker_connection_mode,
+                SETTING_DOCKER_HOST: payload.docker_host.strip(),
             }
         )
         after = _settings_snapshot(self.get_settings())
@@ -139,6 +143,11 @@ class SettingService:
             data_job_retention_hours=_parse_data_job_retention_hours(raw, defaults.data_job_retention_hours),
             data_job_retention_days=_hours_to_days(_parse_data_job_retention_hours(raw, defaults.data_job_retention_hours)),
             navigation_order=_parse_navigation_order(raw.get(SETTING_NAVIGATION_ORDER), defaults.navigation_order),
+            docker_connection_mode=_parse_docker_connection_mode(
+                raw.get(SETTING_DOCKER_CONNECTION_MODE),
+                defaults.docker_connection_mode,
+            ),
+            docker_host=_parse_docker_host(raw.get(SETTING_DOCKER_HOST), defaults.docker_host),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -169,6 +178,8 @@ def _default_settings() -> SystemSettings:
         data_job_retention_hours=DEFAULT_DATA_JOB_RETENTION_HOURS,
         data_job_retention_days=_hours_to_days(DEFAULT_DATA_JOB_RETENTION_HOURS),
         navigation_order=[],
+        docker_connection_mode="auto",
+        docker_host="",
     )
 
 
@@ -186,6 +197,8 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "data_job_retention_hours": settings.data_job_retention_hours,
         "data_job_retention_days": settings.data_job_retention_days,
         "navigation_order": settings.navigation_order,
+        "docker_connection_mode": settings.docker_connection_mode,
+        "docker_host": settings.docker_host,
     }
 
 
@@ -266,6 +279,15 @@ def _clean_navigation_order(value: list[object]) -> list[str]:
         seen.add(key)
         result.append(key)
     return result
+
+
+def _parse_docker_connection_mode(value: str | None, fallback: str) -> str:
+    return value if value in {"auto", "manual"} else fallback
+
+
+def _parse_docker_host(value: str | None, fallback: str) -> str:
+    cleaned = value.strip() if value else ""
+    return cleaned[:300] if cleaned else fallback
 
 
 def _parse_int(value: str | None, fallback: int, minimum: int, maximum: int) -> int:

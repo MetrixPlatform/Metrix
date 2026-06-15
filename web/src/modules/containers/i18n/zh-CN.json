@@ -103,7 +103,7 @@
     "visibilityUpdated": "可见性已更新",
     "logTitle": "容器日志 - {name}",
     "emptyHint": "Docker 未连接时无法加载容器和镜像，请检查部署配置。",
-    "socketHint": "容器部署请挂载 /var/run/docker.sock，并设置 DOCKER_HOST=unix:///var/run/docker.sock；Windows/macOS Docker Desktop 请使用 Linux containers 模式。",
+    "socketHint": "请在系统设置的 Docker 连接中选择自动检测或手动配置 Docker Host；容器部署通常需要挂载 /var/run/docker.sock。",
     "envPlaceholder": "每行一个 KEY=VALUE，敏感键名会被后端过滤",
     "portPlaceholder": "例如 8080:80/tcp，每行一条",
     "volumePlaceholder": "例如 data_volume:/data:rw，每行一条，仅支持 Docker volume，不支持任意宿主目录",

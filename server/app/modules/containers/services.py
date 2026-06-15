@@ -35,6 +35,7 @@ from app.modules.containers.schemas import (
 )
 from app.services.audit import audit_detail, record_audit
 from app.services.permissions import has_permission
+from app.services.settings import SettingService
 
 METRIX_LABEL_CREATED_BY = "metrix.created_by"
 METRIX_LABEL_OWNER = "metrix.owner_user_id"
@@ -55,8 +56,9 @@ class ContainerService:
         self.jobs = ContainerJobRepository(db)
 
     def engine_status(self) -> ContainerEngineStatus:
+        config = _docker_client_config(self.db)
         try:
-            client = docker_clients.create_client()
+            client = docker_clients.create_client(config)
             client.ping()
             info = client.info()
             version = client.version()
@@ -65,14 +67,14 @@ class ContainerService:
                 version=str(version.get("Version", "")),
                 os_type=str(info.get("OSType", "")),
                 architecture=str(info.get("Architecture", "")),
-                docker_host=docker_clients.docker_host_label(),
+                docker_host=client.host_label,
                 containers=int(info.get("Containers", 0) or 0),
                 images=int(info.get("Images", 0) or 0),
             )
         except DockerUnavailableError as exc:
-            return ContainerEngineStatus(available=False, message=str(exc), docker_host=docker_clients.docker_host_label())
+            return ContainerEngineStatus(available=False, message=str(exc), docker_host=docker_clients.docker_host_label(config))
         except Exception as exc:
-            return ContainerEngineStatus(available=False, message=str(exc), docker_host=docker_clients.docker_host_label())
+            return ContainerEngineStatus(available=False, message=str(exc), docker_host=docker_clients.docker_host_label(config))
 
     def list_containers(
         self,
@@ -301,7 +303,7 @@ class ContainerService:
 
     def _client(self):
         try:
-            return docker_clients.create_client()
+            return docker_clients.create_client(_docker_client_config(self.db))
         except DockerUnavailableError as exc:
             raise service_unavailable("error.containerDockerUnavailable", str(exc))
 
@@ -370,7 +372,7 @@ def _run_job(job_id: str) -> None:
         job.started_at = utc_now()
         db.commit()
         try:
-            client = docker_clients.create_client()
+            client = docker_clients.create_client(_docker_client_config(db))
             if job.kind == "import":
                 loaded = client.load_image(Path(job.file_path))
                 for image in loaded:
@@ -394,6 +396,11 @@ def _run_job(job_id: str) -> None:
             job.error_code = "error.containerJobFailed"
             job.finished_at = utc_now()
             db.commit()
+
+
+def _docker_client_config(db: Session) -> docker_clients.DockerClientConfig:
+    settings = SettingService(db).get_settings()
+    return docker_clients.DockerClientConfig(mode=settings.docker_connection_mode, host=settings.docker_host)
 
 
 def _pool() -> ThreadPoolExecutor:
