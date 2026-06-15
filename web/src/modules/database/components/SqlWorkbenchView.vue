@@ -66,7 +66,7 @@
             </n-dropdown>
           </template>
 
-          <n-tab-pane v-for="tab in workbenchTabs" :key="tab.key" class="database-tab-pane" :name="tab.key" display-directive="show">
+          <n-tab-pane v-for="tab in workbenchTabs" :key="tab.key" class="database-tab-pane" :name="tab.key" display-directive="if">
             <template #tab>
               <span class="database-tab-title" :title="tab.title">
                 <span>{{ tab.title }}</span>
@@ -85,8 +85,8 @@
 
             <template v-if="tab.type === 'table-data'">
               <div class="database-sub-toolbar">
-                <n-input v-model:value="tab.filter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="loadTableData(tab)" />
-                <n-button @click="loadTableData(tab)">{{ t("common.search") }}</n-button>
+                <n-input v-model:value="tab.filter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="searchTableData(tab)" />
+                <n-button @click="searchTableData(tab)">{{ t("common.search") }}</n-button>
                 <permission-button :permission="DATABASE_OPERATE" @click="openAddRow(tab)">{{ t("database.row.add") }}</permission-button>
                 <permission-button :permission="DATABASE_OPERATE" @click="openImport(tab)">{{ t("database.import.title") }}</permission-button>
                 <n-dropdown :options="exportOptions" @select="(format) => exportTable(format, tab)">
@@ -574,6 +574,12 @@ interface TableDesignerTab {
   saving: boolean;
 }
 type WorkbenchTab = TableDataTab | SqlEditorTab | TableDesignerTab;
+type TableDataSort = TableDataTab["sort"];
+interface TableDataLoadOptions {
+  page?: number;
+  pageSize?: number;
+  sort?: TableDataSort;
+}
 const workbenchTabs = ref<WorkbenchTab[]>([]);
 const activeTabKey = ref("");
 const temporaryScriptCounter = ref(0);
@@ -874,6 +880,19 @@ function upsertWorkbenchTab<T extends WorkbenchTab>(tab: T) {
   return tab;
 }
 
+function findTableTab(key: string) {
+  return workbenchTabs.value.find((tab): tab is TableDataTab => tab.key === key && tab.type === "table-data") || null;
+}
+
+function patchTableTab(key: string, patch: Partial<TableDataTab>) {
+  const index = workbenchTabs.value.findIndex((tab) => tab.key === key && tab.type === "table-data");
+  if (index < 0) return null;
+  const current = workbenchTabs.value[index] as TableDataTab;
+  const updated = { ...current, ...patch };
+  workbenchTabs.value.splice(index, 1, updated);
+  return updated;
+}
+
 function closeWorkbenchTab(key: string | number) {
   const tabKey = String(key);
   const index = workbenchTabs.value.findIndex((tab) => tab.key === tabKey);
@@ -1160,8 +1179,7 @@ async function reloadScripts() {
 function selectTable(database: string, table: string) {
   selectedDatabase.value = database;
   const tab = upsertWorkbenchTab(createTableDataTab(database, table));
-  tab.pagination.page = 1;
-  void loadTableData(tab);
+  void loadTableData(tab, { page: 1 });
 }
 
 function resetTableView() {
@@ -1170,43 +1188,65 @@ function resetTableView() {
 
 function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | null, tab: TableDataTab) {
   const state = Array.isArray(sorter) ? sorter[0] : sorter;
+  const sort: TableDataSort = { columnKey: null, order: false };
   if (!state || !state.order) {
-    tab.sort.columnKey = null;
-    tab.sort.order = false;
+    sort.columnKey = null;
+    sort.order = false;
   } else {
-    tab.sort.columnKey = String(state.columnKey);
-    tab.sort.order = state.order;
+    sort.columnKey = String(state.columnKey);
+    sort.order = state.order;
   }
-  tab.pagination.page = 1;
-  void loadTableData(tab);
+  void loadTableData(tab, { page: 1, sort });
 }
 
-async function loadTableData(tab: TableDataTab) {
-  const requestId = ++tab.requestId;
-  tab.loading = true;
+function searchTableData(tab: TableDataTab) {
+  void loadTableData(tab, { page: 1 });
+}
+
+async function loadTableData(tab: TableDataTab, options: TableDataLoadOptions = {}) {
+  const current = findTableTab(tab.key);
+  if (!current) return;
+  const requestId = current.requestId + 1;
+  const pagination = {
+    ...current.pagination,
+    page: options.page ?? current.pagination.page,
+    pageSize: options.pageSize ?? current.pagination.pageSize
+  };
+  const sort = options.sort ?? current.sort;
+  const loadingTab = patchTableTab(current.key, { loading: true, requestId, pagination, sort });
+  if (!loadingTab) return;
   try {
     const result = await getTableData(
       props.connection.conn_id,
-      tab.database || "",
-      tab.table,
-      tab.pagination.page,
-      tab.pagination.pageSize,
-      tab.sort.columnKey || "",
-      tab.sort.order === "descend",
-      tab.filter,
+      loadingTab.database || "",
+      loadingTab.table,
+      loadingTab.pagination.page,
+      loadingTab.pagination.pageSize,
+      loadingTab.sort.columnKey || "",
+      loadingTab.sort.order === "descend",
+      loadingTab.filter,
       true
     );
-    if (requestId !== tab.requestId) return;
-    tab.columns = result.columns;
-    tab.rows = result.rows;
-    tab.primaryKeys = result.primary_keys;
-    tab.pagination.itemCount = result.total;
-    tab.totalExact = result.total_exact;
+    const latest = findTableTab(loadingTab.key);
+    if (!latest || requestId !== latest.requestId) return;
+    patchTableTab(latest.key, {
+      columns: result.columns,
+      rows: result.rows,
+      primaryKeys: result.primary_keys,
+      totalExact: result.total_exact,
+      loading: false,
+      pagination: {
+        ...latest.pagination,
+        page: result.page,
+        pageSize: result.page_size,
+        itemCount: result.total
+      }
+    });
   } catch (error) {
-    if (requestId !== tab.requestId) return;
+    const latest = findTableTab(loadingTab.key);
+    if (!latest || requestId !== latest.requestId) return;
+    patchTableTab(latest.key, { loading: false });
     showError(message, error);
-  } finally {
-    if (requestId === tab.requestId) tab.loading = false;
   }
 }
 
@@ -1936,14 +1976,11 @@ async function saveScript() {
 }
 
 function handleDataPage(page: number, tab: TableDataTab) {
-  tab.pagination.page = page;
-  void loadTableData(tab);
+  void loadTableData(tab, { page });
 }
 
 function handleDataPageSize(pageSize: number, tab: TableDataTab) {
-  tab.pagination.pageSize = pageSize;
-  tab.pagination.page = 1;
-  void loadTableData(tab);
+  void loadTableData(tab, { page: 1, pageSize });
 }
 
 function formatCell(value: unknown) {
