@@ -186,7 +186,28 @@
             <span>{{ t("common.actions") }}</span>
             <template v-for="column in tableDesigner.columns" :key="column.key">
               <n-input v-model:value="column.name" size="small" :disabled="column.drop" :class="{ 'database-dropped-row': column.drop }" />
-              <n-input v-model:value="column.type" size="small" :disabled="column.drop" />
+              <div class="table-designer-type-control">
+                <n-select v-model:value="column.typeName" size="small" :options="columnTypeOptions" :disabled="column.drop" @update:value="syncColumnType(column)" />
+                <n-input-number
+                  v-if="column.typeName !== CUSTOM_COLUMN_TYPE"
+                  v-model:value="column.typeLength"
+                  size="small"
+                  :show-button="false"
+                  :min="1"
+                  :max="65535"
+                  :disabled="column.drop || !typeAllowsLength(column.typeName)"
+                  :placeholder="t('database.table.typeLength')"
+                  @update:value="syncColumnType(column)"
+                />
+                <n-input
+                  v-else
+                  v-model:value="column.customType"
+                  size="small"
+                  :disabled="column.drop"
+                  :placeholder="t('database.table.customType')"
+                  @update:value="syncColumnType(column)"
+                />
+              </div>
               <n-checkbox v-model:checked="column.nullable" :disabled="column.drop" />
               <n-checkbox v-model:checked="column.primary_key" :disabled="column.drop" />
               <n-checkbox v-model:checked="column.autoincrement" :disabled="column.drop" />
@@ -286,6 +307,7 @@ import {
   NFormItem,
   NIcon,
   NInput,
+  NInputNumber,
   NModal,
   NSelect,
   NSwitch,
@@ -411,6 +433,9 @@ interface TableColumnDraft {
   original: ColumnDefinition;
   name: string;
   type: string;
+  typeName: string;
+  typeLength: number | null;
+  customType: string;
   nullable: boolean;
   primary_key: boolean;
   autoincrement: boolean;
@@ -451,6 +476,22 @@ const exportOptions = [
   { label: "XLSX", key: "xlsx" },
   { label: "SQLite", key: "sqlite" },
   { label: "SQL", key: "sql" }
+];
+const CUSTOM_COLUMN_TYPE = "__custom";
+const LENGTH_COLUMN_TYPES = new Set(["VARCHAR", "CHAR", "DECIMAL", "NUMERIC"]);
+const columnTypeOptions = [
+  { label: "INT", value: "INT" },
+  { label: "BIGINT", value: "BIGINT" },
+  { label: "TINYINT", value: "TINYINT" },
+  { label: "DECIMAL", value: "DECIMAL" },
+  { label: "VARCHAR", value: "VARCHAR" },
+  { label: "CHAR", value: "CHAR" },
+  { label: "TEXT", value: "TEXT" },
+  { label: "LONGTEXT", value: "LONGTEXT" },
+  { label: "DATE", value: "DATE" },
+  { label: "DATETIME", value: "DATETIME" },
+  { label: "TIMESTAMP", value: "TIMESTAMP" },
+  { label: t("database.table.customType"), value: CUSTOM_COLUMN_TYPE }
 ];
 
 const canOperate = computed(() => authStore.has(DATABASE_OPERATE));
@@ -1204,12 +1245,16 @@ function activeDesignerIndexes() {
 }
 
 function columnDraft(column: ColumnDefinition, existing: boolean): TableColumnDraft {
+  const parsedType = parseColumnType(column.type);
   return {
     key: crypto.randomUUID(),
     existing,
     original: { ...column },
     name: column.name,
     type: column.type,
+    typeName: parsedType.typeName,
+    typeLength: parsedType.typeLength,
+    customType: parsedType.customType,
     nullable: column.nullable,
     primary_key: column.primary_key,
     autoincrement: column.autoincrement,
@@ -1250,13 +1295,59 @@ function indexToDefinition(index: TableIndexItem): IndexDefinition {
 function draftToColumnDefinition(column: TableColumnDraft): ColumnDefinition {
   return {
     name: column.name.trim(),
-    type: column.type.trim() || "VARCHAR(255)",
+    type: columnTypeValue(column),
     nullable: column.nullable,
     primary_key: column.primary_key,
     autoincrement: column.autoincrement,
     default: column.default.trim(),
     comment: column.comment.trim()
   };
+}
+
+function parseColumnType(type: string) {
+  const normalized = type.trim().toUpperCase();
+  const match = /^([A-Z]+)(?:\((\d+)\))?$/.exec(normalized);
+  if (match && columnTypeOptions.some((option) => option.value === match[1])) {
+    const typeName = match[1];
+    return {
+      typeName,
+      typeLength: match[2] && typeAllowsLength(typeName) ? Number(match[2]) : defaultTypeLength(typeName),
+      customType: ""
+    };
+  }
+  return { typeName: CUSTOM_COLUMN_TYPE, typeLength: null, customType: type.trim() || "VARCHAR(255)" };
+}
+
+function syncColumnType(column: TableColumnDraft) {
+  if (column.typeName !== CUSTOM_COLUMN_TYPE && typeAllowsLength(column.typeName) && !column.typeLength) {
+    column.typeLength = defaultTypeLength(column.typeName);
+  }
+  if (column.typeName !== CUSTOM_COLUMN_TYPE && !typeAllowsLength(column.typeName)) {
+    column.typeLength = null;
+  }
+  column.type = columnTypeValue(column);
+}
+
+function columnTypeValue(column: TableColumnDraft) {
+  if (column.typeName === CUSTOM_COLUMN_TYPE) {
+    return column.customType.trim() || "VARCHAR(255)";
+  }
+  const typeName = column.typeName || "VARCHAR";
+  if (typeAllowsLength(typeName) && column.typeLength) {
+    return `${typeName}(${column.typeLength})`;
+  }
+  return typeName;
+}
+
+function typeAllowsLength(typeName: string) {
+  return LENGTH_COLUMN_TYPES.has(typeName);
+}
+
+function defaultTypeLength(typeName: string) {
+  if (typeName === "CHAR") return 1;
+  if (typeName === "DECIMAL" || typeName === "NUMERIC") return 10;
+  if (typeName === "VARCHAR") return 255;
+  return null;
 }
 
 function draftToIndexDefinition(index: TableIndexDraft): IndexDefinition {

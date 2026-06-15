@@ -2515,7 +2515,7 @@ a {
 }
 
 .table-designer-modal {
-  width: min(1080px, calc(100vw - 48px));
+  width: min(920px, calc(100vw - 48px));
 }
 
 .table-designer {
@@ -2553,11 +2553,23 @@ a {
 }
 
 .table-designer-columns {
-  grid-template-columns: minmax(120px, 1.1fr) minmax(120px, 1fr) 62px 62px 82px minmax(110px, 0.9fr) minmax(120px, 1fr) 76px;
+  grid-template-columns: minmax(120px, 1fr) minmax(190px, 1.2fr) 54px 54px 66px minmax(110px, 0.8fr) minmax(120px, 0.9fr) 68px;
 }
 
 .table-designer-indexes {
-  grid-template-columns: minmax(140px, 1fr) minmax(220px, 1.5fr) 70px 76px;
+  grid-template-columns: minmax(130px, 1fr) minmax(200px, 1.4fr) 64px 68px;
+}
+
+.table-designer-type-control {
+  display: grid;
+  grid-template-columns: minmax(105px, 1fr) 76px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.table-designer-type-control .n-input-number,
+.table-designer-type-control .n-input {
+  min-width: 0;
 }
 
 .database-dropped-row {

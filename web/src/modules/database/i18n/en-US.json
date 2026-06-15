@@ -119,7 +119,9 @@
       "unique": "Unique",
       "indexColumns": "Index columns",
       "indexColumnsPlaceholder": "Separate multiple columns with commas",
-      "restore": "Restore"
+      "restore": "Restore",
+      "typeLength": "Length",
+      "customType": "Custom type"
     },
     "row": {
       "add": "Add row",

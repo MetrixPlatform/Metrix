@@ -119,7 +119,9 @@
       "unique": "唯一",
       "indexColumns": "索引字段",
       "indexColumnsPlaceholder": "多个字段用逗号分隔",
-      "restore": "恢复"
+      "restore": "恢复",
+      "typeLength": "长度",
+      "customType": "自定义类型"
     },
     "row": {
       "add": "新增行",
