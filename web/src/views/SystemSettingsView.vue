@@ -25,55 +25,57 @@
               <h2 class="settings-section-title">{{ t("settings.navigation") }}</h2>
               <p>{{ t("settings.navigationDesc") }}</p>
             </div>
-            <div class="navigation-order-list">
-              <div v-for="item in navigationLayout" :key="item.navigationKey" class="navigation-order-card">
-                <div class="navigation-order-row">
-                  <div class="navigation-order-label">
-                    <n-button
-                      v-if="item.children?.length"
-                      size="tiny"
-                      quaternary
-                      circle
-                      :title="isNavigationGroupCollapsed(item.navigationKey) ? t('settings.expandGroup') : t('settings.collapseGroup')"
-                      @click="toggleNavigationGroup(item.navigationKey)"
-                    >
-                      <template #icon>
-                        <n-icon :component="isNavigationGroupCollapsed(item.navigationKey) ? ChevronRight20Regular : ChevronDown20Regular" />
-                      </template>
-                    </n-button>
-                    <span v-else class="navigation-order-spacer" />
-                    <n-icon :component="item.icon" />
-                    <span :title="item.label">{{ item.label }}</span>
-                    <n-tag v-if="item.children?.length" size="small" :bordered="false">{{ t("settings.navigationGroup") }}</n-tag>
-                  </div>
-                  <div class="navigation-order-actions">
-                    <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'up')" @click="moveNavigation(item.navigationKey, 'up')">
-                      {{ t("settings.moveUp") }}
-                    </n-button>
-                    <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'down')" @click="moveNavigation(item.navigationKey, 'down')">
-                      {{ t("settings.moveDown") }}
-                    </n-button>
-                  </div>
-                </div>
-                <div v-if="item.children?.length && !isNavigationGroupCollapsed(item.navigationKey)" class="navigation-order-children">
-                  <div v-for="child in item.children" :key="child.navigationKey" class="navigation-order-row navigation-order-child">
+            <n-scrollbar class="navigation-order-scroll" trigger="none">
+              <div class="navigation-order-list">
+                <div v-for="item in navigationLayout" :key="item.navigationKey" class="navigation-order-card">
+                  <div class="navigation-order-row">
                     <div class="navigation-order-label">
-                      <span class="navigation-order-spacer" />
-                      <n-icon :component="child.icon" />
-                      <span :title="child.label">{{ child.label }}</span>
+                      <n-button
+                        v-if="item.children?.length"
+                        size="tiny"
+                        quaternary
+                        circle
+                        :title="isNavigationGroupCollapsed(item.navigationKey) ? t('settings.expandGroup') : t('settings.collapseGroup')"
+                        @click="toggleNavigationGroup(item.navigationKey)"
+                      >
+                        <template #icon>
+                          <n-icon :component="isNavigationGroupCollapsed(item.navigationKey) ? ChevronRight20Regular : ChevronDown20Regular" />
+                        </template>
+                      </n-button>
+                      <span v-else class="navigation-order-spacer" />
+                      <n-icon :component="item.icon" />
+                      <span :title="item.label">{{ item.label }}</span>
+                      <n-tag v-if="item.children?.length" size="small" :bordered="false">{{ t("settings.navigationGroup") }}</n-tag>
                     </div>
                     <div class="navigation-order-actions">
-                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'up')" @click="moveNavigation(child.navigationKey, 'up')">
+                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'up')" @click="moveNavigation(item.navigationKey, 'up')">
                         {{ t("settings.moveUp") }}
                       </n-button>
-                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'down')" @click="moveNavigation(child.navigationKey, 'down')">
+                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'down')" @click="moveNavigation(item.navigationKey, 'down')">
                         {{ t("settings.moveDown") }}
                       </n-button>
                     </div>
                   </div>
+                  <div v-if="item.children?.length && !isNavigationGroupCollapsed(item.navigationKey)" class="navigation-order-children">
+                    <div v-for="child in item.children" :key="child.navigationKey" class="navigation-order-row navigation-order-child">
+                      <div class="navigation-order-label">
+                        <span class="navigation-order-spacer" />
+                        <n-icon :component="child.icon" />
+                        <span :title="child.label">{{ child.label }}</span>
+                      </div>
+                      <div class="navigation-order-actions">
+                        <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'up')" @click="moveNavigation(child.navigationKey, 'up')">
+                          {{ t("settings.moveUp") }}
+                        </n-button>
+                        <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'down')" @click="moveNavigation(child.navigationKey, 'down')">
+                          {{ t("settings.moveDown") }}
+                        </n-button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </n-scrollbar>
             <div class="settings-inline-actions">
               <n-button @click="resetNavigationOrder">{{ t("settings.restoreDefaultNavigation") }}</n-button>
             </div>
@@ -190,6 +192,7 @@ import {
   NIcon,
   NInput,
   NInputNumber,
+  NScrollbar,
   NSelect,
   NSwitch,
   NTabPane,
