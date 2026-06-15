@@ -161,12 +161,8 @@
       "size": "Size",
       "expiresAt": "Expires at",
       "error": "Error",
-      "filter": "Filter",
       "searchPlaceholder": "Search job ID, file, connection, error",
-      "resetFilters": "Reset filters",
-      "clearScope": "Clear connection filter",
       "currentScope": "Connection: {name}",
-      "creatorOthers": "Others",
       "submitted": "Data job submitted: {id}. Check it in data jobs.",
       "deleteConfirm": "Delete this job?"
     }

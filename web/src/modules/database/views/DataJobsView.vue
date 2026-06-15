@@ -5,21 +5,20 @@
         <template #icon><n-icon :component="ArrowLeft20Regular" /></template>
       </n-button>
       <span class="file-manager-title">{{ t("database.jobs.view") }}</span>
-      <n-tag v-if="activeConnectionId" size="small" type="success" :bordered="false">
+      <n-tag v-if="activeConnectionId" size="small" type="success" :bordered="false" closable @close="clearConnectionScope">
         {{ t("database.jobs.currentScope", { name: activeConnectionName }) }}
       </n-tag>
       <div class="file-manager-spacer" />
-      <n-button @click="showFilters = !showFilters">{{ t("database.jobs.filter") }}</n-button>
-      <n-button @click="loadJobs">{{ t("common.refresh") }}</n-button>
-    </div>
-    <div v-if="showFilters" class="database-job-filter-row">
-      <n-input v-model:value="filters.keyword" clearable :placeholder="t('database.jobs.searchPlaceholder')" @keyup.enter="searchJobs" />
-      <n-select v-model:value="filters.kind" clearable :options="kindOptions" :placeholder="t('database.jobs.kind')" />
-      <n-select v-model:value="filters.status" clearable :options="statusOptions" :placeholder="t('database.jobs.status')" />
-      <n-select v-model:value="filters.created_by" clearable :options="creatorOptions" :placeholder="t('field.creator')" />
+      <n-input
+        v-model:value="filters.keyword"
+        class="database-job-search"
+        clearable
+        :placeholder="t('database.jobs.searchPlaceholder')"
+        @keyup.enter="searchJobs"
+        @clear="resetSearch"
+      />
       <n-button type="primary" @click="searchJobs">{{ t("common.search") }}</n-button>
-      <n-button @click="resetFilters">{{ t("database.jobs.resetFilters") }}</n-button>
-      <n-button v-if="activeConnectionId" @click="clearConnectionScope">{{ t("database.jobs.clearScope") }}</n-button>
+      <n-button @click="loadJobs">{{ t("common.refresh") }}</n-button>
     </div>
     <n-data-table
       class="page-data-table"
@@ -31,7 +30,6 @@
       :pagination="pagination"
       :row-key="(row) => row.job_id"
       :scroll-x="1600"
-      @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
@@ -42,14 +40,14 @@
 <script setup lang="ts">
 import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ArrowDownload20Regular, ArrowLeft20Regular, Delete20Regular } from "@vicons/fluent";
-import { NButton, NDataTable, NIcon, NInput, NSelect, NSpace, NTag, useDialog, useMessage } from "naive-ui";
-import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
+import { NButton, NDataTable, NIcon, NInput, NSpace, NTag, useDialog, useMessage } from "naive-ui";
+import type { DataTableColumns, DataTableSortState } from "naive-ui";
 
 import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
-import { singleFilterValue, withResizableColumns } from "../../../utils/table";
+import { withResizableColumns } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
@@ -58,15 +56,11 @@ const emit = defineEmits<{ (event: "close"): void }>();
 const message = useMessage();
 const dialog = useDialog();
 const loading = ref(false);
-const showFilters = ref(false);
 const items = ref<DataJob[]>([]);
 const activeConnectionId = ref<number | null>(props.connectionId ?? null);
 const activeConnectionName = ref(props.connectionName || "");
 const filters = reactive({
   keyword: "",
-  kind: null as string | null,
-  status: null as string | null,
-  created_by: null as "me" | "others" | null,
   sort_order: "descend" as "ascend" | "descend"
 });
 const pagination = reactive({
@@ -77,20 +71,6 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
-const kindOptions = computed(() => [
-  { label: t("database.jobs.export"), value: "export" },
-  { label: t("database.jobs.import"), value: "import" }
-]);
-const statusOptions = computed(() => [
-  { label: t("database.jobs.pending"), value: "pending" },
-  { label: t("database.jobs.running"), value: "running" },
-  { label: t("database.jobs.success"), value: "success" },
-  { label: t("database.jobs.failed"), value: "failed" }
-]);
-const creatorOptions = computed(() => [
-  { label: t("database.creatorMe"), value: "me" },
-  { label: t("database.jobs.creatorOthers"), value: "others" }
-]);
 const columns = computed<DataTableColumns<DataJob>>(() =>
   withResizableColumns([
   { title: t("database.jobs.id"), key: "job_id", width: 260, minWidth: 180, resizable: true, ellipsis: { tooltip: true } },
@@ -109,10 +89,6 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: 130,
     minWidth: 110,
     resizable: true,
-    filterOptions: creatorOptions.value,
-    filterOptionValue: filters.created_by,
-    filterMultiple: false,
-    filter: true,
     render: (row) => row.created_by_username || "-"
   },
   {
@@ -121,10 +97,6 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: 90,
     minWidth: 80,
     resizable: true,
-    filterOptions: kindOptions.value,
-    filterOptionValue: filters.kind,
-    filterMultiple: false,
-    filter: true,
     render: (row) => t(`database.jobs.${row.kind}`)
   },
   { title: t("field.format"), key: "format", width: 90, minWidth: 80, resizable: true, render: (row) => row.format.toUpperCase() },
@@ -134,10 +106,6 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: 110,
     minWidth: 90,
     resizable: true,
-    filterOptions: statusOptions.value,
-    filterOptionValue: filters.status,
-    filterMultiple: false,
-    filter: true,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => t(`database.jobs.${row.status}`))
   },
   { title: t("database.jobs.rows"), key: "row_count", width: 100, minWidth: 90, resizable: true },
@@ -196,10 +164,7 @@ async function loadJobs() {
   try {
     const result = await listDataJobs({
       keyword: filters.keyword,
-      kind: filters.kind || "",
-      status: filters.status || "",
       connection_id: activeConnectionId.value,
-      created_by: filters.created_by || "",
       sort_order: filters.sort_order,
       page: pagination.page,
       page_size: pagination.pageSize
@@ -213,24 +178,13 @@ async function loadJobs() {
   }
 }
 
-function handleTableFilters(next: DataTableFilterState) {
-  filters.kind = singleFilterValue(next, "kind") as string | null;
-  filters.status = singleFilterValue(next, "status") as string | null;
-  filters.created_by = singleFilterValue(next, "created_by") as "me" | "others" | null;
-  pagination.page = 1;
-  void loadJobs();
-}
-
 function searchJobs() {
   pagination.page = 1;
   void loadJobs();
 }
 
-function resetFilters() {
+function resetSearch() {
   filters.keyword = "";
-  filters.kind = null;
-  filters.status = null;
-  filters.created_by = null;
   pagination.page = 1;
   void loadJobs();
 }

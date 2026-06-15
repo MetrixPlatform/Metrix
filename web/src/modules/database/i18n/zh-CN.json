@@ -161,12 +161,8 @@
       "size": "大小",
       "expiresAt": "过期时间",
       "error": "错误",
-      "filter": "筛选",
       "searchPlaceholder": "搜索任务 ID、文件名、连接、错误",
-      "resetFilters": "重置条件",
-      "clearScope": "取消当前连接过滤",
       "currentScope": "当前连接：{name}",
-      "creatorOthers": "其他人",
       "submitted": "导数任务已提交：{id}，请到导数任务中查看。",
       "deleteConfirm": "确认删除该任务？"
     }
