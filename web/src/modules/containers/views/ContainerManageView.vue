@@ -45,7 +45,6 @@
         </div>
         <n-data-table
           class="page-data-table"
-          flex-height
           remote
           :columns="containerColumns"
           :data="containers"
@@ -76,7 +75,6 @@
         </div>
         <n-data-table
           class="page-data-table"
-          flex-height
           remote
           :columns="imageColumns"
           :data="images"
@@ -106,7 +104,6 @@
         </div>
         <n-data-table
           class="page-data-table"
-          flex-height
           remote
           :columns="jobColumns"
           :data="jobs"

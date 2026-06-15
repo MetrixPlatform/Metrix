@@ -35,7 +35,14 @@ const adminSession = {
     "route:users",
     "route:settings",
     "route:database",
+    "route:containers",
     "route:demo_crud",
+    "action:container:create",
+    "action:container:read",
+    "action:container:update",
+    "action:container:delete",
+    "action:container:operate",
+    "action:container:manage_others",
     "action:database:create",
     "action:database:read",
     "action:database:update",
@@ -69,9 +76,7 @@ test("shows login page for initialized anonymous users", async ({ page }) => {
 
 test("restores session and opens permitted module page", async ({ page }) => {
   await mockApi(page, { installed: true, session: adminSession });
-  await page.addInitScript(() => {
-    localStorage.setItem("metrix.token", "browser-test-token");
-  });
+  await setSessionToken(page);
 
   await page.goto("/demo-crud");
 
@@ -82,9 +87,7 @@ test("restores session and opens permitted module page", async ({ page }) => {
 
 test("shows not found page for unknown authenticated routes", async ({ page }) => {
   await mockApi(page, { installed: true, session: adminSession });
-  await page.addInitScript(() => {
-    localStorage.setItem("metrix.token", "browser-test-token");
-  });
+  await setSessionToken(page);
 
   await page.goto("/not-found-route");
 
@@ -130,9 +133,7 @@ test("opens database management and embedded jobs without raw i18n keys", async 
       })
     });
   });
-  await page.addInitScript(() => {
-    localStorage.setItem("metrix.token", "browser-test-token");
-  });
+  await setSessionToken(page);
 
   await page.goto("/database");
   await expect(page).toHaveURL(/\/database$/);
@@ -209,13 +210,22 @@ test("keeps database workbench layout readable", async ({ page }) => {
       body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 100 })
     })
   );
-  await page.addInitScript(() => {
-    localStorage.setItem("metrix.token", "browser-test-token");
+  await page.route("**/api/database-transfer-jobs/download-count**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ count: 0 })
+    })
+  );
+  await loginWithMockSession(page);
+  await page.evaluate(() => {
     localStorage.removeItem("metrix.databaseWorkbench.sidebarWidth");
+    localStorage.removeItem("app.databaseWorkbench.sidebarWidth");
   });
-
-  await page.goto("/database");
-  await page.locator(".storage-name-link").filter({ hasText: "test" }).click();
+  await page.getByText("数据库管理", { exact: true }).click();
+  await expect(page).toHaveURL(/\/database$/);
+  const connectionLink = page.locator(".storage-name-link").filter({ hasText: "test" }).first();
+  await expect(connectionLink).toBeVisible();
+  await connectionLink.evaluate((node) => (node as HTMLElement).click());
   await expect.poll(() => page.getByRole("button", { name: "返回" }).first().innerText()).toBe("");
   await expect(page.locator(".database-sidebar")).toBeVisible();
 
@@ -229,6 +239,69 @@ test("keeps database workbench layout readable", async ({ page }) => {
   await page.getByRole("button", { name: "新建标签" }).click();
   await page.getByText("临时 SQL", { exact: true }).click();
   await expect.poll(() => page.locator(".database-sql-editor").evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(280);
+});
+
+test("renders container images in short viewports", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 520 });
+  await mockApi(page, { installed: true, session: adminSession });
+  await page.route("**/api/container-engine/status", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        available: true,
+        message: "",
+        version: "29.5.3",
+        os_type: "linux",
+        architecture: "x86_64",
+        docker_host: "fake://docker",
+        containers: 0,
+        images: 1
+      })
+    })
+  );
+  await page.route("**/api/container-instances**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
+    })
+  );
+  await page.route("**/api/container-images**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [
+          {
+            id: "sha256:test-image",
+            short_id: "sha256:test",
+            repo_tags: ["alpine:3.20"],
+            size: 3641182,
+            created_at: "2026-04-16T23:53:26Z",
+            labels: {},
+            owner_user_id: null,
+            owner_username: "",
+            is_public: true,
+            source: "docker"
+          }
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20
+      })
+    })
+  );
+  await page.route("**/api/container-jobs**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
+    })
+  );
+  await loginWithMockSession(page);
+
+  await page.goto("/containers");
+  await page.locator(".n-tabs-tab__label").filter({ hasText: "镜像" }).click();
+
+  await expect(page.getByText("alpine:3.20")).toBeVisible();
+  await expect(page.getByText("sha256:test-image")).toBeVisible();
 });
 
 async function mockApi(
@@ -275,10 +348,42 @@ async function mockApi(
       body: JSON.stringify(options.session)
     });
   });
+  await page.route("**/api/auth/login", (route) => {
+    if (!options.session) {
+      return route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: { code: "error.unauthorized", message: "Unauthorized", params: {} } })
+      });
+    }
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(options.session)
+    });
+  });
   await page.route("**/api/demo-items**", (route) =>
     route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
     })
   );
+}
+
+async function loginWithMockSession(page: Page) {
+  await page.goto("/login");
+  await page.locator("input").nth(0).fill("rootadmin");
+  await page.locator("input").nth(1).fill("browser-test-password");
+  await page.getByRole("button", { name: /登录|Login/i }).click();
+  await expect(page).toHaveURL(/\/$/);
+}
+
+async function setSessionToken(page: Page, options: { clearDatabaseSidebarWidth?: boolean } = {}) {
+  await page.addInitScript((clearDatabaseSidebarWidth) => {
+    localStorage.setItem("metrix.token", "browser-test-token");
+    localStorage.setItem("app.token", "browser-test-token");
+    if (clearDatabaseSidebarWidth) {
+      localStorage.removeItem("metrix.databaseWorkbench.sidebarWidth");
+      localStorage.removeItem("app.databaseWorkbench.sidebarWidth");
+    }
+  }, Boolean(options.clearDatabaseSidebarWidth));
 }
