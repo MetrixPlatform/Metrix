@@ -1172,7 +1172,7 @@ async function loadTableData(tab: TableDataTab) {
       tab.sort.columnKey || "",
       tab.sort.order === "descend",
       tab.filter,
-      false
+      true
     );
     if (requestId !== tab.requestId) return;
     tab.columns = result.columns;
