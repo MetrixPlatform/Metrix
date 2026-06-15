@@ -1,0 +1,182 @@
+{
+  "route": {
+    "containers": "Containers"
+  },
+  "permission": {
+    "group": {
+      "container": "Containers"
+    },
+    "route:containers": "Containers",
+    "action:container:create": "Create containers/image jobs",
+    "action:container:read": "Read containers and images",
+    "action:container:update": "Update container/image settings",
+    "action:container:delete": "Delete containers/images",
+    "action:container:operate": "Operate containers",
+    "action:container:manage_others": "Manage others' containers and images"
+  },
+  "error": {
+    "containerDockerUnavailable": "Docker is unavailable. Check Docker service, DOCKER_HOST, or socket mount",
+    "containerNotFound": "Container not found",
+    "containerImageNotFound": "Image not found",
+    "containerImageInUse": "The image is in use by containers and cannot be deleted",
+    "containerActionInvalid": "Invalid container action",
+    "containerNameInvalid": "Invalid container name",
+    "containerVolumeInvalid": "Invalid volume name",
+    "containerPathInvalid": "Invalid container path",
+    "containerJobFailed": "Container job failed",
+    "containerJobNotDownloadable": "Job is not downloadable",
+    "containerJobFileMissing": "Job file is missing"
+  },
+  "container": {
+    "engine": "Docker Engine",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "dockerHost": "Docker Host",
+    "version": "Version",
+    "osType": "OS",
+    "arch": "Arch",
+    "containers": "Containers",
+    "images": "Images",
+    "tabContainers": "Containers",
+    "tabImages": "Images",
+    "tabJobs": "Jobs",
+    "searchContainer": "Search container name, ID, or image",
+    "searchImage": "Search image ID or tag",
+    "searchJob": "Search job image or file",
+    "statusAll": "All statuses",
+    "create": "Create container",
+    "importImage": "Import image",
+    "field": {
+      "name": "Name",
+      "containerId": "Container ID",
+      "image": "Image",
+      "status": "Status",
+      "ports": "Ports",
+      "owner": "Owner",
+      "createdAt": "Created",
+      "repoTags": "Repo tags",
+      "imageId": "Image ID",
+      "size": "Size",
+      "visibility": "Visibility",
+      "command": "Command",
+      "env": "Environment",
+      "portsConfig": "Port mappings",
+      "volumes": "Volume mounts",
+      "restartPolicy": "Restart policy",
+      "memoryLimit": "Memory limit MB",
+      "cpuLimit": "CPU limit",
+      "autoStart": "Start after create",
+      "tail": "Log lines",
+      "kind": "Kind",
+      "fileName": "File name",
+      "fileSize": "File size",
+      "finishedAt": "Finished"
+    },
+    "visibilityPublic": "Public",
+    "visibilityPrivate": "Private",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "logs": "Logs",
+    "deleteContainer": "Delete container",
+    "deleteImage": "Delete image",
+    "exportImage": "Export image",
+    "setPublic": "Set public",
+    "setPrivate": "Set private",
+    "download": "Download",
+    "deleteContainerConfirm": "Delete container {name}?",
+    "deleteImageConfirm": "Delete image {name}?",
+    "created": "Container created",
+    "started": "Container started",
+    "stopped": "Container stopped",
+    "restarted": "Container restarted",
+    "deleted": "Container deleted",
+    "imageDeleted": "Image deleted",
+    "submitted": "Job submitted",
+    "visibilityUpdated": "Visibility updated",
+    "logTitle": "Container logs - {name}",
+    "emptyHint": "Containers and images cannot be loaded while Docker is disconnected. Check deployment configuration.",
+    "socketHint": "For container deployment, mount /var/run/docker.sock and set DOCKER_HOST=unix:///var/run/docker.sock. Use Linux containers mode on Windows/macOS Docker Desktop.",
+    "envPlaceholder": "One KEY=VALUE per line. Sensitive keys are filtered by the backend",
+    "portPlaceholder": "Example: 8080:80/tcp, one per line",
+    "volumePlaceholder": "Example: data_volume:/data:rw, one per line. Only Docker volumes are supported, not arbitrary host paths",
+    "uploadTar": "Select a Docker image tar file",
+    "importProgress": "Upload progress {percent}%",
+    "jobKindImport": "Import",
+    "jobKindExport": "Export",
+    "jobStatusPending": "Pending",
+    "jobStatusRunning": "Running",
+    "jobStatusSuccess": "Success",
+    "jobStatusFailed": "Failed"
+  },
+  "auditLog": {
+    "action": {
+      "container": {
+        "create": "Create container",
+        "start": "Start container",
+        "stop": "Stop container",
+        "restart": "Restart container",
+        "delete": "Delete container",
+        "image_delete": "Delete image",
+        "image_visibility": "Update image visibility",
+        "image_import_submit": "Submit image import",
+        "image_export_submit": "Submit image export"
+      }
+    },
+    "target": {
+      "container": "Container",
+      "container_image": "Container image",
+      "container_job": "Container job"
+    },
+    "field": {
+      "image": "Image",
+      "image_ref": "Image ref",
+      "file_size": "File size"
+    }
+  },
+  "openapi": {
+    "tag": {
+      "container-images": "Container images",
+      "container-instances": "Container instances",
+      "container-jobs": "Container jobs"
+    },
+    "operation": {
+      "container_images.list_container_images": {
+        "summary": "List images",
+        "description": "Return images visible to the current user. Administrators can view all images."
+      },
+      "container_images.import_container_image": {
+        "summary": "Import image",
+        "description": "Upload a Docker image tar file and create a background import job."
+      },
+      "container_images.export_container_image": {
+        "summary": "Export image",
+        "description": "Submit an image export job. Download the tar file from the container jobs API after it succeeds."
+      },
+      "container_images.delete_container_image": {
+        "summary": "Delete image",
+        "description": "Delete an image manageable by the current user. Images used by containers are rejected."
+      },
+      "container_instances.list_container_instances": {
+        "summary": "List containers",
+        "description": "Return containers visible to the current user. Normal users only see containers they created."
+      },
+      "container_instances.create_container_instance": {
+        "summary": "Create container",
+        "description": "Create a container from a visible image, write platform ownership labels, and restrict dangerous options by default."
+      },
+      "container_instances.get_container_logs": {
+        "summary": "Read container logs",
+        "description": "Read logs from the selected container with a tail limit."
+      },
+      "container_jobs.list_container_jobs": {
+        "summary": "List container jobs",
+        "description": "List image import and export background jobs."
+      },
+      "container_jobs.download_container_job": {
+        "summary": "Download job file",
+        "description": "Download the file generated by a successful image export job."
+      }
+    }
+  }
+}

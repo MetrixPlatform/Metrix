@@ -10,3 +10,4 @@ zipstream-ng
 swagger-ui-bundle
 pytest
 httpx2
+docker

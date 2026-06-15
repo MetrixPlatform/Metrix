@@ -1,6 +1,6 @@
 # Metrix
 
-Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理、数据库管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
+Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理、数据库管理、容器管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
 
 新增页面、业务模块、权限、API 或数据库变更时，先阅读 [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md)。
 
@@ -92,10 +92,20 @@ SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `p
 | `METRIX_RELOAD` | 是否启用后端热重载 | `0` |
 | `METRIX_ENABLED_MODULES` | 后端只启用指定模块，逗号分隔，`core` 自动保留 | 空 |
 | `METRIX_DISABLED_MODULES` | 后端禁用指定模块，逗号分隔，不能禁用 `core` | 空 |
+| `DOCKER_HOST` | 容器管理模块连接 Docker daemon 的地址，例如 `unix:///var/run/docker.sock` 或 `npipe:////./pipe/docker_engine` | Docker SDK 自动发现 |
 
 前端开发代理只代理 `/api/` 和 `/openapi.json` 到 `http://127.0.0.1:8000`。不要把代理前缀改成宽泛的 `/api`，否则 `/api-docs` 页面刷新会被误转发到后端。
 
 数据库管理模块支持 MySQL/MariaDB 连接、库表浏览、SQL 工作台、行级图形化增删改、SQL 脚本管理和 CSV/XLSX/SQLite/SQL 异步导入导出。导入/导出使用后台数据任务，系统设置页可调整“数据任务并发数”（默认 2，范围 1-16），任务完成后导出文件保留 24 小时或下载后清理。
+
+容器管理模块通过 Docker SDK 连接当前部署宿主机的 Docker Engine，支持容器列表、创建、启动、停止、重启、日志、删除，以及镜像列表、导入、导出、删除和公共/私有可见性。容器部署时通常需要挂载宿主机 socket：
+
+```bash
+-v /var/run/docker.sock:/var/run/docker.sock
+-e DOCKER_HOST=unix:///var/run/docker.sock
+```
+
+Windows/macOS Docker Desktop 部署建议使用 Linux containers 模式；Windows 原生后端开发可使用 `DOCKER_HOST=npipe:////./pipe/docker_engine`。挂载 Docker socket 等同授予应用宿主机 Docker 高权限能力，只适合可信内网部署，不要把 Docker API 或容器管理接口暴露给不可信网络。
 
 ## 初始化与数据库
 
@@ -133,6 +143,7 @@ python tools/migrate_database.py module-uninstall --url "sqlite:///../runtime/me
 4. 反向代理 `/api/`、`/openapi.json` 和 `/docs` 到后端服务。
 5. 备份 `runtime/` 中的安装配置、SQLite 数据库和日志；MySQL 部署则按数据库规范备份。
 6. 确认服务器运行时不需要访问外网资源。
+7. 如果启用容器管理，确认 Docker daemon 只对可信环境开放，并按目标平台配置 `DOCKER_HOST`、TLS 或 socket 挂载。
 
 后端可以继续用 `python main.py` 启动，也可以用进程管理器托管 `uvicorn app.main:app`。生产环境不要开启热重载。
 

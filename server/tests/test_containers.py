@@ -1,0 +1,291 @@
+import time
+
+from test_auth_rbac import create_client, install_sqlite, login
+
+CONTAINER_CODES = {
+    "route:containers",
+    "action:container:create",
+    "action:container:read",
+    "action:container:update",
+    "action:container:delete",
+    "action:container:operate",
+}
+
+
+class FakeImage:
+    def __init__(self, image_id: str, tags: list[str]):
+        self.id = image_id
+        self.short_id = image_id.replace("sha256:", "")[:12]
+        self.tags = tags
+        self.attrs = {"Id": image_id, "RepoTags": tags, "Size": 1024, "Created": "2026-06-15T00:00:00Z", "Config": {"Labels": {}}}
+
+    def save(self, named=True):
+        yield b"fake-image-tar"
+
+
+class FakeContainer:
+    def __init__(self, container_id: str, name: str, image: str, owner: int | None):
+        self.id = container_id
+        self.short_id = container_id[:12]
+        self.name = name
+        self.status = "created"
+        labels = {}
+        if owner is not None:
+            labels = {"metrix.created_by": "metrix", "metrix.owner_user_id": str(owner), "metrix.resource_type": "container"}
+        self.attrs = {
+            "Id": container_id,
+            "Created": "2026-06-15T00:00:00Z",
+            "Config": {"Image": image, "Labels": labels},
+            "State": {"Status": self.status},
+            "NetworkSettings": {"Ports": {}},
+        }
+        self.started = False
+        self.removed = False
+
+    def start(self):
+        self.started = True
+        self.status = "running"
+        self.attrs["State"]["Status"] = "running"
+
+    def stop(self):
+        self.status = "exited"
+        self.attrs["State"]["Status"] = "exited"
+
+    def restart(self):
+        self.started = True
+        self.status = "running"
+        self.attrs["State"]["Status"] = "running"
+
+    def remove(self, force=False):
+        self.removed = True
+
+    def logs(self, tail=200, timestamps=True):
+        return b"2026-06-15T00:00:00Z hello\n"
+
+
+class FakeContainerCollection:
+    def __init__(self, engine):
+        self.engine = engine
+
+    def list(self, all=True):
+        return list(self.engine.containers_by_id.values())
+
+    def get(self, container_id):
+        return self.engine.containers_by_id[container_id]
+
+    def create(self, **kwargs):
+        owner = int(kwargs["labels"]["metrix.owner_user_id"])
+        container_id = f"container-{len(self.engine.containers_by_id) + 1}"
+        container = FakeContainer(container_id, kwargs["name"], kwargs["image"], owner)
+        self.engine.containers_by_id[container_id] = container
+        self.engine.last_create = kwargs
+        return container
+
+
+class FakeImageCollection:
+    def __init__(self, engine):
+        self.engine = engine
+
+    def list(self):
+        return list(self.engine.images_by_id.values())
+
+    def get(self, image_ref):
+        for image in self.engine.images_by_id.values():
+            if image.id == image_ref or image_ref in image.tags:
+                return image
+        raise KeyError(image_ref)
+
+    def remove(self, image_ref, force=False, noprune=False):
+        image = self.get(image_ref)
+        self.engine.removed_images.append(image.id)
+        self.engine.images_by_id.pop(image.id, None)
+
+    def load(self, data):
+        image = FakeImage("sha256:imported", ["imported:latest"])
+        self.engine.images_by_id[image.id] = image
+        return [image]
+
+
+class FakeVolumeCollection:
+    def __init__(self):
+        self.names = set()
+
+    def get(self, name):
+        if name not in self.names:
+            raise KeyError(name)
+        return name
+
+    def create(self, name, labels=None):
+        self.names.add(name)
+        return name
+
+
+class FakeDockerEngine:
+    def __init__(self):
+        self.images_by_id = {"sha256:base": FakeImage("sha256:base", ["python:3.12"])}
+        self.containers_by_id = {
+            "own-container": FakeContainer("own-container", "metrix-u2-job", "python:3.12", 2),
+            "other-container": FakeContainer("other-container", "metrix-u3-job", "python:3.12", 3),
+        }
+        self.removed_images = []
+        self.last_create = {}
+        self.containers = FakeContainerCollection(self)
+        self.images = FakeImageCollection(self)
+        self.volumes = FakeVolumeCollection()
+
+    def ping(self):
+        return True
+
+    def info(self):
+        return {"OSType": "linux", "Architecture": "x86_64", "Containers": len(self.containers_by_id), "Images": len(self.images_by_id)}
+
+    def version(self):
+        return {"Version": "26.0.0"}
+
+
+def install_fake_docker(monkeypatch, engine: FakeDockerEngine):
+    from app.modules.containers.clients import DockerAdapter
+
+    monkeypatch.setattr("app.modules.containers.clients.create_client", lambda: DockerAdapter(engine))
+
+
+def grant_container_role(client, admin_headers, code):
+    permissions = client.get("/api/permissions", headers=admin_headers).json()
+    permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
+    role = client.post("/api/roles", json={"code": code, "name": code, "description": ""}, headers=admin_headers)
+    assert role.status_code == 200
+    role_id = role.json()["id"]
+    assign = client.put(
+        f"/api/roles/{role_id}/permissions",
+        json={"permission_ids": [permission_ids_by_code[item] for item in CONTAINER_CODES]},
+        headers=admin_headers,
+    )
+    assert assign.status_code == 200
+    return role_id
+
+
+def create_container_user(client, admin_headers, username, role_id, phone):
+    response = client.post(
+        "/api/users",
+        json={
+            "username": username,
+            "password": "Container123",
+            "full_name": username,
+            "phone": phone,
+            "email": f"{username}@example.com",
+            "company": "",
+            "department": "",
+            "role_ids": [role_id],
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    return login(client, username, "Container123"), response.json()["id"]
+
+
+def test_container_permissions_and_owner_isolation(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+    role_id = grant_container_role(client, admin_headers, "container_user")
+    user_headers, user_id = create_container_user(client, admin_headers, "container_user", role_id, "13800000041")
+
+    engine.containers_by_id["own-container"].attrs["Config"]["Labels"]["metrix.owner_user_id"] = str(user_id)
+    engine.containers_by_id["other-container"].attrs["Config"]["Labels"]["metrix.owner_user_id"] = str(user_id + 1)
+
+    status = client.get("/api/container-engine/status", headers=user_headers)
+    assert status.status_code == 200
+    assert status.json()["available"] is True
+
+    visible = client.get("/api/container-instances", headers=user_headers)
+    assert visible.status_code == 200
+    assert [item["id"] for item in visible.json()["items"]] == ["own-container"]
+
+    denied_logs = client.get("/api/container-instances/other-container/logs", headers=user_headers)
+    assert denied_logs.status_code == 403
+
+
+def test_container_image_records_and_create_container(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+    role_id = grant_container_role(client, admin_headers, "container_creator")
+    user_headers, user_id = create_container_user(client, admin_headers, "container_creator", role_id, "13800000042")
+
+    hidden = client.get("/api/container-images", headers=user_headers)
+    assert hidden.status_code == 200
+    assert hidden.json()["items"] == []
+
+    public = client.put("/api/container-images/python%3A3.12/visibility", json={"is_public": True}, headers=admin_headers)
+    assert public.status_code == 200
+
+    visible = client.get("/api/container-images", headers=user_headers)
+    assert visible.status_code == 200
+    assert visible.json()["total"] == 1
+
+    created = client.post(
+        "/api/container-instances",
+        json={
+            "name": "job",
+            "image": "python:3.12",
+            "command": "python main.py",
+            "env": {"NORMAL": "1", "PASSWORD": "hidden"},
+            "ports": [{"container_port": "8080", "host_port": 18080, "protocol": "tcp"}],
+            "volumes": [{"container_path": "/data", "volume_name": "job_data", "read_only": False}],
+            "restart_policy": "no",
+            "memory_limit_mb": 128,
+            "cpu_limit": 1,
+            "auto_start": True,
+        },
+        headers=user_headers,
+    )
+    assert created.status_code == 200
+    body = created.json()
+    assert body["owner_user_id"] == user_id
+    assert body["name"] == f"metrix-u{user_id}-job"
+    assert engine.last_create["labels"]["metrix.owner_user_id"] == str(user_id)
+    assert "PASSWORD" not in engine.last_create["environment"]
+
+
+def test_container_image_import_and_export_jobs(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+
+    imported = client.post(
+        "/api/container-images/import",
+        files={"file": ("image.tar", b"fake", "application/octet-stream")},
+        headers=admin_headers,
+    )
+    assert imported.status_code == 200
+    import_job_id = imported.json()["job_id"]
+    _wait_job_success(client, admin_headers, import_job_id)
+
+    images = client.get("/api/container-images?keyword=imported", headers=admin_headers)
+    assert images.status_code == 200
+    assert images.json()["total"] == 1
+
+    exported = client.post("/api/container-images/imported%3Alatest/export", headers=admin_headers)
+    assert exported.status_code == 200
+    export_job_id = exported.json()["job_id"]
+    _wait_job_success(client, admin_headers, export_job_id)
+
+    download = client.get(f"/api/container-jobs/{export_job_id}/download", headers=admin_headers)
+    assert download.status_code == 200
+    assert download.content == b"fake-image-tar"
+
+
+def _wait_job_success(client, headers, job_id):
+    for _ in range(30):
+        jobs = client.get("/api/container-jobs", headers=headers)
+        item = next(item for item in jobs.json()["items"] if item["job_id"] == job_id)
+        if item["status"] == "success":
+            return
+        time.sleep(0.05)
+    raise AssertionError(f"job {job_id} did not finish")

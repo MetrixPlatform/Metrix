@@ -829,3 +829,12 @@
 - 标签栏固定 `+` 下拉入口，提供“新建表”和“临时 SQL”；新建表优先使用当前选中库、连接默认库或第一个 schema，仍无可用库时给出提示。
 - Monaco SQL 编辑器关闭默认英文右键菜单，改用项目内轻量自定义菜单，常用操作包含更改所有匹配项、剪切、复制、粘贴、全选和命令面板，文案按 `appStore.locale` 在中英文之间切换。
 - 验证：`npm run typecheck` 通过，`npm run build` 通过，`git diff --check` 通过，ReadLints 无新增诊断；本次未改后端，未运行后端数据库测试。
+
+## 2026-06-15：新增容器管理模块
+
+- 新增后端 `server/app/modules/containers` 模块，页面权限为 `route:containers`，操作权限为 `action:container:create/read/update/delete/operate/manage_others`；模块通过 Docker SDK 连接当前部署宿主机 Docker Engine，并提供 Docker 状态、镜像、容器和容器任务 API。
+- 容器管理一期只管理当前宿主机 Docker，不做多主机连接管理；连接方式由 Docker SDK 读取 `DOCKER_HOST`、TLS 环境变量或本地 socket。Linux 容器部署建议挂载 `/var/run/docker.sock` 并设置 `DOCKER_HOST=unix:///var/run/docker.sock`；Windows/macOS Docker Desktop 建议使用 Linux containers 模式，Windows 原生后端开发可用 `npipe:////./pipe/docker_engine`。
+- 多用户隔离采用平台逻辑隔离：容器创建时写入 `metrix.created_by=metrix`、`metrix.owner_user_id=<user_id>`、`metrix.resource_type=container` labels，列表和操作按 labels + `manage_others` 过滤；镜像是 Docker daemon 全局资源，通过 `container_image_records` 保存归属、来源和公共/私有状态，普通用户只看自己的镜像与公共镜像。
+- 安全边界：挂载 Docker socket 等同给平台容器宿主机 Docker 高权限，默认只适合可信内网部署；创建容器默认不开放 `privileged`、宿主网络、Docker socket 挂载和任意宿主目录挂载，卷挂载仅支持 Docker volume 到容器路径。
+- 前端新增 `web/src/modules/containers` 模块，页面 `/containers` 分为容器、镜像和任务页签；支持容器创建、启动、停止、重启、日志查看、删除，镜像导入、导出、删除、公共/私有切换，以及导入/导出任务列表和下载。模块 i18n 已接入中英文页面文案、权限、错误码、审计和 OpenAPI 文案。
+- 新增后端依赖 `docker`；本地验证使用 fake Docker client 覆盖核心 API、权限隔离、镜像归属、导入/导出任务，不依赖真实 Docker daemon。

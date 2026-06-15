@@ -1,0 +1,182 @@
+{
+  "route": {
+    "containers": "容器管理"
+  },
+  "permission": {
+    "group": {
+      "container": "容器管理"
+    },
+    "route:containers": "容器管理",
+    "action:container:create": "创建容器/镜像任务",
+    "action:container:read": "查看容器与镜像",
+    "action:container:update": "修改容器/镜像配置",
+    "action:container:delete": "删除容器/镜像",
+    "action:container:operate": "运行控制容器",
+    "action:container:manage_others": "管理他人容器与镜像"
+  },
+  "error": {
+    "containerDockerUnavailable": "Docker 不可用，请检查 Docker 服务、DOCKER_HOST 或 socket 挂载",
+    "containerNotFound": "容器不存在",
+    "containerImageNotFound": "镜像不存在",
+    "containerImageInUse": "镜像正在被容器使用，无法删除",
+    "containerActionInvalid": "容器操作不合法",
+    "containerNameInvalid": "容器名称不合法",
+    "containerVolumeInvalid": "卷名称不合法",
+    "containerPathInvalid": "容器路径不合法",
+    "containerJobFailed": "容器任务执行失败",
+    "containerJobNotDownloadable": "任务不可下载",
+    "containerJobFileMissing": "任务文件不存在"
+  },
+  "container": {
+    "engine": "Docker 引擎",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "dockerHost": "Docker Host",
+    "version": "版本",
+    "osType": "系统",
+    "arch": "架构",
+    "containers": "容器",
+    "images": "镜像",
+    "tabContainers": "容器",
+    "tabImages": "镜像",
+    "tabJobs": "任务",
+    "searchContainer": "搜索容器名称、ID、镜像",
+    "searchImage": "搜索镜像 ID 或标签",
+    "searchJob": "搜索任务镜像或文件",
+    "statusAll": "全部状态",
+    "create": "创建容器",
+    "importImage": "导入镜像",
+    "field": {
+      "name": "名称",
+      "containerId": "容器 ID",
+      "image": "镜像",
+      "status": "状态",
+      "ports": "端口",
+      "owner": "归属用户",
+      "createdAt": "创建时间",
+      "repoTags": "仓库标签",
+      "imageId": "镜像 ID",
+      "size": "大小",
+      "visibility": "可见性",
+      "command": "命令",
+      "env": "环境变量",
+      "portsConfig": "端口映射",
+      "volumes": "卷挂载",
+      "restartPolicy": "重启策略",
+      "memoryLimit": "内存限制 MB",
+      "cpuLimit": "CPU 限制",
+      "autoStart": "创建后启动",
+      "tail": "日志行数",
+      "kind": "类型",
+      "fileName": "文件名",
+      "fileSize": "文件大小",
+      "finishedAt": "完成时间"
+    },
+    "visibilityPublic": "公共",
+    "visibilityPrivate": "私有",
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "logs": "日志",
+    "deleteContainer": "删除容器",
+    "deleteImage": "删除镜像",
+    "exportImage": "导出镜像",
+    "setPublic": "设为公共",
+    "setPrivate": "设为私有",
+    "download": "下载",
+    "deleteContainerConfirm": "确认删除容器 {name}？",
+    "deleteImageConfirm": "确认删除镜像 {name}？",
+    "created": "容器已创建",
+    "started": "容器已启动",
+    "stopped": "容器已停止",
+    "restarted": "容器已重启",
+    "deleted": "容器已删除",
+    "imageDeleted": "镜像已删除",
+    "submitted": "任务已提交",
+    "visibilityUpdated": "可见性已更新",
+    "logTitle": "容器日志 - {name}",
+    "emptyHint": "Docker 未连接时无法加载容器和镜像，请检查部署配置。",
+    "socketHint": "容器部署请挂载 /var/run/docker.sock，并设置 DOCKER_HOST=unix:///var/run/docker.sock；Windows/macOS Docker Desktop 请使用 Linux containers 模式。",
+    "envPlaceholder": "每行一个 KEY=VALUE，敏感键名会被后端过滤",
+    "portPlaceholder": "例如 8080:80/tcp，每行一条",
+    "volumePlaceholder": "例如 data_volume:/data:rw，每行一条，仅支持 Docker volume，不支持任意宿主目录",
+    "uploadTar": "选择 Docker 镜像 tar 文件",
+    "importProgress": "上传进度 {percent}%",
+    "jobKindImport": "导入",
+    "jobKindExport": "导出",
+    "jobStatusPending": "等待中",
+    "jobStatusRunning": "运行中",
+    "jobStatusSuccess": "成功",
+    "jobStatusFailed": "失败"
+  },
+  "auditLog": {
+    "action": {
+      "container": {
+        "create": "创建容器",
+        "start": "启动容器",
+        "stop": "停止容器",
+        "restart": "重启容器",
+        "delete": "删除容器",
+        "image_delete": "删除镜像",
+        "image_visibility": "修改镜像可见性",
+        "image_import_submit": "提交镜像导入",
+        "image_export_submit": "提交镜像导出"
+      }
+    },
+    "target": {
+      "container": "容器",
+      "container_image": "容器镜像",
+      "container_job": "容器任务"
+    },
+    "field": {
+      "image": "镜像",
+      "image_ref": "镜像引用",
+      "file_size": "文件大小"
+    }
+  },
+  "openapi": {
+    "tag": {
+      "container-images": "容器镜像",
+      "container-instances": "容器实例",
+      "container-jobs": "容器任务"
+    },
+    "operation": {
+      "container_images.list_container_images": {
+        "summary": "查询镜像列表",
+        "description": "按当前用户权限返回可见镜像；管理员可查看全部镜像。"
+      },
+      "container_images.import_container_image": {
+        "summary": "导入镜像",
+        "description": "上传 Docker 镜像 tar 文件并创建后台导入任务。"
+      },
+      "container_images.export_container_image": {
+        "summary": "导出镜像",
+        "description": "提交镜像导出任务，完成后可从容器任务接口下载 tar 文件。"
+      },
+      "container_images.delete_container_image": {
+        "summary": "删除镜像",
+        "description": "删除当前用户可管理的镜像；镜像被容器使用时会拒绝删除。"
+      },
+      "container_instances.list_container_instances": {
+        "summary": "查询容器列表",
+        "description": "按当前用户权限返回可见容器；普通用户仅能查看自己创建的容器。"
+      },
+      "container_instances.create_container_instance": {
+        "summary": "创建容器",
+        "description": "基于可见镜像创建容器，默认写入平台归属 labels 并限制危险配置。"
+      },
+      "container_instances.get_container_logs": {
+        "summary": "读取容器日志",
+        "description": "按 tail 行数读取指定容器日志。"
+      },
+      "container_jobs.list_container_jobs": {
+        "summary": "查询容器任务",
+        "description": "查询镜像导入、导出后台任务。"
+      },
+      "container_jobs.download_container_job": {
+        "summary": "下载任务文件",
+        "description": "下载成功的镜像导出任务文件。"
+      }
+    }
+  }
+}
