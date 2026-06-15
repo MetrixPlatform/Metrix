@@ -277,11 +277,12 @@ class CreateTableRequest(BaseModel):
 
 
 class AlterTableAction(BaseModel):
-    action: Literal["add_column", "drop_column", "modify_column"]
+    action: Literal["add_column", "drop_column", "modify_column", "rename_column"]
     column: ColumnDefinition | None = None
     name: str = Field(default="", max_length=128)
+    new_name: str = Field(default="", max_length=128)
 
-    @field_validator("name")
+    @field_validator("name", "new_name")
     @classmethod
     def validate_name(cls, value: str) -> str:
         return clean_optional_identifier(value)

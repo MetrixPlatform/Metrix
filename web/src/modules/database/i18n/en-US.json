@@ -106,7 +106,7 @@
       "name": "Table name",
       "search": "Search current table",
       "totalEstimate": "Loaded at least {count} rows",
-      "editStructure": "Edit structure",
+      "editStructure": "Edit",
       "columns": "Columns",
       "indexes": "Indexes",
       "addColumn": "Add column",

@@ -106,7 +106,7 @@
       "name": "表名",
       "search": "搜索当前表数据",
       "totalEstimate": "已加载至少 {count} 条",
-      "editStructure": "编辑表结构",
+      "editStructure": "编辑",
       "columns": "字段信息",
       "indexes": "索引信息",
       "addColumn": "新增字段",

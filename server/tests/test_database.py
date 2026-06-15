@@ -144,6 +144,22 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     altered_detail = client.get("/api/databases/db_sqlite_test/tables/designed", headers=headers).json()
     assert "title" in {column["name"] for column in altered_detail["columns"]}
     assert {"name": "idx_designed_title", "columns": ["title"], "unique": False} in altered_detail["indexes"]
+    renamed_column = client.post(
+        "/api/databases/db_sqlite_test/tables/designed/alter",
+        json={"actions": [{"action": "rename_column", "name": "title", "new_name": "display_title"}]},
+        headers=headers,
+    )
+    assert renamed_column.status_code == 200
+    renamed_column_detail = client.get("/api/databases/db_sqlite_test/tables/designed", headers=headers).json()
+    assert "display_title" in {column["name"] for column in renamed_column_detail["columns"]}
+    renamed_table = client.post(
+        "/api/databases/db_sqlite_test/tables/designed/rename",
+        json={"new_name": "designed_new"},
+        headers=headers,
+    )
+    assert renamed_table.status_code == 200
+    renamed_table_detail = client.get("/api/databases/db_sqlite_test/tables/designed_new", headers=headers)
+    assert renamed_table_detail.status_code == 200
 
     submitted = client.post(
         "/api/databases/db_sqlite_test/export",

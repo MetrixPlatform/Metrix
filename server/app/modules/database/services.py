@@ -392,6 +392,10 @@ class DatabaseService:
                     runtime.execute_write(f"ALTER TABLE {table_name} {keyword} {_column_definition_sql(runtime, item.column)}")
                 elif item.action == "drop_column" and item.name:
                     runtime.execute_write(f"ALTER TABLE {table_name} DROP COLUMN {runtime.quote_identifier(item.name)}")
+                elif item.action == "rename_column" and item.name and item.new_name:
+                    runtime.execute_write(
+                        f"ALTER TABLE {table_name} RENAME COLUMN {runtime.quote_identifier(item.name)} TO {runtime.quote_identifier(item.new_name)}"
+                    )
                 else:
                     raise bad_request("error.databaseAlterInvalid", "Invalid alter table action")
             for item in payload.index_actions:
@@ -408,7 +412,12 @@ class DatabaseService:
         self._ensure_operate(actor)
         table = clean_identifier(table, "table")
         with self._runtime(connection, self._database_name(connection, payload.database)) as runtime:
-            runtime.execute_write(f"RENAME TABLE {runtime.qualified_table(table, payload.database)} TO {runtime.qualified_table(payload.new_name, payload.database)}")
+            if connection.db_type == "sqlite":
+                runtime.execute_write(
+                    f"ALTER TABLE {runtime.qualified_table(table, payload.database)} RENAME TO {runtime.quote_identifier(payload.new_name)}"
+                )
+            else:
+                runtime.execute_write(f"RENAME TABLE {runtime.qualified_table(table, payload.database)} TO {runtime.qualified_table(payload.new_name, payload.database)}")
         self._audit_operate(actor, connection, "database.table_rename", {"table": table, "new_name": payload.new_name})
 
     def truncate_table(self, actor: User, conn_id: str, database: str, table: str) -> None:

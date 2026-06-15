@@ -105,7 +105,7 @@ export interface IndexDefinition {
 
 export interface AlterTablePayload {
   database?: string;
-  actions?: Array<{ action: "add_column" | "drop_column" | "modify_column"; column?: ColumnDefinition; name?: string }>;
+  actions?: Array<{ action: "add_column" | "drop_column" | "modify_column" | "rename_column"; column?: ColumnDefinition; name?: string; new_name?: string }>;
   index_actions?: Array<{ action: "add_index" | "drop_index"; index?: IndexDefinition; name?: string }>;
 }
 

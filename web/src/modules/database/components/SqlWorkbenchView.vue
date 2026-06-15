@@ -167,7 +167,7 @@
       <div class="table-designer">
         <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
           <n-form-item :label="t('database.table.name')">
-            <n-input v-model:value="tableDesigner.name" :disabled="tableDesigner.mode === 'edit'" />
+            <n-input v-model:value="tableDesigner.name" />
           </n-form-item>
         </n-form>
         <section class="table-designer-section">
@@ -185,7 +185,7 @@
             <span>{{ t("field.description") }}</span>
             <span>{{ t("common.actions") }}</span>
             <template v-for="column in tableDesigner.columns" :key="column.key">
-              <n-input v-model:value="column.name" size="small" :disabled="column.existing" :class="{ 'database-dropped-row': column.drop }" />
+              <n-input v-model:value="column.name" size="small" :disabled="column.drop" :class="{ 'database-dropped-row': column.drop }" />
               <n-input v-model:value="column.type" size="small" :disabled="column.drop" />
               <n-checkbox v-model:checked="column.nullable" :disabled="column.drop" />
               <n-checkbox v-model:checked="column.primary_key" :disabled="column.drop" />
@@ -324,6 +324,7 @@ import {
   submitExport,
   truncateTable,
   alterTable,
+  renameTable,
   updateRow,
   updateSqlScript,
   type AlterTablePayload,
@@ -1143,9 +1144,16 @@ async function saveTableDesigner() {
       });
       selectedTable.value = name;
     } else {
+      let targetTable = tableDesigner.originalName;
+      if (name !== tableDesigner.originalName) {
+        await renameTable(props.connection.conn_id, tableDesigner.originalName, { database: tableDesigner.database, new_name: name });
+        targetTable = name;
+      }
       const payload = buildAlterTablePayload();
-      await alterTable(props.connection.conn_id, tableDesigner.originalName, payload);
-      selectedTable.value = tableDesigner.originalName;
+      if ((payload.actions?.length || 0) > 0 || (payload.index_actions?.length || 0) > 0) {
+        await alterTable(props.connection.conn_id, targetTable, payload);
+      }
+      selectedTable.value = targetTable;
     }
     tableDesigner.show = false;
     await reloadSchema(tableDesigner.database);
@@ -1166,7 +1174,12 @@ function buildAlterTablePayload(): AlterTablePayload {
     } else if (!column.existing && !column.drop) {
       actions?.push({ action: "add_column", column: draftToColumnDefinition(column) });
     } else if (column.existing && !column.drop && columnChanged(column)) {
-      actions?.push({ action: "modify_column", column: draftToColumnDefinition(column) });
+      if (column.name.trim() !== column.original.name) {
+        actions?.push({ action: "rename_column", name: column.original.name, new_name: column.name.trim() });
+      }
+      if (columnDefinitionChanged(column)) {
+        actions?.push({ action: "modify_column", column: draftToColumnDefinition(column) });
+      }
     }
   }
   for (const index of tableDesigner.indexes) {
@@ -1256,6 +1269,18 @@ function splitIndexColumns(value: string) {
 
 function columnChanged(column: TableColumnDraft) {
   return JSON.stringify(draftToColumnDefinition(column)) !== JSON.stringify(column.original);
+}
+
+function columnDefinitionChanged(column: TableColumnDraft) {
+  const current = draftToColumnDefinition(column);
+  return (
+    current.type !== column.original.type ||
+    current.nullable !== column.original.nullable ||
+    current.primary_key !== column.original.primary_key ||
+    current.autoincrement !== column.original.autoincrement ||
+    (current.default || "") !== (column.original.default || "") ||
+    (current.comment || "") !== (column.original.comment || "")
+  );
 }
 
 function indexChanged(index: TableIndexDraft) {
