@@ -4,6 +4,12 @@ import { hasI18nKey, t, translateMessage, type I18nKey, type TranslateParams } f
 
 const API_PREFIX = "/api";
 export const AUTH_EXPIRED_EVENT = appKey("auth-expired");
+export interface UploadProgress {
+  loaded: number;
+  total: number;
+  percent: number;
+  lengthComputable: boolean;
+}
 const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
   username: "field.username",
   password: "field.password",
@@ -66,6 +72,37 @@ export async function download(path: string, options: RequestInit = {}): Promise
   return response.blob();
 }
 
+export function upload<T>(path: string, body: FormData, onProgress?: (progress: UploadProgress) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_PREFIX}${path}`);
+    if (authStore.token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${authStore.token}`);
+    }
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress) return;
+      const total = event.lengthComputable ? event.total : 0;
+      onProgress({
+        loaded: event.loaded,
+        total,
+        percent: total > 0 ? Math.round((event.loaded / total) * 100) : 0,
+        lengthComputable: event.lengthComputable
+      });
+    };
+    xhr.onload = () => {
+      const data = parseJsonText(xhr.responseText);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data as T);
+        return;
+      }
+      handleUnauthorizedStatus(xhr.status);
+      reject(new Error(errorMessage(data)));
+    };
+    xhr.onerror = () => reject(new Error(t("api.requestFailed")));
+    xhr.send(body);
+  });
+}
+
 async function rawRequest(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
@@ -124,9 +161,22 @@ async function parseJson(response: Response): Promise<Record<string, unknown> | 
 }
 
 function handleUnauthorized(response: Response) {
-  if (response.status === 401) {
+  handleUnauthorizedStatus(response.status);
+}
+
+function handleUnauthorizedStatus(status: number) {
+  if (status === 401) {
     authStore.clear();
     window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+  }
+}
+
+function parseJsonText(text: string): Record<string, unknown> | null {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
   }
 }
 

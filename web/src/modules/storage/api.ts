@@ -1,4 +1,4 @@
-import { del, download, post, put, queryString, request } from "../../api/client";
+import { del, download, post, put, queryString, request, upload, type UploadProgress } from "../../api/client";
 import type { PageResult, ServerMessage } from "../../api/types";
 
 export type StorageProtocol = "ftp" | "sftp";
@@ -102,13 +102,10 @@ export function downloadStorageArchive(storageId: string, path: string) {
   return download(`/storages/${encodeURIComponent(storageId)}/download-archive${queryString({ path })}`);
 }
 
-export function uploadStorageFile(storageId: string, path: string, file: File) {
+export function uploadStorageFile(storageId: string, path: string, file: File, onProgress?: (progress: UploadProgress) => void) {
   const body = new FormData();
   body.append("file", file);
-  return request<StorageEntry>(`/storages/${encodeURIComponent(storageId)}/upload${queryString({ path })}`, {
-    method: "POST",
-    body
-  });
+  return upload<StorageEntry>(`/storages/${encodeURIComponent(storageId)}/upload${queryString({ path })}`, body, onProgress);
 }
 
 export function mkdirStorage(storageId: string, path: string) {

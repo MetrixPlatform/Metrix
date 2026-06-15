@@ -69,7 +69,13 @@
       "renamed": "已重命名",
       "deleteTitle": "删除",
       "deleteFileConfirm": "确认删除文件 {name}？",
-      "deleteDirConfirm": "确认删除目录 {name} 及其全部内容？"
+      "deleteDirConfirm": "确认删除目录 {name} 及其全部内容？",
+      "uploadProgressTitle": "总上传进度",
+      "uploadProgressCount": "已完成 {done}/{total}",
+      "uploadProgressWithFailed": "已完成 {done}/{total}，失败 {failed}",
+      "uploadStatusPending": "等待上传",
+      "uploadStatusSuccess": "上传完成",
+      "uploadStatusFailed": "上传失败"
     }
   },
   "auditLog": {

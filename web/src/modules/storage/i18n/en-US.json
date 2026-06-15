@@ -69,7 +69,13 @@
       "renamed": "Renamed",
       "deleteTitle": "Delete",
       "deleteFileConfirm": "Delete file {name}?",
-      "deleteDirConfirm": "Delete folder {name} and all its contents?"
+      "deleteDirConfirm": "Delete folder {name} and all its contents?",
+      "uploadProgressTitle": "Total upload progress",
+      "uploadProgressCount": "Completed {done}/{total}",
+      "uploadProgressWithFailed": "Completed {done}/{total}, failed {failed}",
+      "uploadStatusPending": "Waiting",
+      "uploadStatusSuccess": "Completed",
+      "uploadStatusFailed": "Failed"
     }
   },
   "auditLog": {

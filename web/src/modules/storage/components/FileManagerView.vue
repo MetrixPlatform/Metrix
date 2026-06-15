@@ -60,6 +60,32 @@
         </div>
       </n-form>
     </n-modal>
+
+    <aside v-if="uploadTasks.length" class="upload-progress-panel" :class="{ collapsed: uploadPanelCollapsed }">
+      <button class="upload-progress-header" type="button" @click="uploadPanelCollapsed = !uploadPanelCollapsed">
+        <div class="upload-progress-title">
+          <strong>{{ t("storage.files.uploadProgressTitle") }}</strong>
+          <span>{{ uploadSummaryText }}</span>
+        </div>
+        <n-progress class="upload-progress-total" type="line" :percentage="totalUploadPercent" :show-indicator="false" />
+        <n-icon :component="uploadPanelCollapsed ? ChevronUp20Regular : ChevronDown20Regular" />
+      </button>
+      <div v-if="!uploadPanelCollapsed" class="upload-progress-body">
+        <div v-for="task in uploadTasks" :key="task.id" class="upload-progress-item">
+          <div class="upload-progress-item-main">
+            <span class="upload-progress-file-name" :title="task.name">{{ task.name }}</span>
+            <span class="upload-progress-file-meta">{{ uploadTaskMeta(task) }}</span>
+          </div>
+          <n-progress
+            type="line"
+            :percentage="taskProgress(task)"
+            :status="taskProgressStatus(task)"
+            :show-indicator="false"
+          />
+          <span v-if="task.error" class="upload-progress-error" :title="task.error">{{ task.error }}</span>
+        </div>
+      </div>
+    </aside>
   </section>
 </template>
 
@@ -78,13 +104,22 @@ import {
   NInput,
   NModal,
   NPopover,
+  NProgress,
   NSpace,
   NTag,
   useDialog,
   useMessage
 } from "naive-ui";
 import type { DataTableColumns, DataTableSortState } from "naive-ui";
-import { ArrowLeft20Regular, ArrowUp20Regular, Document20Regular, Folder20Regular, Search20Regular } from "@vicons/fluent";
+import {
+  ArrowLeft20Regular,
+  ArrowUp20Regular,
+  ChevronDown20Regular,
+  ChevronUp20Regular,
+  Document20Regular,
+  Folder20Regular,
+  Search20Regular
+} from "@vicons/fluent";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
@@ -123,6 +158,7 @@ const sortState = ref<{ columnKey: string; order: "ascend" | "descend" } | null>
 const truncated = ref(false);
 const entries = ref<StorageEntry[]>([]);
 const uploadInput = ref<HTMLInputElement | null>(null);
+const uploadPanelCollapsed = ref(false);
 const nameModal = reactive({
   show: false,
   mode: "mkdir" as "mkdir" | "rename",
@@ -130,6 +166,17 @@ const nameModal = reactive({
   target: null as StorageEntry | null,
   saving: false
 });
+type UploadTaskStatus = "pending" | "uploading" | "success" | "failed";
+interface UploadTask {
+  id: number;
+  name: string;
+  loaded: number;
+  total: number;
+  status: UploadTaskStatus;
+  error: string;
+}
+const uploadTasks = ref<UploadTask[]>([]);
+let uploadTaskId = 0;
 
 const storageId = computed(() => props.connection.storage_id);
 const canOperate = computed(() => authStore.has(STORAGE_OPERATE));
@@ -158,6 +205,23 @@ const tableData = computed<StorageEntry[]>(() => {
   if (!showParentRow.value) return sortedEntries.value;
   const parentRow: StorageEntry = { name: "..", path: PARENT_ROW_PATH, is_dir: true, size: -1, modified_at: "" };
   return [parentRow, ...sortedEntries.value];
+});
+const totalUploadPercent = computed(() => {
+  const total = uploadTasks.value.reduce((sum, task) => sum + task.total, 0);
+  if (total <= 0) {
+    const finished = uploadTasks.value.filter((task) => task.status === "success" || task.status === "failed").length;
+    return uploadTasks.value.length > 0 ? Math.round((finished / uploadTasks.value.length) * 100) : 0;
+  }
+  const loaded = uploadTasks.value.reduce((sum, task) => sum + Math.min(task.loaded, task.total), 0);
+  return Math.round((loaded / total) * 100);
+});
+const uploadSummaryText = computed(() => {
+  const finished = uploadTasks.value.filter((task) => task.status === "success").length;
+  const failed = uploadTasks.value.filter((task) => task.status === "failed").length;
+  const total = uploadTasks.value.length;
+  return failed > 0
+    ? t("storage.files.uploadProgressWithFailed", { done: finished, failed, total })
+    : t("storage.files.uploadProgressCount", { done: finished, total });
 });
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
@@ -306,15 +370,34 @@ async function handleUpload(event: Event) {
   const files = Array.from(input.files ?? []);
   input.value = "";
   if (!files.length) return;
+  uploadTasks.value = files.map((file) => ({
+    id: ++uploadTaskId,
+    name: file.name,
+    loaded: 0,
+    total: file.size,
+    status: "pending",
+    error: ""
+  }));
+  uploadPanelCollapsed.value = false;
   uploading.value = true;
   let uploaded = 0;
   try {
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
+      const task = uploadTasks.value[index];
+      task.status = "uploading";
       try {
-        await uploadStorageFile(storageId.value, path.value, file);
+        await uploadStorageFile(storageId.value, path.value, file, (progress) => {
+          task.loaded = progress.loaded;
+          task.total = progress.total || file.size || progress.loaded;
+        });
+        task.loaded = task.total || file.size;
+        task.status = "success";
         uploaded += 1;
       } catch (error) {
         const reason = error instanceof Error ? error.message : "";
+        task.status = "failed";
+        task.error = reason || t("api.requestFailed");
+        task.loaded = 0;
         message.error(t("storage.files.uploadFailed", { name: file.name }) + (reason ? t("common.labelSeparator") + reason : ""));
       }
     }
@@ -325,6 +408,24 @@ async function handleUpload(event: Event) {
   } finally {
     uploading.value = false;
   }
+}
+
+function taskProgress(task: UploadTask) {
+  if (task.status === "success") return 100;
+  return task.total > 0 ? Math.round((Math.min(task.loaded, task.total) / task.total) * 100) : 0;
+}
+
+function taskProgressStatus(task: UploadTask) {
+  if (task.status === "failed") return "error";
+  if (task.status === "success") return "success";
+  return "default";
+}
+
+function uploadTaskMeta(task: UploadTask) {
+  if (task.status === "failed") return t("storage.files.uploadStatusFailed");
+  if (task.status === "success") return t("storage.files.uploadStatusSuccess");
+  if (task.status === "pending") return t("storage.files.uploadStatusPending");
+  return `${formatSize(Math.min(task.loaded, task.total))} / ${formatSize(task.total)}`;
 }
 
 async function downloadEntry(entry: StorageEntry) {
