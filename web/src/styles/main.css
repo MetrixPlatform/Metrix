@@ -2553,7 +2553,7 @@ a {
 }
 
 .table-designer-columns {
-  grid-template-columns: minmax(120px, 1fr) minmax(190px, 1.2fr) 54px 54px 66px minmax(110px, 0.8fr) minmax(120px, 0.9fr) 68px;
+  grid-template-columns: minmax(120px, 1fr) minmax(240px, 1.4fr) 54px 54px 66px minmax(100px, 0.75fr) minmax(110px, 0.8fr) 68px;
 }
 
 .table-designer-indexes {
@@ -2562,7 +2562,7 @@ a {
 
 .table-designer-type-control {
   display: grid;
-  grid-template-columns: minmax(105px, 1fr) 76px;
+  grid-template-columns: minmax(145px, 1fr) 86px;
   gap: 6px;
   min-width: 0;
 }
