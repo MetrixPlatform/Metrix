@@ -101,11 +101,33 @@ test("opens database management and embedded jobs without raw i18n keys", async 
       body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
     })
   );
-  await page.route("**/api/data-jobs**", (route) => {
+  await page.route("**/api/database-transfer-jobs**", (route) => {
     dataJobRequests.push(route.request().url());
     return route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 20 })
+      body: JSON.stringify({
+        items: [
+          {
+            job_id: "job-1",
+            conn_id: "db_test",
+            connection_name: "test",
+            kind: "export",
+            format: "xlsx",
+            status: "success",
+            file_name: "export.xlsx",
+            file_size: 1024,
+            row_count: 1,
+            error_code: "",
+            created_by: 1,
+            created_by_username: "rootadmin",
+            created_at: "2026-06-14T00:00:00Z",
+            expires_at: "2026-06-15T00:00:00Z"
+          }
+        ],
+        total: 1,
+        page: 1,
+        page_size: 20
+      })
     });
   });
   await page.addInitScript(() => {
@@ -120,11 +142,12 @@ test("opens database management and embedded jobs without raw i18n keys", async 
   await expect(page.getByRole("button", { name: "返回" })).toBeVisible();
   await expect(page.getByText("common.back")).toHaveCount(0);
 
-  await page.getByText("创建时间").click();
+  await page.locator(".database-jobs-view .n-data-table-th").filter({ hasText: "创建时间" }).click();
   await expect.poll(() => dataJobRequests.some((url) => url.includes("sort_order=ascend"))).toBe(true);
 });
 
 test("keeps database workbench layout readable", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
   await mockApi(page, { installed: true, session: adminSession });
   await page.route("**/api/databases**", (route) => {
     const url = new URL(route.request().url());
@@ -188,6 +211,7 @@ test("keeps database workbench layout readable", async ({ page }) => {
   );
   await page.addInitScript(() => {
     localStorage.setItem("metrix.token", "browser-test-token");
+    localStorage.removeItem("metrix.databaseWorkbench.sidebarWidth");
   });
 
   await page.goto("/database");
@@ -195,14 +219,15 @@ test("keeps database workbench layout readable", async ({ page }) => {
   await expect.poll(() => page.getByRole("button", { name: "返回" }).first().innerText()).toBe("");
   await expect(page.locator(".database-sidebar")).toBeVisible();
 
-  await expect.poll(() => page.locator(".database-sidebar").evaluate((node) => node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(260);
+  await expect.poll(() => page.locator(".database-sidebar").evaluate((node) => node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(220);
 
   await expect(page.locator(".database-tree").getByText("0421")).toBeVisible();
   await expect(page.locator(".database-tree").getByText("表", { exact: true })).toBeVisible();
   await expect(page.locator(".database-tree").getByText("脚本", { exact: true })).toBeVisible();
   await expect(page.locator(".database-tree").getByText("capacityreport")).toBeVisible();
 
-  await page.getByText("SQL", { exact: true }).click();
+  await page.getByRole("button", { name: "新建标签" }).click();
+  await page.getByText("临时 SQL", { exact: true }).click();
   await expect.poll(() => page.locator(".database-sql-editor").evaluate((node) => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(280);
 });
 

@@ -848,3 +848,4 @@
 
 - 修正 `server/requirements.txt` 中错误依赖名 `httpx2` 为 FastAPI `TestClient` 实际依赖的 `httpx`，避免新环境安装到不匹配的第三方包。
 - 后端模块注册测试同步容器模块：`route:containers -> action:container:read`、模块列表、模型路径、OpenAPI 隐藏 tag、router 前缀和禁用模块过滤均纳入断言，确保容器模块加入后全量测试继续覆盖真实结构。
+- 前端 Playwright 回归测试同步当前数据库任务和多标签工作台：数据任务接口改为 `/api/database-transfer-jobs`，排序测试提供真实任务行后点击表头；数据库工作台默认不再打开 SQL 页，测试改为通过“新建标签 -> 临时 SQL”打开编辑器；侧边栏宽度断言按当前响应式最小宽度 `220px` 校验。
