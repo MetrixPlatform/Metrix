@@ -244,6 +244,7 @@ import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 type SettingsTab = "basic" | "navigation" | "registration" | "api" | "docker" | "audit" | "dataJobs" | "backup";
 type NavigationMove = "up" | "down";
 type DataJobRetentionUnit = "hours" | "days";
+type DockerConnectionMode = "auto" | "manual";
 
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
@@ -370,8 +371,8 @@ function assignSettings(settings: SystemSettings) {
   form.data_job_retention_days = settings.data_job_retention_days;
   assignDataJobRetention(form.data_job_retention_hours);
   form.navigation_order = [...settings.navigation_order];
-  form.docker_connection_mode = settings.docker_connection_mode;
-  form.docker_host = settings.docker_host;
+  form.docker_connection_mode = normalizeDockerConnectionMode(settings.docker_connection_mode);
+  form.docker_host = settings.docker_host || "";
 }
 
 function assignDataJobRetention(hours: number) {
@@ -387,6 +388,10 @@ function assignDataJobRetention(hours: number) {
 function dataJobRetentionHours() {
   const value = Math.max(1, Math.round(dataJobRetention.value || 1));
   return dataJobRetention.unit === "days" ? value * 24 : value;
+}
+
+function normalizeDockerConnectionMode(value: unknown): DockerConnectionMode {
+  return value === "manual" ? "manual" : "auto";
 }
 
 function canMoveNavigation(key: string, direction: NavigationMove) {

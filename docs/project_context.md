@@ -842,3 +842,4 @@
 - Naive UI `NSelect` 的清空/未选中状态要使用 `null`，不要用空字符串作为默认值；否则没有匹配 option 时 placeholder 不显示，会出现状态筛选框默认空白的问题。
 - 系统设置新增 Docker 连接配置：`docker_connection_mode` 支持 `auto`/`manual`，`docker_host` 为手动 Host。自动模式按 `DOCKER_HOST`、`/var/run/docker.sock`、`/run/docker.sock`、Windows `npipe:////./pipe/docker_engine`、`tcp://localhost:2375`、`tcp://127.0.0.1:2375` 顺序检测并使用第一个可 ping 的 Docker Host；容器状态卡显示实际命中的 Host，不再显示 `from_env`。
 - 后端 `has_permission()` 对内置 `admin` 角色直接放行；登录和 `/api/auth/me` 返回给前端的权限列表也必须为管理员返回全部有效权限，避免已有开发库管理员角色未绑定新权限时，后端允许但前端隐藏容器镜像删除/可见性等管理员操作。
+- 系统设置页加载 Docker 连接配置时要对缺失/旧响应做前端兜底：`docker_connection_mode` 非 `manual` 时一律回退为 `auto`，避免旧后端或缓存响应未返回新字段时 `NSelect` 默认空白。
