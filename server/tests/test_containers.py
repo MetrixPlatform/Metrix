@@ -2,6 +2,9 @@ import time
 
 from test_auth_rbac import create_client, install_sqlite, login
 
+from app.core.permissions import ADMIN_ROLE
+from app.modules.containers import CONTAINER_MANAGE_OTHERS
+
 CONTAINER_CODES = {
     "route:containers",
     "action:container:create",
@@ -181,6 +184,24 @@ def create_container_user(client, admin_headers, username, role_id, phone):
     )
     assert response.status_code == 200
     return login(client, username, "Container123"), response.json()["id"]
+
+
+def test_admin_login_permissions_include_container_permissions_when_role_binding_is_stale(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+
+    from app.db.session import get_session_factory
+    from app.models import Permission, Role
+
+    with get_session_factory()() as db:
+        admin_role = db.query(Role).filter(Role.code == ADMIN_ROLE).one()
+        permission = db.query(Permission).filter(Permission.code == CONTAINER_MANAGE_OTHERS).one()
+        admin_role.permissions.remove(permission)
+        db.commit()
+
+    response = client.post("/api/auth/login", json={"username": payload["admin_username"], "password": payload["admin_password"]})
+    assert response.status_code == 200
+    assert CONTAINER_MANAGE_OTHERS in response.json()["permissions"]
 
 
 def test_container_permissions_and_owner_isolation(tmp_path, monkeypatch):
