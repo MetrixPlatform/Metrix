@@ -67,6 +67,7 @@
       "cpuLimit": "CPU 限制",
       "autoStart": "创建后启动",
       "tail": "日志行数",
+      "jobId": "任务 ID",
       "kind": "类型",
       "fileName": "文件名",
       "fileSize": "文件大小",

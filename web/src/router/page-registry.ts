@@ -58,10 +58,6 @@ export function getNavigationLayout(navigationOrder: string[] = []) {
   return buildMenuItems(() => true, () => true, navigationOrder);
 }
 
-export function defaultNavigationOrder() {
-  return flattenNavigationKeys(getNavigationLayout());
-}
-
 export function flattenNavigationKeys(items: AppMenuItem[]): string[] {
   return items.flatMap((item) => [item.navigationKey, ...(item.children ? flattenNavigationKeys(item.children) : [])]);
 }

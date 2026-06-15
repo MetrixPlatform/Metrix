@@ -173,9 +173,8 @@ python tools/migrate_database.py schema-rollback --url "sqlite:///../runtime/met
 新增或修改功能后至少运行：
 
 ```bash
-cd server
-python -m compileall -q app tests
-python -m pytest tests -q --basetemp .pytest-temp
+python -m compileall -q server/app server/tests
+python -m pytest
 ```
 
 ```bash

@@ -67,6 +67,7 @@
       "cpuLimit": "CPU limit",
       "autoStart": "Start after create",
       "tail": "Log lines",
+      "jobId": "Job ID",
       "kind": "Kind",
       "fileName": "File name",
       "fileSize": "File size",

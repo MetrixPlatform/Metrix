@@ -217,7 +217,8 @@ function webViewTemplate() {
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NForm, NFormItem, NInput, NModal, NSpace, NSwitch, useDialog, useMessage } from "naive-ui";
+import { Delete20Regular, Edit20Regular } from "@vicons/fluent";
+import { NButton, NDataTable, NForm, NFormItem, NIcon, NInput, NModal, NSwitch, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableFilterState, DataTableSortState, FormInst, FormRules } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
@@ -339,12 +340,12 @@ const columns = computed<DataTableColumns<__PASCAL__>>(() =>
       fixed: "right",
       align: "center",
       render: (row) =>
-        h(NSpace, { size: 6, wrap: false, justify: "center" }, () => [
+        h("div", { class: "table-action-group" }, [
           authStore.has(__CONSTANT___UPDATE) && canManage(row)
-            ? h(NButton, { size: "small", quaternary: true, onClick: () => openEdit(row) }, () => t("common.edit"))
+            ? h(NButton, { circle: true, quaternary: true, size: "small", title: t("common.edit"), onClick: () => openEdit(row) }, () => h(NIcon, { component: Edit20Regular }))
             : null,
           authStore.has(__CONSTANT___DELETE) && canManage(row)
-            ? h(NButton, { size: "small", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => t("common.delete"))
+            ? h(NButton, { circle: true, quaternary: true, size: "small", title: t("common.delete"), type: "error", onClick: () => confirmDelete(row) }, () => h(NIcon, { component: Delete20Regular }))
             : null
         ])
     }

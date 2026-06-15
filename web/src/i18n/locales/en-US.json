@@ -141,6 +141,7 @@
     "requestParam": "Request parameter"
   },
   "message": {
+    "operationSuccess": "Operation succeeded",
     "operationFailed": "Operation failed"
   },
   "error": {

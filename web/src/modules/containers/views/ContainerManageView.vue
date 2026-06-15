@@ -215,7 +215,7 @@ const containerColumns = computed<DataTableColumns<ContainerItem>>(() =>
 );
 const imageColumns = computed<DataTableColumns<ImageItem>>(() =>
   withResizableColumns([
-    { title: t("container.field.repoTags"), key: "repo_tags", width: imageWidths.repo_tags, render: (row) => row.repo_tags.join(", ") || "<none>" },
+    { title: t("container.field.repoTags"), key: "repo_tags", width: imageWidths.repo_tags, render: (row) => row.repo_tags.join(", ") || t("common.none") },
     { title: t("container.field.imageId"), key: "id", width: imageWidths.id, ellipsis: { tooltip: true } },
     { title: t("container.field.size"), key: "size", width: imageWidths.size, render: (row) => formatFileSize(row.size) },
     {
@@ -231,7 +231,7 @@ const imageColumns = computed<DataTableColumns<ImageItem>>(() =>
 );
 const jobColumns = computed<DataTableColumns<ContainerJobItem>>(() =>
   withResizableColumns([
-    { title: "Job ID", key: "job_id", width: jobWidths.job_id, ellipsis: { tooltip: true } },
+    { title: t("container.field.jobId"), key: "job_id", width: jobWidths.job_id, ellipsis: { tooltip: true } },
     { title: t("container.field.kind"), key: "kind", width: jobWidths.kind, render: (row) => jobKind(row.kind) },
     { title: t("container.field.image"), key: "image_ref", width: jobWidths.image_ref, ellipsis: { tooltip: true } },
     { title: t("container.field.status"), key: "status", width: jobWidths.status, render: (row) => statusTag(row.status) },

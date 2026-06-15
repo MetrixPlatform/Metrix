@@ -40,7 +40,7 @@ runtime/                     本地运行时目录，默认不提交
 ## 环境要求
 
 - Python 3.11 或兼容版本
-- Node.js 20 或兼容版本
+- Node.js 20.19+ 或 22.12+
 - 可选：MySQL 8.x
 
 ## 快速启动
@@ -181,7 +181,7 @@ server/app/modules/<module>/
   services.py
 ```
 
-模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
+模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。后端模块依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束；前端模块依赖使用精确模块 key。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
 
 脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `DEVELOPMENT_GUIDE.md`。
 
@@ -194,9 +194,8 @@ server/app/modules/<module>/
 后端：
 
 ```bash
-cd server
-python -m compileall -q app tests
-python -m pytest tests -q --basetemp .pytest-temp
+python -m compileall -q server/app server/tests
+python -m pytest
 ```
 
 前端：
@@ -210,7 +209,7 @@ npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters
 npm run build
 ```
 
-如果系统临时目录没有访问权限，pytest 使用 `--basetemp .pytest-temp`。
+pytest 已在 `pytest.ini` 中配置临时目录；通常直接运行 `python -m pytest` 即可。
 
 前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
 
