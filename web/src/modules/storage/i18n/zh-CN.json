@@ -75,7 +75,12 @@
       "uploadProgressWithFailed": "已完成 {done}/{total}，失败 {failed}",
       "uploadStatusPending": "等待上传",
       "uploadStatusSuccess": "上传完成",
-      "uploadStatusFailed": "上传失败"
+      "uploadStatusFailed": "上传失败",
+      "uploadProgressWithCanceled": "已完成 {done}/{total}，取消 {canceled}",
+      "uploadProgressWithIssues": "已完成 {done}/{total}，失败 {failed}，取消 {canceled}",
+      "uploadStatusCanceled": "已取消",
+      "collapseUploadPanel": "收起上传面板",
+      "expandUploadPanel": "展开上传面板"
     }
   },
   "auditLog": {

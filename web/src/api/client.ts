@@ -10,6 +10,10 @@ export interface UploadProgress {
   percent: number;
   lengthComputable: boolean;
 }
+export interface UploadOptions {
+  onProgress?: (progress: UploadProgress) => void;
+  signal?: AbortSignal;
+}
 const FIELD_LABEL_KEYS: Record<string, I18nKey> = {
   username: "field.username",
   password: "field.password",
@@ -72,17 +76,30 @@ export async function download(path: string, options: RequestInit = {}): Promise
   return response.blob();
 }
 
-export function upload<T>(path: string, body: FormData, onProgress?: (progress: UploadProgress) => void): Promise<T> {
+export function upload<T>(
+  path: string,
+  body: FormData,
+  optionsOrProgress?: UploadOptions | ((progress: UploadProgress) => void)
+): Promise<T> {
   return new Promise((resolve, reject) => {
+    const options: UploadOptions =
+      typeof optionsOrProgress === "function" ? { onProgress: optionsOrProgress } : optionsOrProgress ?? {};
+    if (options.signal?.aborted) {
+      reject(abortError());
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    const cleanup = () => options.signal?.removeEventListener("abort", abort);
+    const abort = () => xhr.abort();
     xhr.open("POST", `${API_PREFIX}${path}`);
     if (authStore.token) {
       xhr.setRequestHeader("Authorization", `Bearer ${authStore.token}`);
     }
+    options.signal?.addEventListener("abort", abort, { once: true });
     xhr.upload.onprogress = (event) => {
-      if (!onProgress) return;
+      if (!options.onProgress) return;
       const total = event.lengthComputable ? event.total : 0;
-      onProgress({
+      options.onProgress({
         loaded: event.loaded,
         total,
         percent: total > 0 ? Math.round((event.loaded / total) * 100) : 0,
@@ -90,6 +107,7 @@ export function upload<T>(path: string, body: FormData, onProgress?: (progress: 
       });
     };
     xhr.onload = () => {
+      cleanup();
       const data = parseJsonText(xhr.responseText);
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve(data as T);
@@ -98,7 +116,14 @@ export function upload<T>(path: string, body: FormData, onProgress?: (progress: 
       handleUnauthorizedStatus(xhr.status);
       reject(new Error(errorMessage(data)));
     };
-    xhr.onerror = () => reject(new Error(t("api.requestFailed")));
+    xhr.onerror = () => {
+      cleanup();
+      reject(new Error(t("api.requestFailed")));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(abortError());
+    };
     xhr.send(body);
   });
 }
@@ -178,6 +203,12 @@ function parseJsonText(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function abortError() {
+  const error = new Error(t("api.requestCanceled"));
+  error.name = "AbortError";
+  return error;
 }
 
 function errorMessage(data: Record<string, unknown> | null): string {

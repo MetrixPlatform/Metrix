@@ -102,10 +102,19 @@ export function downloadStorageArchive(storageId: string, path: string) {
   return download(`/storages/${encodeURIComponent(storageId)}/download-archive${queryString({ path })}`);
 }
 
-export function uploadStorageFile(storageId: string, path: string, file: File, onProgress?: (progress: UploadProgress) => void) {
+export function uploadStorageFile(
+  storageId: string,
+  path: string,
+  file: File,
+  onProgress?: (progress: UploadProgress) => void,
+  signal?: AbortSignal
+) {
   const body = new FormData();
   body.append("file", file);
-  return upload<StorageEntry>(`/storages/${encodeURIComponent(storageId)}/upload${queryString({ path })}`, body, onProgress);
+  return upload<StorageEntry>(`/storages/${encodeURIComponent(storageId)}/upload${queryString({ path })}`, body, {
+    onProgress,
+    signal
+  });
 }
 
 export function mkdirStorage(storageId: string, path: string) {

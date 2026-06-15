@@ -73,9 +73,14 @@
       "uploadProgressTitle": "Total upload progress",
       "uploadProgressCount": "Completed {done}/{total}",
       "uploadProgressWithFailed": "Completed {done}/{total}, failed {failed}",
+      "uploadProgressWithCanceled": "Completed {done}/{total}, canceled {canceled}",
+      "uploadProgressWithIssues": "Completed {done}/{total}, failed {failed}, canceled {canceled}",
       "uploadStatusPending": "Waiting",
       "uploadStatusSuccess": "Completed",
-      "uploadStatusFailed": "Failed"
+      "uploadStatusFailed": "Failed",
+      "uploadStatusCanceled": "Canceled",
+      "collapseUploadPanel": "Collapse upload panel",
+      "expandUploadPanel": "Expand upload panel"
     }
   },
   "auditLog": {

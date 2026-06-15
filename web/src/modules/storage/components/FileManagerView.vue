@@ -61,20 +61,34 @@
       </n-form>
     </n-modal>
 
-    <aside v-if="uploadTasks.length" class="upload-progress-panel" :class="{ collapsed: uploadPanelCollapsed }">
-      <button class="upload-progress-header" type="button" @click="uploadPanelCollapsed = !uploadPanelCollapsed">
+    <aside v-if="uploadPanelVisible && uploadTasks.length" class="upload-progress-panel" :class="{ collapsed: uploadPanelCollapsed }">
+      <div class="upload-progress-header">
         <div class="upload-progress-title">
           <strong>{{ t("storage.files.uploadProgressTitle") }}</strong>
           <span>{{ uploadSummaryText }}</span>
         </div>
+        <div class="upload-progress-actions">
+          <n-button quaternary circle size="tiny" :title="uploadPanelCollapsed ? t('storage.files.expandUploadPanel') : t('storage.files.collapseUploadPanel')" @click="toggleUploadPanel">
+            <template #icon>
+              <n-icon :component="uploadPanelCollapsed ? ChevronUp20Regular : ChevronDown20Regular" />
+            </template>
+          </n-button>
+          <n-button quaternary circle size="tiny" :title="t('common.close')" @click="closeUploadPanel">
+            <template #icon><n-icon :component="Dismiss20Regular" /></template>
+          </n-button>
+        </div>
         <n-progress class="upload-progress-total" type="line" :percentage="totalUploadPercent" :show-indicator="false" />
-        <n-icon :component="uploadPanelCollapsed ? ChevronUp20Regular : ChevronDown20Regular" />
-      </button>
+      </div>
       <div v-if="!uploadPanelCollapsed" class="upload-progress-body">
         <div v-for="task in uploadTasks" :key="task.id" class="upload-progress-item">
-          <div class="upload-progress-item-main">
-            <span class="upload-progress-file-name" :title="task.name">{{ task.name }}</span>
-            <span class="upload-progress-file-meta">{{ uploadTaskMeta(task) }}</span>
+          <div class="upload-progress-item-top">
+            <div class="upload-progress-item-main">
+              <span class="upload-progress-file-name" :title="task.name">{{ task.name }}</span>
+              <span class="upload-progress-file-meta">{{ uploadTaskMeta(task) }}</span>
+            </div>
+            <n-button v-if="canCancelUploadTask(task)" size="tiny" quaternary type="error" @click="cancelUploadTask(task)">
+              {{ t("common.cancel") }}
+            </n-button>
           </div>
           <n-progress
             type="line"
@@ -116,6 +130,7 @@ import {
   ArrowUp20Regular,
   ChevronDown20Regular,
   ChevronUp20Regular,
+  Dismiss20Regular,
   Document20Regular,
   Folder20Regular,
   Search20Regular
@@ -158,6 +173,7 @@ const sortState = ref<{ columnKey: string; order: "ascend" | "descend" } | null>
 const truncated = ref(false);
 const entries = ref<StorageEntry[]>([]);
 const uploadInput = ref<HTMLInputElement | null>(null);
+const uploadPanelVisible = ref(false);
 const uploadPanelCollapsed = ref(false);
 const nameModal = reactive({
   show: false,
@@ -166,7 +182,7 @@ const nameModal = reactive({
   target: null as StorageEntry | null,
   saving: false
 });
-type UploadTaskStatus = "pending" | "uploading" | "success" | "failed";
+type UploadTaskStatus = "pending" | "uploading" | "success" | "failed" | "canceled";
 interface UploadTask {
   id: number;
   name: string;
@@ -174,6 +190,7 @@ interface UploadTask {
   total: number;
   status: UploadTaskStatus;
   error: string;
+  controller: AbortController | null;
 }
 const uploadTasks = ref<UploadTask[]>([]);
 let uploadTaskId = 0;
@@ -209,19 +226,30 @@ const tableData = computed<StorageEntry[]>(() => {
 const totalUploadPercent = computed(() => {
   const total = uploadTasks.value.reduce((sum, task) => sum + task.total, 0);
   if (total <= 0) {
-    const finished = uploadTasks.value.filter((task) => task.status === "success" || task.status === "failed").length;
+    const finished = uploadTasks.value.filter(isUploadTaskFinished).length;
     return uploadTasks.value.length > 0 ? Math.round((finished / uploadTasks.value.length) * 100) : 0;
   }
-  const loaded = uploadTasks.value.reduce((sum, task) => sum + Math.min(task.loaded, task.total), 0);
+  const loaded = uploadTasks.value.reduce((sum, task) => {
+    if (isUploadTaskFinished(task)) return sum + task.total;
+    return sum + Math.min(task.loaded, task.total);
+  }, 0);
   return Math.round((loaded / total) * 100);
 });
 const uploadSummaryText = computed(() => {
   const finished = uploadTasks.value.filter((task) => task.status === "success").length;
   const failed = uploadTasks.value.filter((task) => task.status === "failed").length;
+  const canceled = uploadTasks.value.filter((task) => task.status === "canceled").length;
   const total = uploadTasks.value.length;
-  return failed > 0
-    ? t("storage.files.uploadProgressWithFailed", { done: finished, failed, total })
-    : t("storage.files.uploadProgressCount", { done: finished, total });
+  if (failed > 0 && canceled > 0) {
+    return t("storage.files.uploadProgressWithIssues", { done: finished, failed, canceled, total });
+  }
+  if (failed > 0) {
+    return t("storage.files.uploadProgressWithFailed", { done: finished, failed, total });
+  }
+  if (canceled > 0) {
+    return t("storage.files.uploadProgressWithCanceled", { done: finished, canceled, total });
+  }
+  return t("storage.files.uploadProgressCount", { done: finished, total });
 });
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
@@ -376,29 +404,41 @@ async function handleUpload(event: Event) {
     loaded: 0,
     total: file.size,
     status: "pending",
-    error: ""
+    error: "",
+    controller: null
   }));
+  uploadPanelVisible.value = true;
   uploadPanelCollapsed.value = false;
   uploading.value = true;
   let uploaded = 0;
   try {
     for (const [index, file] of files.entries()) {
       const task = uploadTasks.value[index];
+      if (task.status === "canceled") continue;
+      const controller = new AbortController();
+      task.controller = controller;
       task.status = "uploading";
       try {
         await uploadStorageFile(storageId.value, path.value, file, (progress) => {
           task.loaded = progress.loaded;
           task.total = progress.total || file.size || progress.loaded;
-        });
+        }, controller.signal);
         task.loaded = task.total || file.size;
         task.status = "success";
         uploaded += 1;
       } catch (error) {
+        if (isUploadCanceled(error)) {
+          task.status = "canceled";
+          task.error = "";
+          continue;
+        }
         const reason = error instanceof Error ? error.message : "";
         task.status = "failed";
         task.error = reason || t("api.requestFailed");
         task.loaded = 0;
         message.error(t("storage.files.uploadFailed", { name: file.name }) + (reason ? t("common.labelSeparator") + reason : ""));
+      } finally {
+        task.controller = null;
       }
     }
     if (uploaded > 0) {
@@ -407,6 +447,9 @@ async function handleUpload(event: Event) {
     }
   } finally {
     uploading.value = false;
+    if (!uploadPanelVisible.value) {
+      uploadTasks.value = [];
+    }
   }
 }
 
@@ -418,14 +461,47 @@ function taskProgress(task: UploadTask) {
 function taskProgressStatus(task: UploadTask) {
   if (task.status === "failed") return "error";
   if (task.status === "success") return "success";
+  if (task.status === "canceled") return "warning";
   return "default";
 }
 
 function uploadTaskMeta(task: UploadTask) {
+  if (task.status === "canceled") return t("storage.files.uploadStatusCanceled");
   if (task.status === "failed") return t("storage.files.uploadStatusFailed");
   if (task.status === "success") return t("storage.files.uploadStatusSuccess");
   if (task.status === "pending") return t("storage.files.uploadStatusPending");
   return `${formatSize(Math.min(task.loaded, task.total))} / ${formatSize(task.total)}`;
+}
+
+function canCancelUploadTask(task: UploadTask) {
+  return task.status === "pending" || task.status === "uploading";
+}
+
+function cancelUploadTask(task: UploadTask) {
+  if (task.status === "pending") {
+    task.status = "canceled";
+    return;
+  }
+  task.controller?.abort();
+}
+
+function toggleUploadPanel() {
+  uploadPanelCollapsed.value = !uploadPanelCollapsed.value;
+}
+
+function closeUploadPanel() {
+  uploadPanelVisible.value = false;
+  if (!uploadTasks.value.some((task) => !isUploadTaskFinished(task))) {
+    uploadTasks.value = [];
+  }
+}
+
+function isUploadTaskFinished(task: UploadTask) {
+  return task.status === "success" || task.status === "failed" || task.status === "canceled";
+}
+
+function isUploadCanceled(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 async function downloadEntry(entry: StorageEntry) {

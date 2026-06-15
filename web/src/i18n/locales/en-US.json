@@ -134,6 +134,7 @@
   },
   "api": {
     "requestFailed": "Request failed",
+    "requestCanceled": "Request canceled",
     "invalidParams": "Invalid request parameters",
     "requestParam": "Request parameter"
   },

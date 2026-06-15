@@ -2220,41 +2220,53 @@ a {
   right: 24px;
   bottom: 24px;
   z-index: 80;
-  width: 360px;
-  height: 360px;
+  width: 380px;
+  height: 340px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 16px;
   background: var(--panel-bg);
-  box-shadow: 0 14px 42px var(--shadow-color);
+  box-shadow: 0 18px 48px var(--shadow-color);
+  transition: height 0.18s ease, box-shadow 0.18s ease;
 }
 
 .upload-progress-panel.collapsed {
-  height: 78px;
+  height: 92px;
 }
 
 .upload-progress-header {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 8px 10px;
   align-items: center;
   width: 100%;
-  padding: 12px 14px;
-  border: 0;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-color);
   text-align: left;
-  background: var(--panel-bg);
-  cursor: pointer;
+  background:
+    radial-gradient(circle at top right, rgba(32, 128, 240, 0.12), transparent 40%),
+    var(--panel-bg);
+}
+
+.upload-progress-panel.collapsed .upload-progress-header {
+  border-bottom: 0;
 }
 
 .upload-progress-title {
   display: grid;
   min-width: 0;
   gap: 2px;
+}
+
+.upload-progress-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: start;
 }
 
 .upload-progress-title strong,
@@ -2268,7 +2280,8 @@ a {
 }
 
 .upload-progress-title strong {
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 .upload-progress-title span,
@@ -2285,25 +2298,33 @@ a {
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px 12px;
+  background: color-mix(in srgb, var(--panel-bg) 94%, var(--text-color) 6%);
 }
 
 .upload-progress-item {
   display: grid;
   gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 76%, transparent);
+  border-radius: 12px;
+  background: var(--panel-bg);
 }
 
-.upload-progress-item:last-child {
-  border-bottom: 0;
+.upload-progress-item-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
 }
 
 .upload-progress-item-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
-  gap: 8px;
-  align-items: center;
+  gap: 2px;
   min-width: 0;
 }
 

@@ -134,6 +134,7 @@
   },
   "api": {
     "requestFailed": "请求失败",
+    "requestCanceled": "请求已取消",
     "invalidParams": "请求参数不正确",
     "requestParam": "请求参数"
   },
