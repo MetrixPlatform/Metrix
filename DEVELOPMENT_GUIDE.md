@@ -55,6 +55,7 @@ export default defineModule({
 
 - 新页面不要手工修改 `web/src/router/index.ts`、`AppShell.vue` 或主菜单。
 - 需要显示到侧边栏才配置 `menu`；不需要菜单入口的页面可以只声明路由。
+- 侧边栏默认顺序约定：`首页`、`储存管理`、`数据库管理`、`容器管理`、业务/模板新建菜单、`系统管理`。`系统管理` 分组固定作为底部管理入口，新增模块或脚手架生成的导航菜单默认放在 `系统管理` 上面。
 - 按钮权限优先复用 `PermissionButton`，不要只靠前端隐藏保护接口。
 
 列表页统一使用以下标准布局（参考 `AnnouncementManageView.vue`、`UserManageView.vue`、`StorageManageView.vue`）：

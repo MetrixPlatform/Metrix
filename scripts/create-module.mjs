@@ -81,10 +81,10 @@ import { defineMenuGroup, defineModule, definePage, routePermission } from "../t
 export default defineModule({
   key: "__KEBAB__",
   version: "0.1.0",
-  order: 100,
+  order: 80,
   dependencies: ["core"],
   menuGroups: [
-    defineMenuGroup({ key: "__CAMEL__Group", labelKey: "route.group.__CAMEL__", icon: Database20Regular, order: 100 })
+    defineMenuGroup({ key: "__CAMEL__Group", labelKey: "route.group.__CAMEL__", icon: Database20Regular, order: 80 })
   ],
   pages: [
     definePage({
@@ -93,7 +93,7 @@ export default defineModule({
       titleKey: "route.__CAMEL__",
       component: () => import("./views/__PASCAL__View.vue"),
       permission: routePermission("__SNAKE__"),
-      fallbackOrder: 100,
+      fallbackOrder: 80,
       menu: { group: "__CAMEL__Group", icon: Database20Regular, order: 10 }
     })
   ]

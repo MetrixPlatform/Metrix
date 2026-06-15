@@ -853,3 +853,4 @@
 - 第三轮清理补齐容器任务表 i18n：镜像无标签使用 `common.none`，任务 ID 使用 `container.field.jobId`，通用 `message.operationSuccess` 加入中英文语言包；删除未使用的 `defaultNavigationOrder` 导出。脚手架生成的表格操作列同步现有规范，使用 `table-action-group`、圆形 `NButton`、`NIcon` 和标题提示。README/开发指南同步 Node 版本、前后端模块依赖约束差异和 pytest 根目录运行命令。
 - 追加权限生命周期验证：通过真实后端 API 使用管理员创建临时普通用户，验证创建后可登录、禁用后登录被拒绝、重新启用后可登录、删除后登录被拒绝；验证完成后已关闭 `5173`/`8000` 端口。
 - 容器管理页的容器/镜像/任务表格不要使用 Naive UI `flex-height`：在短视口或 DevTools 占用高度时，`flex-height` 可能计算出过小高度导致 tbody 不挂载，出现接口已返回但列表空白。改为普通表格渲染，并用 Playwright 覆盖 1024x520 短视口镜像列表可见性。
+- 侧边栏默认排序约定：`首页`、`储存管理`、`数据库管理`、`容器管理`、业务/模板新建菜单、`系统管理`。`系统管理` 分组固定放到底部、位于 `容器管理` 下方；导航菜单/脚手架生成的新模块默认放在 `系统管理` 上方。若系统设置中已有 `navigation_order`，它会覆盖默认排序，需要同步保存为包含 `path:/containers` 且 `group:system` 最后的顺序。

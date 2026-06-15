@@ -181,7 +181,7 @@ server/app/modules/<module>/
   services.py
 ```
 
-模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。后端模块依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束；前端模块依赖使用精确模块 key。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。
+模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。后端模块依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束；前端模块依赖使用精确模块 key。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。侧边栏默认把 `系统管理` 分组放在底部，新增业务模块和脚手架生成的导航菜单默认放在 `系统管理` 上方。
 
 脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `DEVELOPMENT_GUIDE.md`。
 

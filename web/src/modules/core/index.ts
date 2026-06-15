@@ -17,7 +17,7 @@ export default defineModule({
   version: "0.1.0",
   order: 10,
   menuGroups: [
-    defineMenuGroup({ key: "system", labelKey: "route.group.system", icon: Settings20Regular, order: 40 })
+    defineMenuGroup({ key: "system", labelKey: "route.group.system", icon: Settings20Regular, order: 90 })
   ],
   pages: [
     definePage({
