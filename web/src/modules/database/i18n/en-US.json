@@ -64,7 +64,7 @@
     "dataJobInterrupted": "Database task interrupted by service restart"
   },
   "database": {
-    "searchPlaceholder": "Search name, ID, host or database",
+    "searchPlaceholder": "Search name, ID, host, database, or creator",
     "add": "New connection",
     "edit": "Edit connection",
     "manage": "Manage",

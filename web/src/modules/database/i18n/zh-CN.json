@@ -64,7 +64,7 @@
     "dataJobInterrupted": "数据库任务因服务重启中断"
   },
   "database": {
-    "searchPlaceholder": "搜索名称、ID、主机、库名",
+    "searchPlaceholder": "搜索名称、ID、主机、库名、创建人",
     "add": "新增连接",
     "edit": "编辑连接",
     "manage": "管理",

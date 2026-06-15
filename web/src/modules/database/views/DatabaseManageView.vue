@@ -6,7 +6,14 @@
   <section v-else class="work-card table-page-card">
     <div class="toolbar">
       <div class="storage-filter-row">
-        <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('database.searchPlaceholder')" clearable />
+        <n-input
+          v-model:value="filters.keyword"
+          class="filter-keyword"
+          :placeholder="t('database.searchPlaceholder')"
+          clearable
+          @clear="searchConnections"
+          @keyup.enter="searchConnections"
+        />
         <n-button @click="searchConnections">{{ t("common.search") }}</n-button>
       </div>
       <div class="toolbar-actions">

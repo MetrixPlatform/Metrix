@@ -50,6 +50,10 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     settings_payload["data_job_retention_hours"] = 30 * 24
     assert client.put("/api/settings", json=settings_payload, headers=headers).status_code == 200
 
+    creator_connections = client.get(f"/api/databases?keyword={payload['admin_username']}", headers=headers)
+    assert creator_connections.status_code == 200
+    assert "db_sqlite_test" in {item["conn_id"] for item in creator_connections.json()["items"]}
+
     schemas = client.get("/api/databases/db_sqlite_test/schemas", headers=headers)
     assert schemas.status_code == 200
     assert schemas.json() == [{"name": "main"}]

@@ -32,12 +32,15 @@ class DatabaseConnectionRepository:
         query = self.db.query(DatabaseConnection)
         if keyword:
             pattern = f"%{keyword}%"
+            query = query.outerjoin(User, User.id == DatabaseConnection.created_by)
             query = query.filter(
                 or_(
                     DatabaseConnection.name.ilike(pattern),
                     DatabaseConnection.conn_id.ilike(pattern),
                     DatabaseConnection.host.ilike(pattern),
                     DatabaseConnection.default_database.ilike(pattern),
+                    User.username.ilike(pattern),
+                    User.full_name.ilike(pattern),
                 )
             )
         if db_type:
