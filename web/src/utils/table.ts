@@ -2,6 +2,7 @@ import type { DataTableColumns, DataTableFilterState } from "naive-ui";
 
 const DEFAULT_RESIZABLE_MIN_WIDTH = 80;
 const DEFAULT_NON_RESIZABLE_COLUMN_KEYS = new Set(["actions"]);
+const TABLE_SCROLL_END_BUFFER = 64;
 
 interface ResizableColumnOptions {
   minWidth?: number;
@@ -72,5 +73,5 @@ export function updateColumnWidth(
 }
 
 export function sumColumnWidths(widths: Record<string, number>) {
-  return Object.values(widths).reduce((total, width) => total + width, 0);
+  return Object.values(widths).reduce((total, width) => total + width, 0) + TABLE_SCROLL_END_BUFFER;
 }

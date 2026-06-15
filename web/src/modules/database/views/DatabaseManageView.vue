@@ -26,7 +26,7 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(row) => row.id"
-      :scroll-x="1500"
+      :scroll-x="tableScrollX"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -114,7 +114,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { copyText } from "../../../utils/clipboard";
 import { messageText, showError } from "../../../utils/message";
-import { singleFilterValue, withResizableColumns } from "../../../utils/table";
+import { singleFilterValue, sumColumnWidths, withResizableColumns } from "../../../utils/table";
 import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from "../../../utils/validation";
 import {
   createDatabaseConnection,
@@ -187,6 +187,19 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
+const connectionColumnWidths = {
+  name: 160,
+  connId: 180,
+  dbType: 90,
+  host: 190,
+  database: 150,
+  shared: 100,
+  status: 100,
+  creator: 120,
+  createdAt: 180,
+  actions: 190
+};
+const tableScrollX = computed(() => sumColumnWidths(connectionColumnWidths));
 const rules = computed<FormRules>(() => ({
   name: [requiredRule(t("field.name")), maxLengthRule(t("field.name"), 120)],
   conn_id: connIdRule(),
@@ -217,7 +230,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.name"),
     key: "name",
-    width: 160,
+    width: connectionColumnWidths.name,
     minWidth: 120,
     resizable: true,
     ellipsis: { tooltip: true },
@@ -226,7 +239,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.connId"),
     key: "conn_id",
-    width: 180,
+    width: connectionColumnWidths.connId,
     minWidth: 140,
     resizable: true,
     render: (row) =>
@@ -238,7 +251,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.type"),
     key: "db_type",
-    width: 90,
+    width: connectionColumnWidths.dbType,
     minWidth: 80,
     resizable: true,
     filterOptions: dbTypeOptions,
@@ -247,11 +260,11 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
     filter: true,
     render: (row) => row.db_type.toUpperCase()
   },
-  { title: t("field.host"), key: "host", width: 190, minWidth: 140, resizable: true, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
+  { title: t("field.host"), key: "host", width: connectionColumnWidths.host, minWidth: 140, resizable: true, ellipsis: { tooltip: true }, render: (row) => `${row.host}:${row.port}` },
   {
     title: t("field.database"),
     key: "default_database",
-    width: 150,
+    width: connectionColumnWidths.database,
     minWidth: 120,
     resizable: true,
     ellipsis: { tooltip: true },
@@ -260,7 +273,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("database.shared"),
     key: "shared",
-    width: 100,
+    width: connectionColumnWidths.shared,
     minWidth: 90,
     resizable: true,
     filterOptions: sharedOptions.value,
@@ -272,7 +285,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.status"),
     key: "is_active",
-    width: 100,
+    width: connectionColumnWidths.status,
     minWidth: 90,
     resizable: true,
     filterOptions: activeOptions.value,
@@ -284,7 +297,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.creator"),
     key: "created_by",
-    width: 120,
+    width: connectionColumnWidths.creator,
     minWidth: 100,
     resizable: true,
     filterOptions: creatorOptions.value,
@@ -296,7 +309,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("field.createdAt"),
     key: "created_at",
-    width: 180,
+    width: connectionColumnWidths.createdAt,
     minWidth: 150,
     resizable: true,
     sorter: true,
@@ -306,7 +319,7 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
   {
     title: t("common.actions"),
     key: "actions",
-    width: 190,
+    width: connectionColumnWidths.actions,
     minWidth: 170,
     fixed: "right",
     align: "center",

@@ -29,7 +29,7 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(row) => row.job_id"
-      :scroll-x="1600"
+      :scroll-x="tableScrollX"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
@@ -47,7 +47,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
-import { withResizableColumns } from "../../../utils/table";
+import { sumColumnWidths, withResizableColumns } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
@@ -71,13 +71,28 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
+const dataJobColumnWidths = {
+  jobId: 260,
+  connection: 180,
+  creator: 130,
+  kind: 90,
+  format: 90,
+  status: 110,
+  rows: 100,
+  size: 120,
+  createdAt: 180,
+  expiresAt: 180,
+  error: 180,
+  actions: 130
+};
+const tableScrollX = computed(() => sumColumnWidths(dataJobColumnWidths));
 const columns = computed<DataTableColumns<DataJob>>(() =>
   withResizableColumns([
-  { title: t("database.jobs.id"), key: "job_id", width: 260, minWidth: 180, resizable: true, ellipsis: { tooltip: true } },
+  { title: t("database.jobs.id"), key: "job_id", width: dataJobColumnWidths.jobId, minWidth: 180, resizable: true, ellipsis: { tooltip: true } },
   {
     title: t("database.connection"),
     key: "connection_name",
-    width: 180,
+    width: dataJobColumnWidths.connection,
     minWidth: 130,
     resizable: true,
     ellipsis: { tooltip: true },
@@ -86,7 +101,7 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
   {
     title: t("field.creator"),
     key: "created_by",
-    width: 130,
+    width: dataJobColumnWidths.creator,
     minWidth: 110,
     resizable: true,
     render: (row) => row.created_by_username || "-"
@@ -94,26 +109,26 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
   {
     title: t("database.jobs.kind"),
     key: "kind",
-    width: 90,
+    width: dataJobColumnWidths.kind,
     minWidth: 80,
     resizable: true,
     render: (row) => t(`database.jobs.${row.kind}`)
   },
-  { title: t("field.format"), key: "format", width: 90, minWidth: 80, resizable: true, render: (row) => row.format.toUpperCase() },
+  { title: t("field.format"), key: "format", width: dataJobColumnWidths.format, minWidth: 80, resizable: true, render: (row) => row.format.toUpperCase() },
   {
     title: t("database.jobs.status"),
     key: "status",
-    width: 110,
+    width: dataJobColumnWidths.status,
     minWidth: 90,
     resizable: true,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => t(`database.jobs.${row.status}`))
   },
-  { title: t("database.jobs.rows"), key: "row_count", width: 100, minWidth: 90, resizable: true },
-  { title: t("database.jobs.size"), key: "file_size", width: 120, minWidth: 100, resizable: true, render: (row) => formatSize(row.file_size) },
+  { title: t("database.jobs.rows"), key: "row_count", width: dataJobColumnWidths.rows, minWidth: 90, resizable: true },
+  { title: t("database.jobs.size"), key: "file_size", width: dataJobColumnWidths.size, minWidth: 100, resizable: true, render: (row) => formatSize(row.file_size) },
   {
     title: t("field.createdAt"),
     key: "created_at",
-    width: 180,
+    width: dataJobColumnWidths.createdAt,
     minWidth: 150,
     resizable: true,
     sorter: true,
@@ -123,17 +138,17 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
   {
     title: t("database.jobs.expiresAt"),
     key: "expires_at",
-    width: 180,
+    width: dataJobColumnWidths.expiresAt,
     minWidth: 150,
     resizable: true,
     render: (row) => (row.expires_at ? formatDateTime(row.expires_at) : "-")
   },
-  { title: t("database.jobs.error"), key: "error_code", width: 180, minWidth: 160, resizable: true, ellipsis: { tooltip: true }, render: (row) => row.error_code || "-" },
+  { title: t("database.jobs.error"), key: "error_code", width: dataJobColumnWidths.error, minWidth: 160, resizable: true, ellipsis: { tooltip: true }, render: (row) => row.error_code || "-" },
   {
     title: t("common.actions"),
     key: "actions",
     fixed: "right",
-    width: 130,
+    width: dataJobColumnWidths.actions,
     render: (row) =>
       h(NSpace, { size: 4, justify: "center" }, () => [
         row.kind === "export" && row.status === "success"

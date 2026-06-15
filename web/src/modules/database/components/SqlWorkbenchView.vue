@@ -58,7 +58,7 @@
               :data="tableRows"
               :loading="loadingData"
               :pagination="dataPagination"
-              :scroll-x="Math.max(960, dataColumns.length * 180)"
+              :scroll-x="Math.max(960, dataColumns.length * 180 + TABLE_SCROLL_END_BUFFER)"
               @update:sorter="handleDataSorter"
               @update:page="handleDataPage"
               @update:page-size="handleDataPageSize"
@@ -96,7 +96,7 @@
               :columns="queryColumns"
               :data="queryRows"
               :loading="executing"
-              :scroll-x="Math.max(960, queryColumns.length * 180)"
+              :scroll-x="Math.max(960, queryColumns.length * 180 + TABLE_SCROLL_END_BUFFER)"
             />
           </n-tab-pane>
         </n-tabs>
@@ -357,6 +357,7 @@ const PREFIX_ICONS: Record<string, Component> = {
   script: DocumentText20Regular
 };
 let tableDataRequestId = 0;
+const TABLE_SCROLL_END_BUFFER = 64;
 
 const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() =>
   withResizableColumns([
