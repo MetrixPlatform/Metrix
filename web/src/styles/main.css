@@ -1189,6 +1189,29 @@ a {
   gap: 10px;
 }
 
+.table-filter-row {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table-filter-row .filter-keyword {
+  flex: 1 1 320px;
+  min-width: 220px;
+  width: auto;
+}
+
+.table-filter-row .n-input:not(.filter-keyword),
+.table-filter-row .n-select {
+  flex: 0 0 180px;
+  min-width: 140px;
+}
+
 .toolbar-actions,
 .toolbar-title-row {
   display: inline-flex;

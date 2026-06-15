@@ -22,7 +22,7 @@
     <n-tabs v-model:value="activeTab" type="line" animated>
       <n-tab-pane name="containers" :tab="t('container.tabContainers')">
         <div class="toolbar">
-          <div class="storage-filter-row">
+          <div class="table-filter-row">
             <n-input
               v-model:value="containerFilters.keyword"
               class="filter-keyword"
@@ -61,7 +61,7 @@
 
       <n-tab-pane name="images" :tab="t('container.tabImages')">
         <div class="toolbar">
-          <div class="storage-filter-row">
+          <div class="table-filter-row">
             <n-input
               v-model:value="imageFilters.keyword"
               class="filter-keyword"
@@ -92,7 +92,7 @@
 
       <n-tab-pane name="jobs" :tab="t('container.tabJobs')">
         <div class="toolbar">
-          <div class="storage-filter-row">
+          <div class="table-filter-row">
             <n-input
               v-model:value="jobFilters.keyword"
               class="filter-keyword"
@@ -195,7 +195,7 @@ const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePi
 const containerWidths = reactive({ name: 200, id: 160, image: 220, status: 120, ports: 180, owner: 140, created_at: 180, actions: 150 });
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
-const statusOptions = ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: value, value }));
+const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
 const canManageOthers = computed(() => authStore.has(CONTAINER_MANAGE_OTHERS));
 const containerTableScrollX = computed(() => sumColumnWidths(containerWidths));
 const imageTableScrollX = computed(() => sumColumnWidths(imageWidths));
@@ -224,7 +224,7 @@ const imageColumns = computed<DataTableColumns<ImageItem>>(() =>
       width: imageWidths.visibility,
       render: (row) => h(NTag, { size: "small", type: row.is_public ? "success" : "default" }, () => row.is_public ? t("container.visibilityPublic") : t("container.visibilityPrivate"))
     },
-    { title: t("container.field.owner"), key: "owner", width: imageWidths.owner, render: (row) => row.owner_username || row.owner_user_id || "-" },
+    { title: t("container.field.owner"), key: "owner", width: imageWidths.owner, render: (row) => row.owner_username || row.owner_user_id || t("container.publicSystemImage") },
     { title: t("container.field.createdAt"), key: "created_at", width: imageWidths.created_at, render: (row) => safeDate(row.created_at) },
     { title: t("common.actions"), key: "actions", width: imageWidths.actions, fixed: "right", render: (row) => actionDropdown(imageActionOptions(row), (key) => handleImageAction(String(key), row)) }
   ])
@@ -414,8 +414,14 @@ function imageActionOptions(row: ImageItem): DropdownOption[] {
   if (canManageOthers.value && authStore.has(CONTAINER_UPDATE)) {
     options.push({ label: row.is_public ? t("container.setPrivate") : t("container.setPublic"), key: row.is_public ? "private" : "public" });
   }
-  if (authStore.has(CONTAINER_DELETE)) options.push({ label: t("container.deleteImage"), key: "delete" });
+  if (canDeleteImage(row)) options.push({ label: t("container.deleteImage"), key: "delete" });
   return options;
+}
+
+function canDeleteImage(row: ImageItem) {
+  if (!authStore.has(CONTAINER_DELETE)) return false;
+  if (canManageOthers.value) return true;
+  return row.owner_user_id !== null && row.owner_user_id === authStore.user?.id;
 }
 
 function confirm(content: string, onConfirm: () => Promise<void>) {
@@ -424,11 +430,15 @@ function confirm(content: string, onConfirm: () => Promise<void>) {
 
 function statusTag(status: string) {
   const type = status === "running" || status === "success" ? "success" : status === "failed" || status === "dead" ? "error" : "default";
-  return h(NTag, { size: "small", type }, () => translateMessage(`container.jobStatus${capitalize(status)}`, {}, status));
+  return h(NTag, { size: "small", type }, () => containerStatus(status));
 }
 
 function jobKind(kind: string) {
   return translateMessage(`container.jobKind${capitalize(kind)}`, {}, kind);
+}
+
+function containerStatus(status: string) {
+  return translateMessage(`container.status${capitalize(status)}`, {}, translateMessage(`container.jobStatus${capitalize(status)}`, {}, status));
 }
 
 function containerActionMessage(key: string) {

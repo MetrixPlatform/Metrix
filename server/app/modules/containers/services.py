@@ -174,13 +174,14 @@ class ContainerService:
         visible_items: list[ImageItem] = []
         for item in images:
             matched = by_image.get(item.id, [])
-            if visible_to is not None and not matched:
-                continue
             if matched:
                 owner = matched[0]
                 item.owner_user_id = owner.created_by
                 item.is_public = any(record.is_public for record in matched)
                 item.source = owner.source
+            else:
+                item.is_public = True
+                item.source = "docker"
             visible_items.append(item)
         if keyword:
             needle = keyword.lower()
@@ -326,7 +327,9 @@ class ContainerService:
             return image
         record = self.images.get_for_image(image.id, actor.id)
         if record is None:
-            raise forbidden()
+            image.is_public = True
+            image.source = "docker"
+            return image
         image.owner_user_id = record.created_by
         image.is_public = record.is_public
         image.source = record.source

@@ -1,7 +1,7 @@
 <template>
   <section class="work-card table-page-card">
     <div class="toolbar">
-      <div class="toolbar-group">
+      <div class="toolbar-group table-filter-row">
         <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('demoCrud.searchPlaceholder')" clearable />
         <n-input v-model:value="filters.category" :placeholder="t('demoCrud.categoryPlaceholder')" clearable />
         <n-button @click="searchItems">{{ t("common.search") }}</n-button>

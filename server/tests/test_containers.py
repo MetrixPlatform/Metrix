@@ -216,9 +216,14 @@ def test_container_image_records_and_create_container(tmp_path, monkeypatch):
     role_id = grant_container_role(client, admin_headers, "container_creator")
     user_headers, user_id = create_container_user(client, admin_headers, "container_creator", role_id, "13800000042")
 
-    hidden = client.get("/api/container-images", headers=user_headers)
-    assert hidden.status_code == 200
-    assert hidden.json()["items"] == []
+    visible_default = client.get("/api/container-images", headers=user_headers)
+    assert visible_default.status_code == 200
+    assert visible_default.json()["total"] == 1
+    assert visible_default.json()["items"][0]["is_public"] is True
+    assert visible_default.json()["items"][0]["owner_user_id"] is None
+
+    denied_delete = client.delete("/api/container-images/python%3A3.12", headers=user_headers)
+    assert denied_delete.status_code == 403
 
     public = client.put("/api/container-images/python%3A3.12/visibility", json={"is_public": True}, headers=admin_headers)
     assert public.status_code == 200
