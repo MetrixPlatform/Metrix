@@ -68,6 +68,14 @@ export interface StorageFileList {
   truncated: boolean;
 }
 
+export type StorageConflictPolicy = "error" | "overwrite" | "rename";
+
+export interface StorageEntryTransferPayload {
+  paths: string[];
+  target_dir: string;
+  conflict_policy: StorageConflictPolicy;
+}
+
 export function listStorages(filters: StorageConnectionFilters = {}) {
   return request<PageResult<StorageConnection>>(`/storages${queryString(filters)}`);
 }
@@ -123,6 +131,18 @@ export function mkdirStorage(storageId: string, path: string) {
 
 export function renameStorageEntry(storageId: string, path: string, newName: string) {
   return post<StorageEntry>(`/storages/${encodeURIComponent(storageId)}/rename`, { path, new_name: newName });
+}
+
+export function copyStorageEntries(storageId: string, payload: StorageEntryTransferPayload) {
+  return post<StorageEntry[]>(`/storages/${encodeURIComponent(storageId)}/copy`, payload);
+}
+
+export function moveStorageEntries(storageId: string, payload: StorageEntryTransferPayload) {
+  return post<StorageEntry[]>(`/storages/${encodeURIComponent(storageId)}/move`, payload);
+}
+
+export function batchDeleteStorageEntries(storageId: string, paths: string[]) {
+  return post<ServerMessage>(`/storages/${encodeURIComponent(storageId)}/batch-delete`, { paths });
 }
 
 export function deleteStorageEntry(storageId: string, path: string) {

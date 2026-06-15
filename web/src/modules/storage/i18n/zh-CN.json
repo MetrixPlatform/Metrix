@@ -27,10 +27,11 @@
     "storageOperationFailed": "操作失败：{reason}",
     "storageBasePathMissing": "根目录不存在",
     "storageNotDirectory": "目标不是目录",
-    "storageCredentialInvalid": "存储凭据无法解密，请重新设置密码"
+    "storageCredentialInvalid": "存储凭据无法解密，请重新设置密码",
+    "storageTargetExists": "目标已存在"
   },
   "storage": {
-    "searchPlaceholder": "搜索名称、ID、主机",
+    "searchPlaceholder": "搜索名称、ID、主机、创建人",
     "protocolAll": "全部协议",
     "add": "新增连接",
     "edit": "编辑连接",
@@ -80,8 +81,25 @@
       "uploadProgressWithIssues": "已完成 {done}/{total}，失败 {failed}，取消 {canceled}",
       "uploadStatusCanceled": "已取消",
       "collapseUploadPanel": "收起上传面板",
-      "expandUploadPanel": "展开上传面板"
-    }
+      "expandUploadPanel": "展开上传面板",
+      "move": "移动",
+      "paste": "粘贴",
+      "pasteCopy": "粘贴复制 ({count})",
+      "pasteMove": "粘贴移动 ({count})",
+      "batchDelete": "批量删除",
+      "batchDeleteCount": "批量删除 ({count})",
+      "batchDeleteTitle": "批量删除文件",
+      "batchDeleteConfirm": "确认删除选中的 {count} 项？目录会递归删除全部内容。",
+      "pasteConflictTitle": "目标已存在",
+      "pasteConflictConfirm": "当前目录有 {count} 个同名项目，请选择处理方式。",
+      "autoRename": "自动重命名",
+      "overwrite": "覆盖",
+      "copyPrepared": "已复制 {count} 项，进入目标目录后点击粘贴",
+      "movePrepared": "已准备移动 {count} 项，进入目标目录后点击粘贴",
+      "copied": "已复制 {count} 项",
+      "moved": "已移动 {count} 项"
+    },
+    "entriesDeleted": "已删除 {count} 项"
   },
   "auditLog": {
     "action": {
@@ -92,7 +110,10 @@
         "file_upload": "上传文件",
         "file_delete": "删除文件",
         "file_rename": "重命名文件",
-        "file_mkdir": "新建目录"
+        "file_mkdir": "新建目录",
+        "file_copy": "复制文件",
+        "file_move": "移动文件",
+        "file_batch_delete": "批量删除文件"
       }
     },
     "target": {
@@ -148,6 +169,18 @@
       "storage_files.delete_storage_entry": {
         "summary": "删除文件或目录",
         "description": "删除指定文件或目录；目录会递归删除全部内容。"
+      },
+      "storage_files.copy_storage_entries": {
+        "summary": "复制文件或目录",
+        "description": "复制指定文件或目录到目标目录；支持重名报错、覆盖或自动重命名。"
+      },
+      "storage_files.move_storage_entries": {
+        "summary": "移动文件或目录",
+        "description": "移动指定文件或目录到目标目录；支持重名报错、覆盖或自动重命名。"
+      },
+      "storage_files.batch_delete_storage_entries": {
+        "summary": "批量删除文件或目录",
+        "description": "批量删除指定文件或目录；目录会递归删除全部内容。"
       }
     },
     "parameter": {
@@ -161,7 +194,10 @@
       "property": {
         "new_name": "新名称，不能包含斜杠。",
         "path": "文件或目录路径，相对储存根目录。",
-        "file": "要上传的文件内容。"
+        "file": "要上传的文件内容。",
+        "paths": "文件或目录路径列表。",
+        "target_dir": "目标目录路径。",
+        "conflict_policy": "目标重名处理策略：error、overwrite 或 rename。"
       }
     }
   }

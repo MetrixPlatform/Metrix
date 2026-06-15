@@ -9,10 +9,13 @@ from app.db.session import get_db
 from app.models import User
 from app.modules.storage import STORAGE_CREATE, STORAGE_DELETE, STORAGE_OPERATE, STORAGE_READ, STORAGE_UPDATE
 from app.modules.storage.schemas import (
+    StorageBatchDeleteRequest,
     StorageConnectionItem,
     StorageConnectionListResponse,
     StorageConnectionPayload,
     StorageEntry,
+    StorageEntryCopyRequest,
+    StorageEntryMoveRequest,
     StorageFileListResponse,
     StorageMkdirRequest,
     StorageRenameRequest,
@@ -163,6 +166,37 @@ def rename_storage_entry(
     actor: User = Depends(require_permission(STORAGE_OPERATE)),
 ) -> StorageEntry:
     return StorageService(db).rename(actor, storage_id, payload.path, payload.new_name)
+
+
+@router.post("/{storage_id}/copy", response_model=list[StorageEntry], tags=FILE_TAGS, summary="Copy files or directories")
+def copy_storage_entries(
+    storage_id: str,
+    payload: StorageEntryCopyRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(STORAGE_OPERATE)),
+) -> list[StorageEntry]:
+    return StorageService(db).copy_entries(actor, storage_id, payload.paths, payload.target_dir, payload.conflict_policy)
+
+
+@router.post("/{storage_id}/move", response_model=list[StorageEntry], tags=FILE_TAGS, summary="Move files or directories")
+def move_storage_entries(
+    storage_id: str,
+    payload: StorageEntryMoveRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(STORAGE_OPERATE)),
+) -> list[StorageEntry]:
+    return StorageService(db).move_entries(actor, storage_id, payload.paths, payload.target_dir, payload.conflict_policy)
+
+
+@router.post("/{storage_id}/batch-delete", response_model=MessageResponse, tags=FILE_TAGS, summary="Batch delete files or directories")
+def batch_delete_storage_entries(
+    storage_id: str,
+    payload: StorageBatchDeleteRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(STORAGE_OPERATE)),
+) -> MessageResponse:
+    count = StorageService(db).delete_entries(actor, storage_id, payload.paths)
+    return message_response("storage.entriesDeleted", "Entries deleted", count=count)
 
 
 @router.delete("/{storage_id}/files", response_model=MessageResponse, tags=FILE_TAGS, summary="Delete a file or directory")

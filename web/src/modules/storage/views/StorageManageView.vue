@@ -4,7 +4,14 @@
   <section v-else class="work-card table-page-card">
     <div class="toolbar">
       <div class="storage-filter-row">
-        <n-input v-model:value="filters.keyword" class="filter-keyword" :placeholder="t('storage.searchPlaceholder')" clearable />
+        <n-input
+          v-model:value="filters.keyword"
+          class="filter-keyword"
+          :placeholder="t('storage.searchPlaceholder')"
+          clearable
+          @clear="searchConnections"
+          @keyup.enter="searchConnections"
+        />
         <n-button @click="searchConnections">{{ t("common.search") }}</n-button>
       </div>
       <permission-button :permission="STORAGE_CREATE" type="primary" @click="openCreate">{{ t("storage.add") }}</permission-button>

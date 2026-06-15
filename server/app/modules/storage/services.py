@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import posixpath
 import secrets
+import tempfile
 from collections.abc import Iterator
 from typing import BinaryIO
 
@@ -21,6 +22,7 @@ from app.modules.storage.schemas import (
     StorageConnectionItem,
     StorageConnectionListResponse,
     StorageConnectionPayload,
+    StorageConflictPolicy,
     StorageEntry,
     StorageFileListResponse,
     StorageTestRequest,
@@ -288,6 +290,82 @@ class StorageService:
         self.db.commit()
         return StorageEntry(name=name, path=new_virtual, is_dir=is_dir, size=0)
 
+    def copy_entries(
+        self,
+        actor: User,
+        storage_id: str,
+        paths: list[str],
+        target_dir: str,
+        conflict_policy: StorageConflictPolicy,
+    ) -> list[StorageEntry]:
+        connection = self._get_usable(actor, storage_id)
+        sources = _operation_paths(paths)
+        target = _virtual_path(target_dir)
+        client = self._connect(connection)
+        results: list[StorageEntry] = []
+        try:
+            self._ensure_remote_dir(client, connection, target)
+            for source in sources:
+                source_is_dir = self._source_is_dir(client, connection, source)
+                _ensure_not_nested(source, target, source_is_dir)
+                destination = self._resolve_destination(client, connection, source, target, conflict_policy, delete_existing=True)
+                if destination != source:
+                    self._copy_entry(client, connection, source, destination, source_is_dir, depth=0)
+                results.append(_entry_from_virtual(client, connection, destination))
+        except StorageOperationError as exc:
+            raise _operation_error(exc)
+        finally:
+            client.close()
+        meta = {
+            "storage_id": connection.storage_id,
+            "paths": sources,
+            "target_dir": target,
+            "conflict_policy": conflict_policy,
+            "results": [entry.path for entry in results],
+            "count": len(results),
+        }
+        record_audit(self.db, actor.id, "storage.file_copy", "storage", connection.storage_id, target, audit_detail(target, meta=meta))
+        self.db.commit()
+        return results
+
+    def move_entries(
+        self,
+        actor: User,
+        storage_id: str,
+        paths: list[str],
+        target_dir: str,
+        conflict_policy: StorageConflictPolicy,
+    ) -> list[StorageEntry]:
+        connection = self._get_usable(actor, storage_id)
+        sources = _operation_paths(paths)
+        target = _virtual_path(target_dir)
+        client = self._connect(connection)
+        results: list[StorageEntry] = []
+        try:
+            self._ensure_remote_dir(client, connection, target)
+            for source in sources:
+                source_is_dir = self._source_is_dir(client, connection, source)
+                _ensure_not_nested(source, target, source_is_dir)
+                destination = self._resolve_destination(client, connection, source, target, conflict_policy, delete_existing=True)
+                if destination != source:
+                    client.rename(_remote_path(connection, source), _remote_path(connection, destination))
+                results.append(_entry_from_virtual(client, connection, destination))
+        except StorageOperationError as exc:
+            raise _operation_error(exc)
+        finally:
+            client.close()
+        meta = {
+            "storage_id": connection.storage_id,
+            "paths": sources,
+            "target_dir": target,
+            "conflict_policy": conflict_policy,
+            "results": [entry.path for entry in results],
+            "count": len(results),
+        }
+        record_audit(self.db, actor.id, "storage.file_move", "storage", connection.storage_id, target, audit_detail(target, meta=meta))
+        self.db.commit()
+        return results
+
     def delete_entry(self, actor: User, storage_id: str, path: str) -> None:
         connection = self._get_usable(actor, storage_id)
         virtual = _virtual_path(path)
@@ -308,6 +386,37 @@ class StorageService:
         meta = {"storage_id": connection.storage_id, "path": virtual, "is_dir": is_dir}
         record_audit(self.db, actor.id, "storage.file_delete", "storage", connection.storage_id, virtual, audit_detail(virtual, meta=meta))
         self.db.commit()
+
+    def delete_entries(self, actor: User, storage_id: str, paths: list[str]) -> int:
+        connection = self._get_usable(actor, storage_id)
+        sources = _operation_paths(paths)
+        client = self._connect(connection)
+        deleted: list[dict[str, object]] = []
+        try:
+            for source in sources:
+                remote = _remote_path(connection, source)
+                is_dir = self._source_is_dir(client, connection, source)
+                if is_dir:
+                    self._delete_recursive(client, remote, depth=0)
+                else:
+                    client.delete_file(remote)
+                deleted.append({"path": source, "is_dir": is_dir})
+        except StorageOperationError as exc:
+            raise _operation_error(exc)
+        finally:
+            client.close()
+        meta = {"storage_id": connection.storage_id, "entries": deleted, "count": len(deleted)}
+        record_audit(
+            self.db,
+            actor.id,
+            "storage.file_batch_delete",
+            "storage",
+            connection.storage_id,
+            connection.storage_id,
+            audit_detail(connection.storage_id, meta=meta),
+        )
+        self.db.commit()
+        return len(deleted)
 
     def _walk(
         self,
@@ -368,6 +477,70 @@ class StorageService:
             else:
                 client.delete_file(child)
         client.delete_empty_dir(remote_path)
+
+    def _ensure_remote_dir(self, client: StorageClient, connection: StorageConnection, virtual: str) -> None:
+        if not client.is_dir(_remote_path(connection, virtual)):
+            raise bad_request("error.storageNotDirectory", "Target is not a directory")
+
+    def _source_is_dir(self, client: StorageClient, connection: StorageConnection, virtual: str) -> bool:
+        if virtual == "/" or not _entry_exists(client, connection, virtual):
+            raise StorageOperationError("No such entry")
+        return client.is_dir(_remote_path(connection, virtual))
+
+    def _resolve_destination(
+        self,
+        client: StorageClient,
+        connection: StorageConnection,
+        source: str,
+        target_dir: str,
+        conflict_policy: StorageConflictPolicy,
+        delete_existing: bool,
+    ) -> str:
+        destination = posixpath.join(target_dir, posixpath.basename(source))
+        if not _entry_exists(client, connection, destination):
+            return destination
+        if conflict_policy == "rename":
+            return _unique_destination(client, connection, target_dir, posixpath.basename(source))
+        if conflict_policy == "overwrite":
+            if destination != source and delete_existing:
+                self._delete_virtual(client, connection, destination)
+            return destination
+        raise bad_request("error.storageTargetExists", "Target already exists")
+
+    def _delete_virtual(self, client: StorageClient, connection: StorageConnection, virtual: str) -> None:
+        if virtual == "/":
+            raise bad_request("error.storagePathInvalid", "Invalid path")
+        remote = _remote_path(connection, virtual)
+        if client.is_dir(remote):
+            self._delete_recursive(client, remote, depth=0)
+        else:
+            client.delete_file(remote)
+
+    def _copy_entry(
+        self,
+        client: StorageClient,
+        connection: StorageConnection,
+        source: str,
+        destination: str,
+        source_is_dir: bool,
+        depth: int,
+    ) -> None:
+        if depth >= MAX_TREE_DEPTH:
+            raise StorageOperationError("Directory tree too deep")
+        source_remote = _remote_path(connection, source)
+        destination_remote = _remote_path(connection, destination)
+        if source_is_dir:
+            client.mkdir(destination_remote)
+            for item in client.list_dir(source_remote):
+                child_source = posixpath.join(source, item.name)
+                child_destination = posixpath.join(destination, item.name)
+                self._copy_entry(client, connection, child_source, child_destination, item.is_dir, depth + 1)
+            return
+        with tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024) as buffer:
+            for chunk in client.open_download(source_remote):
+                buffer.write(chunk)
+            buffer.seek(0)
+            client.upload(destination_remote, buffer)
 
     def _get(self, connection_id: int) -> StorageConnection:
         connection = self.storages.get(connection_id)
@@ -482,6 +655,61 @@ def _validated_entry_name(name: str) -> str:
     if not cleaned or cleaned in (".", "..") or any(char in cleaned for char in ENTRY_NAME_INVALID_CHARS) or len(cleaned) > 255:
         raise bad_request("error.storageNameInvalid", "Invalid file or directory name")
     return cleaned
+
+
+def _operation_paths(paths: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for path in paths:
+        virtual = _virtual_path(path)
+        if virtual == "/" or virtual in seen:
+            continue
+        seen.add(virtual)
+        result.append(virtual)
+    if not result:
+        raise bad_request("error.storagePathInvalid", "Invalid path")
+    return result
+
+
+def _entry_exists(client: StorageClient, connection: StorageConnection, virtual: str) -> bool:
+    if virtual == "/":
+        return True
+    parent = posixpath.dirname(virtual) or "/"
+    name = posixpath.basename(virtual)
+    try:
+        return any(item.name == name for item in client.list_dir(_remote_path(connection, parent)))
+    except StorageOperationError:
+        return False
+
+
+def _unique_destination(client: StorageClient, connection: StorageConnection, target_dir: str, name: str) -> str:
+    existing = {item.name for item in client.list_dir(_remote_path(connection, target_dir))}
+    stem, suffix = _split_name(name)
+    candidate = f"{stem} - copy{suffix}"
+    index = 2
+    while candidate in existing:
+        candidate = f"{stem} - copy {index}{suffix}"
+        index += 1
+    return posixpath.join(target_dir, candidate)
+
+
+def _split_name(name: str) -> tuple[str, str]:
+    stem, suffix = posixpath.splitext(name)
+    return (stem or name, suffix if stem else "")
+
+
+def _entry_from_virtual(client: StorageClient, connection: StorageConnection, virtual: str) -> StorageEntry:
+    parent = posixpath.dirname(virtual) or "/"
+    name = posixpath.basename(virtual)
+    for item in client.list_dir(_remote_path(connection, parent)):
+        if item.name == name:
+            return _to_entry(parent, item)
+    return StorageEntry(name=name, path=virtual, is_dir=client.is_dir(_remote_path(connection, virtual)), size=0)
+
+
+def _ensure_not_nested(source: str, target_dir: str, source_is_dir: bool) -> None:
+    if source_is_dir and (target_dir == source or target_dir.startswith(source.rstrip("/") + "/")):
+        raise bad_request("error.storagePathInvalid", "Invalid path")
 
 
 def _to_entry(parent: str, item: storage_clients.RemoteEntry) -> StorageEntry:

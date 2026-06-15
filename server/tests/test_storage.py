@@ -234,6 +234,8 @@ def test_storage_connection_crud_and_id_rules(tmp_path, monkeypatch):
     assert [item["storage_id"] for item in page_items(ascending)] == ["my-storage_01", generated_item["storage_id"]]
     only_mine = client.get("/api/storages", params={"created_by": "me"}, headers=admin_headers)
     assert len(page_items(only_mine)) == 2
+    by_creator = client.get("/api/storages", params={"keyword": payload["admin_username"]}, headers=admin_headers)
+    assert {item["storage_id"] for item in page_items(by_creator)} == {"my-storage_01", generated_item["storage_id"]}
 
     deleted = client.delete(f"/api/storages/{generated_item['id']}", headers=admin_headers)
     assert deleted.status_code == 200
@@ -392,6 +394,77 @@ def test_storage_file_operations_with_fake_client(tmp_path, monkeypatch):
     assert mkdir.status_code == 200
     assert "/data/docs/sub" in fs.dirs
 
+    copied_file = client.post(
+        "/api/storages/files-demo/copy",
+        json={"paths": ["/a.txt"], "target_dir": "/docs", "conflict_policy": "error"},
+        headers=admin_headers,
+    )
+    assert copied_file.status_code == 200
+    assert copied_file.json()[0]["path"] == "/docs/a.txt"
+    assert fs.files["/data/docs/a.txt"] == b"hello"
+
+    copy_conflict = client.post(
+        "/api/storages/files-demo/copy",
+        json={"paths": ["/a.txt"], "target_dir": "/docs", "conflict_policy": "error"},
+        headers=admin_headers,
+    )
+    assert copy_conflict.status_code == 400
+    assert copy_conflict.json()["detail"]["code"] == "error.storageTargetExists"
+
+    copied_overwrite = client.post(
+        "/api/storages/files-demo/copy",
+        json={"paths": ["/a.txt"], "target_dir": "/docs", "conflict_policy": "overwrite"},
+        headers=admin_headers,
+    )
+    assert copied_overwrite.status_code == 200
+    assert fs.files["/data/docs/a.txt"] == b"hello"
+
+    copied_dir = client.post(
+        "/api/storages/files-demo/copy",
+        json={"paths": ["/docs"], "target_dir": "/", "conflict_policy": "rename"},
+        headers=admin_headers,
+    )
+    assert copied_dir.status_code == 200
+    assert copied_dir.json()[0]["path"] == "/docs - copy"
+    assert "/data/docs - copy/b.log" in fs.files
+
+    nested_copy = client.post(
+        "/api/storages/files-demo/copy",
+        json={"paths": ["/docs"], "target_dir": "/docs", "conflict_policy": "rename"},
+        headers=admin_headers,
+    )
+    assert nested_copy.status_code == 400
+    assert nested_copy.json()["detail"]["code"] == "error.storagePathInvalid"
+
+    moved_file = client.post(
+        "/api/storages/files-demo/move",
+        json={"paths": ["/docs/a.txt"], "target_dir": "/", "conflict_policy": "rename"},
+        headers=admin_headers,
+    )
+    assert moved_file.status_code == 200
+    assert moved_file.json()[0]["path"] == "/a - copy.txt"
+    assert "/data/a - copy.txt" in fs.files and "/data/docs/a.txt" not in fs.files
+
+    moved_dir = client.post(
+        "/api/storages/files-demo/move",
+        json={"paths": ["/docs/sub"], "target_dir": "/", "conflict_policy": "error"},
+        headers=admin_headers,
+    )
+    assert moved_dir.status_code == 200
+    assert moved_dir.json()[0]["path"] == "/sub"
+    assert "/data/sub" in fs.dirs and "/data/docs/sub" not in fs.dirs
+
+    batch_deleted = client.post(
+        "/api/storages/files-demo/batch-delete",
+        json={"paths": ["/a - copy.txt", "/sub", "/docs - copy"]},
+        headers=admin_headers,
+    )
+    assert batch_deleted.status_code == 200
+    assert batch_deleted.json()["params"]["count"] == 3
+    assert "/data/a - copy.txt" not in fs.files
+    assert "/data/sub" not in fs.dirs
+    assert "/data/docs - copy" not in fs.dirs
+
     renamed = client.post(
         "/api/storages/files-demo/rename", json={"path": "/a.txt", "new_name": "a2.txt"}, headers=admin_headers
     )
@@ -425,7 +498,15 @@ def test_storage_file_operations_with_fake_client(tmp_path, monkeypatch):
         headers=admin_headers,
     )
     actions = {item["action"] for item in page_items(logs)}
-    assert {"storage.file_upload", "storage.file_mkdir", "storage.file_rename", "storage.file_delete"}.issubset(actions)
+    assert {
+        "storage.file_upload",
+        "storage.file_mkdir",
+        "storage.file_copy",
+        "storage.file_move",
+        "storage.file_batch_delete",
+        "storage.file_rename",
+        "storage.file_delete",
+    }.issubset(actions)
 
 
 def test_storage_test_endpoint_and_connect_failure(tmp_path, monkeypatch):

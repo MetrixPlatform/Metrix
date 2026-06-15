@@ -32,11 +32,14 @@ class StorageConnectionRepository:
         query = self.db.query(StorageConnection)
         if keyword:
             pattern = f"%{keyword}%"
+            query = query.outerjoin(User, User.id == StorageConnection.created_by)
             query = query.filter(
                 or_(
                     StorageConnection.name.ilike(pattern),
                     StorageConnection.storage_id.ilike(pattern),
                     StorageConnection.host.ilike(pattern),
+                    User.username.ilike(pattern),
+                    User.full_name.ilike(pattern),
                 )
             )
         if protocol:

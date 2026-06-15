@@ -7,6 +7,7 @@ from pydantic_core import PydanticCustomError
 
 STORAGE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$")
 ENTRY_NAME_INVALID_CHARS = ("/", "\\")
+StorageConflictPolicy = Literal["error", "overwrite", "rename"]
 
 
 def normalize_base_path_value(value: str) -> str:
@@ -123,3 +124,17 @@ class StorageRenameRequest(BaseModel):
         if not cleaned or cleaned in (".", "..") or any(char in cleaned for char in ENTRY_NAME_INVALID_CHARS):
             raise PydanticCustomError("validation.entryName", "Invalid file or directory name")
         return cleaned
+
+
+class StorageEntryCopyRequest(BaseModel):
+    paths: list[str] = Field(min_length=1, max_length=100)
+    target_dir: str = Field(min_length=1, max_length=1000)
+    conflict_policy: StorageConflictPolicy = "error"
+
+
+class StorageEntryMoveRequest(StorageEntryCopyRequest):
+    pass
+
+
+class StorageBatchDeleteRequest(BaseModel):
+    paths: list[str] = Field(min_length=1, max_length=100)

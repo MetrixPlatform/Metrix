@@ -27,10 +27,11 @@
     "storageOperationFailed": "Operation failed: {reason}",
     "storageBasePathMissing": "Base path does not exist",
     "storageNotDirectory": "Target is not a directory",
-    "storageCredentialInvalid": "Stored credential cannot be decrypted, please reset the password"
+    "storageCredentialInvalid": "Stored credential cannot be decrypted, please reset the password",
+    "storageTargetExists": "Target already exists"
   },
   "storage": {
-    "searchPlaceholder": "Search name, ID or host",
+    "searchPlaceholder": "Search name, ID, host or creator",
     "protocolAll": "All protocols",
     "add": "New connection",
     "edit": "Edit connection",
@@ -80,8 +81,25 @@
       "uploadStatusFailed": "Failed",
       "uploadStatusCanceled": "Canceled",
       "collapseUploadPanel": "Collapse upload panel",
-      "expandUploadPanel": "Expand upload panel"
-    }
+      "expandUploadPanel": "Expand upload panel",
+      "move": "Move",
+      "paste": "Paste",
+      "pasteCopy": "Paste copy ({count})",
+      "pasteMove": "Paste move ({count})",
+      "batchDelete": "Batch delete",
+      "batchDeleteCount": "Batch delete ({count})",
+      "batchDeleteTitle": "Batch delete files",
+      "batchDeleteConfirm": "Delete the selected {count} item(s)? Folders are deleted recursively.",
+      "pasteConflictTitle": "Target already exists",
+      "pasteConflictConfirm": "{count} same-name item(s) exist in the current folder. Choose how to handle them.",
+      "autoRename": "Auto rename",
+      "overwrite": "Overwrite",
+      "copyPrepared": "{count} item(s) copied. Open the target folder and click Paste.",
+      "movePrepared": "{count} item(s) ready to move. Open the target folder and click Paste.",
+      "copied": "{count} item(s) copied",
+      "moved": "{count} item(s) moved"
+    },
+    "entriesDeleted": "{count} item(s) deleted"
   },
   "auditLog": {
     "action": {
@@ -92,7 +110,10 @@
         "file_upload": "Upload file",
         "file_delete": "Delete file",
         "file_rename": "Rename file",
-        "file_mkdir": "Create folder"
+        "file_mkdir": "Create folder",
+        "file_copy": "Copy file",
+        "file_move": "Move file",
+        "file_batch_delete": "Batch delete files"
       }
     },
     "target": {
@@ -148,6 +169,18 @@
       "storage_files.delete_storage_entry": {
         "summary": "Delete a file or directory",
         "description": "Delete the file or directory at the given path; directories are deleted recursively."
+      },
+      "storage_files.copy_storage_entries": {
+        "summary": "Copy files or directories",
+        "description": "Copy files or directories to a target folder; supports conflict error, overwrite, or auto rename."
+      },
+      "storage_files.move_storage_entries": {
+        "summary": "Move files or directories",
+        "description": "Move files or directories to a target folder; supports conflict error, overwrite, or auto rename."
+      },
+      "storage_files.batch_delete_storage_entries": {
+        "summary": "Batch delete files or directories",
+        "description": "Delete files or directories in batch; directories are deleted recursively."
       }
     },
     "parameter": {
@@ -161,7 +194,10 @@
       "property": {
         "new_name": "New name. Slashes are not allowed.",
         "path": "File or directory path relative to the storage root.",
-        "file": "File content to upload."
+        "file": "File content to upload.",
+        "paths": "File or directory path list.",
+        "target_dir": "Target folder path.",
+        "conflict_policy": "Same-name conflict policy: error, overwrite, or rename."
       }
     }
   }

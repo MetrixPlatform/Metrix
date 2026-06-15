@@ -31,6 +31,12 @@
       <n-button @click="refresh">{{ t("common.refresh") }}</n-button>
       <permission-button :permission="STORAGE_OPERATE" :loading="uploading" @click="pickFiles">{{ t("storage.files.upload") }}</permission-button>
       <permission-button :permission="STORAGE_OPERATE" @click="openMkdir">{{ t("storage.files.mkdir") }}</permission-button>
+      <permission-button v-if="clipboard" :permission="STORAGE_OPERATE" :loading="operating" @click="pasteClipboard">
+        {{ pasteButtonText }}
+      </permission-button>
+      <permission-button :permission="STORAGE_OPERATE" type="error" :disabled="selectedEntries.length === 0" :loading="operating" @click="confirmBatchDelete">
+        {{ batchDeleteText }}
+      </permission-button>
       <input ref="uploadInput" type="file" multiple hidden @change="handleUpload" />
     </div>
 
@@ -39,6 +45,7 @@
     </n-alert>
 
     <n-data-table
+      v-model:checked-row-keys="checkedRowKeys"
       class="page-data-table"
       flex-height
       :columns="columns"
@@ -59,6 +66,17 @@
           <n-button type="primary" :loading="nameModal.saving" @click="confirmNameModal">{{ t("common.save") }}</n-button>
         </div>
       </n-form>
+    </n-modal>
+
+    <n-modal v-model:show="conflictModal.show" preset="card" class="modal-card" :title="t('storage.files.pasteConflictTitle')">
+      <p class="modal-description">
+        {{ t("storage.files.pasteConflictConfirm", { count: conflictModal.count }) }}
+      </p>
+      <div class="form-actions modal-fixed-actions">
+        <n-button @click="cancelConflictPaste">{{ t("common.cancel") }}</n-button>
+        <n-button @click="confirmConflictPaste('rename')">{{ t("storage.files.autoRename") }}</n-button>
+        <n-button type="primary" @click="confirmConflictPaste('overwrite')">{{ t("storage.files.overwrite") }}</n-button>
+      </div>
     </n-modal>
 
     <aside v-if="uploadPanelVisible && uploadTasks.length" class="upload-progress-panel" :class="{ collapsed: uploadPanelCollapsed }">
@@ -112,6 +130,7 @@ import {
   NButton,
   NCheckbox,
   NDataTable,
+  NDropdown,
   NForm,
   NFormItem,
   NIcon,
@@ -119,12 +138,11 @@ import {
   NModal,
   NPopover,
   NProgress,
-  NSpace,
   NTag,
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, DataTableSortState } from "naive-ui";
+import type { DataTableColumns, DataTableRowKey, DataTableSortState, DropdownOption } from "naive-ui";
 import {
   ArrowLeft20Regular,
   ArrowUp20Regular,
@@ -133,6 +151,7 @@ import {
   Dismiss20Regular,
   Document20Regular,
   Folder20Regular,
+  MoreHorizontal20Regular,
   Search20Regular
 } from "@vicons/fluent";
 
@@ -147,11 +166,15 @@ import {
   deleteStorageEntry,
   downloadStorageArchive,
   downloadStorageFile,
+  batchDeleteStorageEntries,
+  copyStorageEntries,
   listStorageFiles,
   mkdirStorage,
+  moveStorageEntries,
   renameStorageEntry,
   uploadStorageFile,
   type StorageConnection,
+  type StorageConflictPolicy,
   type StorageEntry
 } from "../api";
 import { STORAGE_OPERATE } from "../permissions";
@@ -164,6 +187,7 @@ const emit = defineEmits<{ (event: "close"): void }>();
 const message = useMessage();
 const dialog = useDialog();
 const loading = ref(false);
+const operating = ref(false);
 const uploading = ref(false);
 const path = ref("/");
 const keyword = ref("");
@@ -172,6 +196,7 @@ const searchActive = ref(false);
 const sortState = ref<{ columnKey: string; order: "ascend" | "descend" } | null>(null);
 const truncated = ref(false);
 const entries = ref<StorageEntry[]>([]);
+const checkedRowKeys = ref<DataTableRowKey[]>([]);
 const uploadInput = ref<HTMLInputElement | null>(null);
 const uploadPanelVisible = ref(false);
 const uploadPanelCollapsed = ref(false);
@@ -181,6 +206,16 @@ const nameModal = reactive({
   value: "",
   target: null as StorageEntry | null,
   saving: false
+});
+type ClipboardMode = "copy" | "move";
+interface StorageClipboard {
+  mode: ClipboardMode;
+  sources: StorageEntry[];
+}
+const clipboard = ref<StorageClipboard | null>(null);
+const conflictModal = reactive({
+  show: false,
+  count: 0
 });
 type UploadTaskStatus = "pending" | "uploading" | "success" | "failed" | "canceled";
 interface UploadTask {
@@ -223,6 +258,21 @@ const tableData = computed<StorageEntry[]>(() => {
   const parentRow: StorageEntry = { name: "..", path: PARENT_ROW_PATH, is_dir: true, size: -1, modified_at: "" };
   return [parentRow, ...sortedEntries.value];
 });
+const selectedEntries = computed(() => {
+  const selected = new Set(checkedRowKeys.value.map(String));
+  return entries.value.filter((entry) => selected.has(entry.path));
+});
+const batchDeleteText = computed(() =>
+  selectedEntries.value.length > 0
+    ? t("storage.files.batchDeleteCount", { count: selectedEntries.value.length })
+    : t("storage.files.batchDelete")
+);
+const pasteButtonText = computed(() => {
+  if (!clipboard.value) return t("storage.files.paste");
+  return clipboard.value.mode === "move"
+    ? t("storage.files.pasteMove", { count: clipboard.value.sources.length })
+    : t("storage.files.pasteCopy", { count: clipboard.value.sources.length });
+});
 const totalUploadPercent = computed(() => {
   const total = uploadTasks.value.reduce((sum, task) => sum + task.total, 0);
   if (total <= 0) {
@@ -253,6 +303,14 @@ const uploadSummaryText = computed(() => {
 });
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
+    ...(canOperate.value
+      ? [
+          {
+            type: "selection" as const,
+            disabled: (row: StorageEntry) => row.path === PARENT_ROW_PATH
+          }
+        ]
+      : []),
     {
       title: t("storage.files.name"),
       key: "name",
@@ -300,19 +358,23 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     {
       title: t("common.actions"),
       key: "actions",
-      width: 168,
+      width: 88,
       align: "center",
       render: (row) => {
         if (row.path === PARENT_ROW_PATH) return null;
-        return h(NSpace, { size: 4, wrap: false, justify: "center" }, () => [
-          h(NButton, { size: "tiny", quaternary: true, onClick: () => void downloadEntry(row) }, () => t("common.download")),
-          canOperate.value
-            ? h(NButton, { size: "tiny", quaternary: true, onClick: () => openRename(row) }, () => t("storage.files.renameTitle"))
-            : null,
-          canOperate.value
-            ? h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => t("common.delete"))
-            : null
-        ]);
+        const options = rowActionOptions();
+        return h(
+          NDropdown,
+          { trigger: "click", placement: "bottom-end", options, onSelect: (key) => handleRowAction(row, String(key)) },
+          {
+            default: () =>
+              h(
+                NButton,
+                { class: "row-action-button", size: "small", quaternary: true, circle: true, title: t("common.moreActions") },
+                { icon: () => h(NIcon, { component: MoreHorizontal20Regular }) }
+              )
+          }
+        );
       }
     }
   ];
@@ -337,6 +399,7 @@ async function load() {
     const result = await listStorageFiles(storageId.value, searchPath, searchActive.value ? keyword.value : "", useRecursive);
     entries.value = result.entries;
     truncated.value = result.truncated;
+    syncCheckedRows();
   } catch (error) {
     showError(message, error);
   } finally {
@@ -387,6 +450,135 @@ function handleSorter(options: DataTableSortState | DataTableSortState[] | null)
     return;
   }
   sortState.value = { columnKey: String(state.columnKey), order: state.order };
+}
+
+function rowActionOptions(): DropdownOption[] {
+  const options: DropdownOption[] = [{ label: t("common.download"), key: "download" }];
+  if (canOperate.value) {
+    options.push(
+      { label: t("storage.files.renameTitle"), key: "rename" },
+      { label: t("common.copy"), key: "copy" },
+      { label: t("storage.files.move"), key: "move" },
+      { label: t("common.delete"), key: "delete" }
+    );
+  }
+  return options;
+}
+
+function handleRowAction(row: StorageEntry, key: string) {
+  if (key === "download") {
+    void downloadEntry(row);
+    return;
+  }
+  if (key === "rename") {
+    openRename(row);
+    return;
+  }
+  if (key === "copy" || key === "move") {
+    setClipboard(key, [row]);
+    return;
+  }
+  if (key === "delete") {
+    confirmDelete(row);
+  }
+}
+
+function setClipboard(mode: ClipboardMode, sources: StorageEntry[]) {
+  clipboard.value = { mode, sources: sources.map((entry) => ({ ...entry })) };
+  message.success(
+    mode === "move"
+      ? t("storage.files.movePrepared", { count: sources.length })
+      : t("storage.files.copyPrepared", { count: sources.length })
+  );
+}
+
+function pasteClipboard() {
+  if (!clipboard.value) return;
+  const conflicts = pasteConflictCount();
+  if (conflicts > 0) {
+    conflictModal.count = conflicts;
+    conflictModal.show = true;
+    return;
+  }
+  void executePaste("error");
+}
+
+function confirmConflictPaste(policy: Exclude<StorageConflictPolicy, "error">) {
+  conflictModal.show = false;
+  void executePaste(policy);
+}
+
+function cancelConflictPaste() {
+  conflictModal.show = false;
+}
+
+async function executePaste(conflictPolicy: StorageConflictPolicy) {
+  const current = clipboard.value;
+  if (!current) return;
+  operating.value = true;
+  try {
+    const payload = {
+      paths: current.sources.map((entry) => entry.path),
+      target_dir: path.value,
+      conflict_policy: conflictPolicy
+    };
+    const result =
+      current.mode === "move"
+        ? await moveStorageEntries(storageId.value, payload)
+        : await copyStorageEntries(storageId.value, payload);
+    if (current.mode === "move") {
+      clipboard.value = null;
+    }
+    checkedRowKeys.value = [];
+    await load();
+    message.success(
+      current.mode === "move"
+        ? t("storage.files.moved", { count: result.length })
+        : t("storage.files.copied", { count: result.length })
+    );
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    operating.value = false;
+  }
+}
+
+function pasteConflictCount() {
+  if (!clipboard.value) return 0;
+  const names = new Set(entries.value.map((entry) => entry.name));
+  return clipboard.value.sources.filter((entry) => names.has(baseName(entry.path))).length;
+}
+
+function confirmBatchDelete() {
+  if (selectedEntries.value.length === 0) return;
+  dialog.warning({
+    title: t("storage.files.batchDeleteTitle"),
+    content: t("storage.files.batchDeleteConfirm", { count: selectedEntries.value.length }),
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
+    onPositiveClick: () => void removeSelectedEntries()
+  });
+}
+
+async function removeSelectedEntries() {
+  const paths = selectedEntries.value.map((entry) => entry.path);
+  if (!paths.length) return;
+  operating.value = true;
+  try {
+    const result = await batchDeleteStorageEntries(storageId.value, paths);
+    checkedRowKeys.value = [];
+    await load();
+    message.success(messageText(result, "storage.entriesDeleted"));
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    operating.value = false;
+  }
+}
+
+function syncCheckedRows() {
+  const available = new Set(entries.value.map((entry) => entry.path));
+  checkedRowKeys.value = checkedRowKeys.value.filter((key) => available.has(String(key)));
 }
 
 function pickFiles() {
@@ -580,6 +772,11 @@ function joinPath(parent: string, name: string) {
 function parentPath(value: string) {
   const index = value.lastIndexOf("/");
   return index <= 0 ? "/" : value.slice(0, index);
+}
+
+function baseName(value: string) {
+  const parts = value.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "";
 }
 
 const formatSize = formatFileSize;
