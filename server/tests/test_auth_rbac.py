@@ -555,6 +555,7 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
         ROUTE_API_DOCS: API_DOCS_READ,
         route_code("storage"): action_code("storage", "read"),
         route_code("database"): action_code("database", "read"),
+        route_code("containers"): action_code("container", "read"),
         route_code("demo_crud"): action_code("demo_item", "read"),
     }
     assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
@@ -573,39 +574,44 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
     )
 
     modules = get_app_modules()
-    assert [module.key for module in modules] == ["core", "storage", "database", "demo_crud"]
+    assert [module.key for module in modules] == ["core", "storage", "database", "containers", "demo_crud"]
     routers_by_module = {module.key: module.router_paths for module in modules}
     assert "app.api.dashboard:router" in routers_by_module["core"]
     assert "app.modules.storage.api:router" in routers_by_module["storage"]
     assert "app.modules.database.api:router" in routers_by_module["database"]
+    assert "app.modules.containers.api:instances_router" in routers_by_module["containers"]
     assert "app.modules.demo_crud.api:router" in routers_by_module["demo_crud"]
-    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:storage", "route:database", "route:demo_crud"}
-    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement", "storage", "database", "sql_script", "demo_item"}
+    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:storage", "route:database", "route:containers", "route:demo_crud"}
+    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement", "storage", "database", "sql_script", "container", "demo_item"}
     models_by_module = {module.key: module.model_paths for module in modules}
     assert "app.modules.storage.models" in models_by_module["storage"]
     assert "app.modules.database.models" in models_by_module["database"]
+    assert "app.modules.containers.models" in models_by_module["containers"]
     assert "app.modules.demo_crud.models" in models_by_module["demo_crud"]
     assert {"users", "audit_logs", "api_tokens"}.issubset({sync.table for sync in get_table_column_syncs()})
     assert "auth" in get_openapi_hidden_tags()
     assert "storages" in get_openapi_hidden_tags()
     assert "databases" in get_openapi_hidden_tags()
+    assert "container-engine" in get_openapi_hidden_tags()
     assert "/api/users" in get_openapi_hidden_path_prefixes()
     assert any(getattr(router, "prefix", None) == "/api/dashboard" for router in load_module_routers())
     assert any(getattr(router, "prefix", None) == "/api/storages" for router in load_module_routers())
     assert any(getattr(router, "prefix", None) == "/api/databases" for router in load_module_routers())
+    assert any(getattr(router, "prefix", None) == "/api/container-instances" for router in load_module_routers())
     assert any(getattr(router, "prefix", None) == "/api/demo-items" for router in load_module_routers())
 
 
 def test_app_modules_can_be_filtered_by_environment(monkeypatch):
     from app.modules.registry import get_app_modules, get_page_permission_specs
 
-    monkeypatch.setenv("METRIX_DISABLED_MODULES", "demo_crud,storage,database")
+    monkeypatch.setenv("METRIX_DISABLED_MODULES", "demo_crud,storage,database,containers")
     get_app_modules.cache_clear()
     try:
         assert [module.key for module in get_app_modules()] == ["core"]
         assert "route:demo_crud" not in {spec.code for spec in get_page_permission_specs()}
         assert "route:storage" not in {spec.code for spec in get_page_permission_specs()}
         assert "route:database" not in {spec.code for spec in get_page_permission_specs()}
+        assert "route:containers" not in {spec.code for spec in get_page_permission_specs()}
     finally:
         get_app_modules.cache_clear()
 

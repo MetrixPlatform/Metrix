@@ -843,3 +843,8 @@
 - 系统设置新增 Docker 连接配置：`docker_connection_mode` 支持 `auto`/`manual`，`docker_host` 为手动 Host。自动模式按 `DOCKER_HOST`、`/var/run/docker.sock`、`/run/docker.sock`、Windows `npipe:////./pipe/docker_engine`、`tcp://localhost:2375`、`tcp://127.0.0.1:2375` 顺序检测并使用第一个可 ping 的 Docker Host；容器状态卡显示实际命中的 Host，不再显示 `from_env`。
 - 后端 `has_permission()` 对内置 `admin` 角色直接放行；登录和 `/api/auth/me` 返回给前端的权限列表也必须为管理员返回全部有效权限，避免已有开发库管理员角色未绑定新权限时，后端允许但前端隐藏容器镜像删除/可见性等管理员操作。
 - 系统设置页加载 Docker 连接配置时要对缺失/旧响应做前端兜底：`docker_connection_mode` 非 `manual` 时一律回退为 `auto`，避免旧后端或缓存响应未返回新字段时 `NSelect` 默认空白。
+
+## 2026-06-15：第一轮代码清理和测试同步
+
+- 修正 `server/requirements.txt` 中错误依赖名 `httpx2` 为 FastAPI `TestClient` 实际依赖的 `httpx`，避免新环境安装到不匹配的第三方包。
+- 后端模块注册测试同步容器模块：`route:containers -> action:container:read`、模块列表、模型路径、OpenAPI 隐藏 tag、router 前缀和禁用模块过滤均纳入断言，确保容器模块加入后全量测试继续覆盖真实结构。
