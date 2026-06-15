@@ -149,8 +149,16 @@
             <n-form-item :label="t('field.dataJobMaxWorkers')" path="data_job_max_workers">
               <n-input-number v-model:value="form.data_job_max_workers" :min="1" :max="16" :show-button="false" />
             </n-form-item>
-            <n-form-item :label="t('field.dataJobRetention')" path="data_job_retention_days">
-              <n-select v-model:value="form.data_job_retention_days" :options="retentionOptions" placeholder="" />
+            <n-form-item :label="t('field.dataJobRetention')" path="data_job_retention_hours">
+              <div class="settings-duration-control">
+                <n-input-number
+                  v-model:value="dataJobRetention.value"
+                  :min="1"
+                  :max="dataJobRetention.unit === 'days' ? 365 : 8760"
+                  :show-button="false"
+                />
+                <n-select v-model:value="dataJobRetention.unit" :options="dataJobRetentionUnitOptions" />
+              </div>
             </n-form-item>
           </section>
         </n-tab-pane>
@@ -215,6 +223,7 @@ import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
 type SettingsTab = "basic" | "navigation" | "registration" | "api" | "audit" | "dataJobs" | "backup";
 type NavigationMove = "up" | "down";
+type DataJobRetentionUnit = "hours" | "days";
 
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
@@ -222,6 +231,10 @@ const activeTab = ref<SettingsTab>("basic");
 const saving = ref(false);
 const backingUp = ref(false);
 const expandedNavigationGroups = ref<Set<string>>(new Set());
+const dataJobRetention = reactive<{ value: number | null; unit: DataJobRetentionUnit }>({
+  value: 7,
+  unit: "days"
+});
 const form = reactive<SystemSettings>({
   app_name: "",
   registration_enabled: true,
@@ -237,6 +250,7 @@ const form = reactive<SystemSettings>({
   api_enabled: true,
   api_token_reveal_enabled: true,
   data_job_max_workers: 2,
+  data_job_retention_hours: 168,
   data_job_retention_days: 7,
   navigation_order: []
 });
@@ -252,6 +266,10 @@ const retentionOptions = computed(() => [
   { label: t("settings.retention90"), value: 90 },
   { label: t("settings.retention180"), value: 180 },
   { label: t("settings.retention365"), value: 365 }
+]);
+const dataJobRetentionUnitOptions = computed(() => [
+  { label: t("settings.retentionUnitHours"), value: "hours" },
+  { label: t("settings.retentionUnitDays"), value: "days" }
 ]);
 
 onMounted(async () => {
@@ -271,7 +289,21 @@ async function saveSettings() {
   if (!(await validateForm(formRef.value))) return;
   saving.value = true;
   try {
-    const updated = await updateSystemSettings(form);
+    form.data_job_retention_hours = dataJobRetentionHours();
+    form.data_job_retention_days = Math.max(1, Math.ceil(form.data_job_retention_hours / 24));
+    const updated = await updateSystemSettings({
+      app_name: form.app_name,
+      registration_enabled: form.registration_enabled,
+      registration_approval_required: form.registration_approval_required,
+      registration_required_fields: form.registration_required_fields,
+      log_retention_days: form.log_retention_days,
+      default_locale: form.default_locale,
+      api_enabled: form.api_enabled,
+      api_token_reveal_enabled: form.api_token_reveal_enabled,
+      data_job_max_workers: form.data_job_max_workers,
+      data_job_retention_hours: form.data_job_retention_hours,
+      navigation_order: form.navigation_order
+    });
     assignSettings(updated);
     settingsStore.setPublic(updated);
     message.success(t("settings.saved"));
@@ -306,8 +338,25 @@ function assignSettings(settings: SystemSettings) {
   form.api_enabled = settings.api_enabled;
   form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
   form.data_job_max_workers = settings.data_job_max_workers;
+  form.data_job_retention_hours = settings.data_job_retention_hours ?? settings.data_job_retention_days * 24;
   form.data_job_retention_days = settings.data_job_retention_days;
+  assignDataJobRetention(form.data_job_retention_hours);
   form.navigation_order = [...settings.navigation_order];
+}
+
+function assignDataJobRetention(hours: number) {
+  if (hours >= 24 && hours % 24 === 0) {
+    dataJobRetention.value = hours / 24;
+    dataJobRetention.unit = "days";
+    return;
+  }
+  dataJobRetention.value = hours;
+  dataJobRetention.unit = "hours";
+}
+
+function dataJobRetentionHours() {
+  const value = Math.max(1, Math.round(dataJobRetention.value || 1));
+  return dataJobRetention.unit === "days" ? value * 24 : value;
 }
 
 function canMoveNavigation(key: string, direction: NavigationMove) {

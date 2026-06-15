@@ -28,7 +28,8 @@ class PublicSettings(BaseModel):
 class SystemSettings(PublicSettings):
     log_retention_days: LogRetentionDays
     data_job_max_workers: int = Field(default=2, ge=1, le=16)
-    data_job_retention_days: LogRetentionDays = 7
+    data_job_retention_hours: int = Field(default=168, ge=1, le=8760)
+    data_job_retention_days: int = Field(default=7, ge=1, le=365)
 
 
 class SystemSettingsUpdate(BaseModel):
@@ -41,5 +42,6 @@ class SystemSettingsUpdate(BaseModel):
     api_enabled: bool
     api_token_reveal_enabled: bool
     data_job_max_workers: int = Field(default=2, ge=1, le=16)
-    data_job_retention_days: LogRetentionDays = 7
+    data_job_retention_hours: int | None = Field(default=None, ge=1, le=8760)
+    data_job_retention_days: int | None = Field(default=None, ge=1, le=365)
     navigation_order: list[str] = Field(default_factory=list, max_length=200)

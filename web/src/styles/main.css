@@ -1753,6 +1753,21 @@ a {
   max-width: 560px;
 }
 
+.settings-duration-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 360px);
+}
+
+.settings-duration-control .n-input-number {
+  flex: 1 1 auto;
+}
+
+.settings-duration-control .n-select {
+  flex: 0 0 112px;
+}
+
 .settings-switch-list {
   display: grid;
   gap: 8px;

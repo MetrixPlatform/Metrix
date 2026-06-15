@@ -280,7 +280,7 @@ def _run_job(job_id: str) -> None:
                     _ensure_parent(job.file_path)
                     row_count = export_data(runtime, params, Path(job.file_path))
                     job.file_size = Path(job.file_path).stat().st_size if Path(job.file_path).is_file() else 0
-                    job.expires_at = utc_now() + timedelta(days=SettingService(db).get_settings().data_job_retention_days)
+                    job.expires_at = utc_now() + timedelta(hours=SettingService(db).get_settings().data_job_retention_hours)
                 else:
                     row_count = import_data(runtime, params, Path(job.file_path))
                     _remove_file(job.file_path)
@@ -364,17 +364,17 @@ def _remove_file(file_path: str) -> None:
 
 
 def _cleanup_orphan_files() -> None:
-    days = _data_job_retention_days()
+    hours = _data_job_retention_hours()
     for directory in (_exports_dir(), _imports_dir()):
         for path in directory.iterdir():
-            if path.is_file() and path.stat().st_mtime < (utc_now() - timedelta(days=days)).timestamp():
+            if path.is_file() and path.stat().st_mtime < (utc_now() - timedelta(hours=hours)).timestamp():
                 _remove_file(str(path))
 
 
-def _data_job_retention_days() -> int:
+def _data_job_retention_hours() -> int:
     try:
         with get_session_factory()() as db:
-            return SettingService(db).get_settings().data_job_retention_days
+            return SettingService(db).get_settings().data_job_retention_hours
     except (HTTPException, SQLAlchemyError) as exc:
         logger.warning("Use default data job retention because settings are unavailable: %s", exc)
-        return 7
+        return 168

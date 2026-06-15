@@ -1824,6 +1824,10 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     assert public_defaults.json()["api_enabled"] is True
     assert public_defaults.json()["api_token_reveal_enabled"] is True
     assert public_defaults.json()["navigation_order"] == []
+    system_defaults = client.get("/api/settings", headers=admin_headers)
+    assert system_defaults.status_code == 200
+    assert system_defaults.json()["data_job_retention_hours"] == 168
+    assert system_defaults.json()["data_job_retention_days"] == 7
 
     settings_payload = {
         "app_name": "Data Portal",
@@ -1839,6 +1843,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
         "default_locale": "en-US",
         "api_enabled": True,
         "api_token_reveal_enabled": False,
+        "data_job_retention_hours": 36,
         "navigation_order": [
             "path:/storage",
             "group:system",
@@ -1852,6 +1857,8 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     assert updated.status_code == 200
     assert updated.json()["app_name"] == "Data Portal"
     assert updated.json()["api_token_reveal_enabled"] is False
+    assert updated.json()["data_job_retention_hours"] == 36
+    assert updated.json()["data_job_retention_days"] == 2
     assert updated.json()["navigation_order"] == ["path:/storage", "group:system", "path:/database"]
 
     public_updated = client.get("/api/settings/public").json()

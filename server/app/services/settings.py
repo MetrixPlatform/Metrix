@@ -23,11 +23,12 @@ SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
 SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
+SETTING_DATA_JOB_RETENTION_HOURS = "data_job_retention_hours"
 SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
 SETTING_NAVIGATION_ORDER = "navigation_order"
 DEFAULT_LOG_RETENTION_DAYS = 90
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
-DEFAULT_DATA_JOB_RETENTION_DAYS = 7
+DEFAULT_DATA_JOB_RETENTION_HOURS = 168
 NAVIGATION_KEY_RE = re.compile(r"^(path:/[a-zA-Z0-9_./-]*|group:[a-zA-Z0-9_-]+)$")
 
 
@@ -54,6 +55,7 @@ class SettingService:
 
     def update_settings(self, actor: User, payload: SystemSettingsUpdate) -> SystemSettings:
         before = _settings_snapshot(self.get_settings())
+        data_job_retention_hours = _payload_data_job_retention_hours(payload)
         self.settings.set_many(
             {
                 SETTING_APP_NAME: payload.app_name.strip(),
@@ -65,7 +67,8 @@ class SettingService:
                 SETTING_API_ENABLED: _dump_bool(payload.api_enabled),
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
                 SETTING_DATA_JOB_MAX_WORKERS: str(payload.data_job_max_workers),
-                SETTING_DATA_JOB_RETENTION_DAYS: str(payload.data_job_retention_days),
+                SETTING_DATA_JOB_RETENTION_HOURS: str(data_job_retention_hours),
+                SETTING_DATA_JOB_RETENTION_DAYS: str(_hours_to_days(data_job_retention_hours)),
                 SETTING_NAVIGATION_ORDER: json.dumps(_clean_navigation_order(payload.navigation_order)),
             }
         )
@@ -133,10 +136,8 @@ class SettingService:
                 minimum=1,
                 maximum=16,
             ),
-            data_job_retention_days=_parse_retention_days(
-                raw.get(SETTING_DATA_JOB_RETENTION_DAYS),
-                defaults.data_job_retention_days,
-            ),
+            data_job_retention_hours=_parse_data_job_retention_hours(raw, defaults.data_job_retention_hours),
+            data_job_retention_days=_hours_to_days(_parse_data_job_retention_hours(raw, defaults.data_job_retention_hours)),
             navigation_order=_parse_navigation_order(raw.get(SETTING_NAVIGATION_ORDER), defaults.navigation_order),
         )
 
@@ -165,7 +166,8 @@ def _default_settings() -> SystemSettings:
         api_enabled=True,
         api_token_reveal_enabled=True,
         data_job_max_workers=DEFAULT_DATA_JOB_MAX_WORKERS,
-        data_job_retention_days=DEFAULT_DATA_JOB_RETENTION_DAYS,
+        data_job_retention_hours=DEFAULT_DATA_JOB_RETENTION_HOURS,
+        data_job_retention_days=_hours_to_days(DEFAULT_DATA_JOB_RETENTION_HOURS),
         navigation_order=[],
     )
 
@@ -181,6 +183,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "api_enabled": settings.api_enabled,
         "api_token_reveal_enabled": settings.api_token_reveal_enabled,
         "data_job_max_workers": settings.data_job_max_workers,
+        "data_job_retention_hours": settings.data_job_retention_hours,
         "data_job_retention_days": settings.data_job_retention_days,
         "navigation_order": settings.navigation_order,
     }
@@ -216,6 +219,25 @@ def _parse_retention_days(value: str | None, fallback: int) -> int:
     except ValueError:
         return fallback
     return days if days in {7, 30, 90, 180, 365} else fallback
+
+
+def _payload_data_job_retention_hours(payload: SystemSettingsUpdate) -> int:
+    if payload.data_job_retention_hours is not None:
+        return payload.data_job_retention_hours
+    if payload.data_job_retention_days is not None:
+        return payload.data_job_retention_days * 24
+    return DEFAULT_DATA_JOB_RETENTION_HOURS
+
+
+def _parse_data_job_retention_hours(raw: dict[str, str], fallback: int) -> int:
+    if SETTING_DATA_JOB_RETENTION_HOURS in raw:
+        return _parse_int(raw.get(SETTING_DATA_JOB_RETENTION_HOURS), fallback, minimum=1, maximum=8760)
+    legacy_days = _parse_int(raw.get(SETTING_DATA_JOB_RETENTION_DAYS), _hours_to_days(fallback), minimum=1, maximum=365)
+    return legacy_days * 24
+
+
+def _hours_to_days(hours: int) -> int:
+    return max(1, (hours + 23) // 24)
 
 
 def _parse_locale(value: str | None, fallback: str):

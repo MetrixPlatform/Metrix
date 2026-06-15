@@ -47,7 +47,7 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     make_target_db(target_path)
     connection_id = create_sqlite_connection("db_sqlite_test", target_path)
     settings_payload = client.get("/api/settings", headers=headers).json()
-    settings_payload["data_job_retention_days"] = 30
+    settings_payload["data_job_retention_hours"] = 30 * 24
     assert client.put("/api/settings", json=settings_payload, headers=headers).status_code == 200
 
     schemas = client.get("/api/databases/db_sqlite_test/schemas", headers=headers)
