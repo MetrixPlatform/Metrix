@@ -9,19 +9,29 @@ from pydantic_core import PydanticCustomError
 
 CONN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$")
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_$]{1,128}$")
+STRICT_IDENTIFIER_FIELDS = {"schema", "database", "default_database"}
+BROAD_IDENTIFIER_FIELDS = {"table", "column", "index", "order_by"}
 
 
 def clean_identifier(value: str, field_name: str = "identifier") -> str:
     cleaned = value.strip()
+    if field_name in STRICT_IDENTIFIER_FIELDS:
+        if not IDENTIFIER_RE.fullmatch(cleaned):
+            raise PydanticCustomError("validation.identifier", f"Invalid {field_name}")
+        return cleaned
+    if field_name in BROAD_IDENTIFIER_FIELDS:
+        if not cleaned or len(cleaned) > 128 or any(ord(char) < 32 for char in cleaned):
+            raise PydanticCustomError("validation.identifier", f"Invalid {field_name}")
+        return cleaned
     if not IDENTIFIER_RE.fullmatch(cleaned):
         raise PydanticCustomError("validation.identifier", f"Invalid {field_name}")
     return cleaned
 
 
-def clean_optional_identifier(value: str) -> str:
+def clean_optional_identifier(value: str, field_name: str = "identifier") -> str:
     cleaned = value.strip()
     if cleaned:
-        clean_identifier(cleaned)
+        clean_identifier(cleaned, field_name)
     return cleaned
 
 
@@ -285,7 +295,7 @@ class AlterTableAction(BaseModel):
     @field_validator("name", "new_name")
     @classmethod
     def validate_name(cls, value: str) -> str:
-        return clean_optional_identifier(value)
+        return clean_optional_identifier(value, "column")
 
 
 class AlterIndexAction(BaseModel):
@@ -296,7 +306,7 @@ class AlterIndexAction(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str) -> str:
-        return clean_optional_identifier(value)
+        return clean_optional_identifier(value, "index")
 
 
 class AlterTableRequest(BaseModel):
@@ -386,7 +396,7 @@ class ImportRequest(BaseModel):
     @field_validator("target_table")
     @classmethod
     def validate_target_table(cls, value: str) -> str:
-        return clean_optional_identifier(value)
+        return clean_optional_identifier(value, "table")
 
 
 class DatabaseTransferJobItem(BaseModel):

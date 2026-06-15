@@ -58,7 +58,7 @@ from app.services.audit import audit_changes, audit_detail, record_audit
 from app.services.permissions import has_permission
 
 GENERATED_ID_PREFIX = "db_"
-TYPE_RE = re.compile(r"^[A-Za-z0-9_(),\s]+$")
+TYPE_RE = re.compile(r"^[A-Za-z0-9_(),\s\"'`]+$")
 SAFE_DEFAULT_RE = re.compile(r"^[A-Za-z0-9_\-:.@\s]*$")
 
 

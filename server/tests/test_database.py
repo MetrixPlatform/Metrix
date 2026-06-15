@@ -161,6 +161,33 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     renamed_table_detail = client.get("/api/databases/db_sqlite_test/tables/designed_new", headers=headers)
     assert renamed_table_detail.status_code == 200
 
+    quoted_name = "fdd外部邻区-eutranrelation"
+    quoted_created = client.post(
+        "/api/databases/db_sqlite_test/tables",
+        json={
+            "name": quoted_name,
+            "columns": [
+                {"name": "网元ID", "type": "TEXT", "nullable": False},
+                {"name": "对象标识", "type": "TEXT", "nullable": True},
+            ],
+        },
+        headers=headers,
+    )
+    assert quoted_created.status_code == 200
+    quoted_row = client.post(
+        "/api/databases/db_sqlite_test/table-rows",
+        json={"table": quoted_name, "values": {"网元ID": "375831", "对象标识": "ok"}},
+        headers=headers,
+    )
+    assert quoted_row.status_code == 200
+    quoted_data = client.get(
+        "/api/databases/db_sqlite_test/table-data",
+        params={"table": quoted_name, "order_by": "网元ID", "page_size": 10},
+        headers=headers,
+    )
+    assert quoted_data.status_code == 200
+    assert quoted_data.json()["rows"][0]["网元ID"] == "375831"
+
     submitted = client.post(
         "/api/databases/db_sqlite_test/export",
         json={"format": "csv", "tables": ["people"]},
