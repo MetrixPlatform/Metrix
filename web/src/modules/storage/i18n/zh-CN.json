@@ -106,35 +106,35 @@
       "storage-files": "储存文件"
     },
     "operation": {
-      "check_storage_health_api_storages__storage_id__health_get": {
+      "storage_files.check_storage_health": {
         "summary": "检查连接状态",
         "description": "校验该储存连接能否登录远端服务器且根目录可访问，成功返回 storage.connectionOk。"
       },
-      "list_storage_files_api_storages__storage_id__files_get": {
+      "storage_files.list_storage_files": {
         "summary": "查询目录列表",
         "description": "列出指定路径下的文件和目录；keyword 配合 recursive 可在子树内搜索或枚举全部条目。"
       },
-      "download_storage_file_api_storages__storage_id__download_get": {
+      "storage_files.download_storage_file": {
         "summary": "下载文件",
         "description": "流式下载指定路径的文件。"
       },
-      "download_storage_archive_api_storages__storage_id__download_archive_get": {
+      "storage_files.download_storage_archive": {
         "summary": "下载目录为 ZIP",
         "description": "将指定目录及其全部子目录和文件打包为 ZIP 压缩包下载。"
       },
-      "upload_storage_file_api_storages__storage_id__upload_post": {
+      "storage_files.upload_storage_file": {
         "summary": "上传文件",
         "description": "上传文件到指定目录，同名文件会被覆盖。"
       },
-      "mkdir_storage_api_storages__storage_id__mkdir_post": {
+      "storage_files.mkdir_storage": {
         "summary": "新建目录",
         "description": "在指定路径创建目录。"
       },
-      "rename_storage_entry_api_storages__storage_id__rename_post": {
+      "storage_files.rename_storage_entry": {
         "summary": "重命名文件或目录",
         "description": "在原目录内重命名文件或目录。"
       },
-      "delete_storage_entry_api_storages__storage_id__files_delete": {
+      "storage_files.delete_storage_entry": {
         "summary": "删除文件或目录",
         "description": "删除指定文件或目录；目录会递归删除全部内容。"
       }

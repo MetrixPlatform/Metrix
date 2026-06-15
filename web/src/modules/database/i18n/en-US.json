@@ -216,103 +216,103 @@
       "database-transfer-jobs": "Database import/export jobs"
     },
     "operation": {
-      "list_schemas_api_databases__conn_id__schemas_get": {
+      "database_data.list_schemas": {
         "summary": "List databases",
         "description": "List databases/schemas available through the selected database connection."
       },
-      "create_schema_api_databases__conn_id__schemas_post": {
+      "database_data.create_schema": {
         "summary": "Create database",
         "description": "Create a database/schema on the selected connection. Requires database operate permission."
       },
-      "list_tables_api_databases__conn_id__tables_get": {
+      "database_data.list_tables": {
         "summary": "List tables",
         "description": "List tables under the selected connection and database/schema."
       },
-      "create_table_api_databases__conn_id__tables_post": {
+      "database_data.create_table": {
         "summary": "Create table",
         "description": "Create a table in the selected database/schema from column definitions."
       },
-      "list_columns_api_databases__conn_id__columns_get": {
+      "database_data.list_columns": {
         "summary": "List columns",
         "description": "List column, primary key, default value, and comment metadata for a table."
       },
-      "table_data_api_databases__conn_id__table_data_get": {
+      "database_data.table_data": {
         "summary": "Query table data",
         "description": "Query table rows with pagination, keyword filtering, and single-column ascending or descending sort."
       },
-      "query_database_api_databases__conn_id__query_post": {
+      "database_data.query_database": {
         "summary": "Run SQL",
         "description": "Run one SQL statement. Read-only SQL requires read permission; write SQL requires operate permission."
       },
-      "run_script_api_databases__conn_id__run_script_post": {
+      "database_data.run_script": {
         "summary": "Run SQL script",
         "description": "Run multiple SQL statements or a saved script. Requires database operate permission."
       },
-      "create_row_api_databases__conn_id__table_rows_post": {
+      "database_data.create_row": {
         "summary": "Create row",
         "description": "Insert one row into the selected table."
       },
-      "update_row_api_databases__conn_id__table_rows_put": {
+      "database_data.update_row": {
         "summary": "Update row",
         "description": "Update one row by primary key or row locator values."
       },
-      "delete_row_api_databases__conn_id__table_rows_delete": {
+      "database_data.delete_row": {
         "summary": "Delete row",
         "description": "Delete one row by primary key or row locator values."
       },
-      "table_detail_api_databases__conn_id__tables__table__get": {
+      "database_data.table_detail": {
         "summary": "Get table structure",
         "description": "Get column and primary key metadata for a table."
       },
-      "delete_table_api_databases__conn_id__tables__table__delete": {
+      "database_data.delete_table": {
         "summary": "Delete table",
         "description": "Delete the selected table and its data. Requires database operate permission."
       },
-      "alter_table_api_databases__conn_id__tables__table__alter_post": {
+      "database_data.alter_table": {
         "summary": "Alter table",
         "description": "Modify column structure for the selected table."
       },
-      "rename_table_api_databases__conn_id__tables__table__rename_post": {
+      "database_data.rename_table": {
         "summary": "Rename table",
         "description": "Rename the selected table."
       },
-      "truncate_table_api_databases__conn_id__tables__table__truncate_post": {
+      "database_data.truncate_table": {
         "summary": "Truncate table",
         "description": "Remove all rows from the selected table while keeping its structure."
       },
-      "alter_schema_api_databases__conn_id__schemas__name__alter_post": {
+      "database_data.alter_schema": {
         "summary": "Alter database options",
         "description": "Update options such as charset or collation for a database/schema."
       },
-      "delete_schema_api_databases__conn_id__schemas__name__delete": {
+      "database_data.delete_schema": {
         "summary": "Delete database",
         "description": "Delete the selected database/schema and all objects inside it."
       },
-      "submit_export_api_databases__conn_id__export_post": {
+      "database_transfer_jobs.submit_export": {
         "summary": "Submit database export job",
         "description": "Submit an asynchronous database export job for tables, query results, or multiple query results."
       },
-      "submit_import_api_databases__conn_id__import_post": {
+      "database_transfer_jobs.submit_import": {
         "summary": "Submit database import job",
         "description": "Upload a file and submit an asynchronous database import job. Supports CSV, XLSX, SQLite, and SQL."
       },
-      "list_database_transfer_jobs_api_database_transfer_jobs_get": {
+      "database_transfer_jobs.list_database_transfer_jobs": {
         "summary": "List database import/export jobs",
         "description": "Page through database import/export jobs with keyword, connection, kind, status, creator, and created-at sorting filters."
       },
-      "database_transfer_job_download_count_api_database_transfer_jobs_download_count_get": {
+      "database_transfer_jobs.database_transfer_job_download_count": {
         "summary": "Count undownloaded export jobs",
         "description": "Count completed but undownloaded database export jobs for the current user, optionally scoped to a database connection."
       },
-      "get_database_transfer_job_api_database_transfer_jobs__job_id__get": {
+      "database_transfer_jobs.get_database_transfer_job": {
         "summary": "Get database import/export job",
         "description": "Get status, file, row count, and expiration details for one database import/export job."
       },
-      "delete_database_transfer_job_api_database_transfer_jobs__job_id__delete": {
+      "database_transfer_jobs.delete_database_transfer_job": {
         "summary": "Delete database import/export job",
         "description": "Delete one database import/export job and its file."
       },
-      "download_database_transfer_job_api_database_transfer_jobs__job_id__download_get": {
+      "database_transfer_jobs.download_database_transfer_job": {
         "summary": "Download database export file",
         "description": "Download a completed database export file. After the stream finishes, the file is cleaned up and marked as downloaded."
       }

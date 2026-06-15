@@ -53,5 +53,56 @@
       "category": "Category",
       "description": "Description"
     }
+  },
+  "openapi": {
+    "tag": {
+      "demo-items": "CRUD demo"
+    },
+    "operation": {
+      "demo_items.list_demo_items": {
+        "summary": "List demo items",
+        "description": "Page through CRUD demo items with keyword, category, active-state, creator, and created-at sorting filters."
+      },
+      "demo_items.create_demo_item": {
+        "summary": "Create demo item",
+        "description": "Create one CRUD demo item as a reference for module pages, permissions, audit logs, and API patterns."
+      },
+      "demo_items.update_demo_item": {
+        "summary": "Update demo item",
+        "description": "Update one CRUD demo item. Users can update their own items; manage-others permission allows updating others' items."
+      },
+      "demo_items.delete_demo_item": {
+        "summary": "Delete demo item",
+        "description": "Delete one CRUD demo item. Users can delete their own items; manage-others permission allows deleting others' items."
+      }
+    },
+    "parameter": {
+      "common": {
+        "item_id": "Demo item ID.",
+        "keyword": "Search keyword matching name or description.",
+        "category": "Category filter.",
+        "is_active": "Whether the item is active.",
+        "created_by": "Creator filter: me for yourself.",
+        "sort_order": "Created-at sort order: ascend or descend.",
+        "page": "Page number, starting from 1.",
+        "page_size": "Items per page."
+      }
+    },
+    "schema": {
+      "property": {
+        "name": "Demo item name.",
+        "category": "Demo item category.",
+        "description": "Demo item description.",
+        "is_active": "Whether the item is active.",
+        "created_by": "Creator user ID.",
+        "created_by_username": "Creator username.",
+        "created_at": "Created time.",
+        "updated_at": "Updated time.",
+        "items": "Demo items on the current page.",
+        "total": "Total item count.",
+        "page": "Current page number.",
+        "page_size": "Items per page."
+      }
+    }
   }
 }

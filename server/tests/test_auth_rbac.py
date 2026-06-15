@@ -678,6 +678,65 @@ def test_api_docs_require_permission_and_use_local_assets(tmp_path, monkeypatch)
         for tag in operation.get("tags", [])
     }
     assert visible_tags.isdisjoint(hidden_tags)
+    operation_ids = [
+        operation["operationId"]
+        for path_item in openapi_schema["paths"].values()
+        for operation in path_item.values()
+    ]
+    assert len(operation_ids) == len(set(operation_ids))
+    assert "demo_items.list_demo_items" in operation_ids
+    assert "list_demo_items_api_demo_items_get" not in operation_ids
+    assert all("__" not in operation_id for operation_id in operation_ids)
+
+
+def test_legacy_openapi_operation_ids_are_normalized_in_records(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    install_sqlite(client, tmp_path)
+
+    legacy_id = "list_demo_items_api_demo_items_get"
+    current_id = "demo_items.list_demo_items"
+    engine = create_engine(f"sqlite:///{tmp_path / 'site.db'}")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO audit_logs (action, target_type, target_id, detail, detail_data, source, api_token_prefix, created_at) "
+                "VALUES (:action, :target_type, :target_id, :detail, :detail_data, 'web', '', CURRENT_TIMESTAMP)"
+            ),
+            {
+                "action": legacy_id,
+                "target_type": legacy_id,
+                "target_id": legacy_id,
+                "detail": f"legacy {legacy_id}",
+                "detail_data": f'{{"operationId":"{legacy_id}"}}',
+            },
+        )
+        conn.execute(
+            text(
+                "INSERT INTO migration_records (`key`, kind, target, detail, applied_at) "
+                "VALUES (:key, 'manual', :target, :detail, CURRENT_TIMESTAMP)"
+            ),
+            {"key": f"manual:{legacy_id}", "target": legacy_id, "detail": f"legacy {legacy_id}"},
+        )
+
+    from app.core.openapi_ids import normalize_legacy_operation_ids
+    from app.main import create_app
+
+    normalize_legacy_operation_ids(create_app().routes)
+
+    with engine.connect() as conn:
+        audit_log = conn.execute(text("SELECT action, target_type, target_id, detail, detail_data FROM audit_logs ORDER BY id DESC LIMIT 1")).mappings().one()
+        migration_record = conn.execute(
+            text("SELECT `key`, target, detail FROM migration_records WHERE `key` = :key"),
+            {"key": f"manual:{current_id}"},
+        ).mappings().one()
+
+    assert audit_log["action"] == current_id
+    assert audit_log["target_type"] == current_id
+    assert audit_log["target_id"] == current_id
+    assert current_id in audit_log["detail"]
+    assert current_id in audit_log["detail_data"]
+    assert migration_record["target"] == current_id
+    assert current_id in migration_record["detail"]
 
 
 def test_mysql_install_runs_database_and_table_creation(monkeypatch):

@@ -13,6 +13,7 @@ from swagger_ui_bundle import swagger_ui_path
 from app.core.config import PROJECT_DIR, get_settings
 from app.core.deps import require_api_feature_enabled, require_permission
 from app.core.exceptions import error_detail
+from app.core.openapi_ids import normalize_legacy_operation_ids, short_operation_id
 from app.core.permissions import API_DOCS_READ
 from app.models import User
 from app.modules.registry import get_openapi_hidden_path_prefixes, get_openapi_hidden_tags, load_module_routers
@@ -23,7 +24,8 @@ OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "hea
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
+    await asyncio.to_thread(normalize_legacy_operation_ids, app.routes)
     await asyncio.to_thread(reset_interrupted_jobs)
     audit_log_prune_task = asyncio.create_task(audit_log_prune_loop())
     data_job_cleanup_task = asyncio.create_task(data_job_cleanup_loop())
@@ -51,6 +53,7 @@ def create_app() -> FastAPI:
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
+        generate_unique_id_function=short_operation_id,
         lifespan=lifespan,
     )
     app.add_middleware(

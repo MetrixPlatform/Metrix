@@ -53,5 +53,56 @@
       "category": "分类",
       "description": "说明"
     }
+  },
+  "openapi": {
+    "tag": {
+      "demo-items": "CRUD 示例"
+    },
+    "operation": {
+      "demo_items.list_demo_items": {
+        "summary": "查询示例数据",
+        "description": "分页查询 CRUD 示例数据，支持关键字、分类、启用状态、创建人和创建时间排序筛选。"
+      },
+      "demo_items.create_demo_item": {
+        "summary": "新增示例数据",
+        "description": "创建一条 CRUD 示例数据，用于参考模块化页面、权限、审计和接口写法。"
+      },
+      "demo_items.update_demo_item": {
+        "summary": "修改示例数据",
+        "description": "修改指定 CRUD 示例数据；只能修改本人数据，具备管理他人权限时可修改他人数据。"
+      },
+      "demo_items.delete_demo_item": {
+        "summary": "删除示例数据",
+        "description": "删除指定 CRUD 示例数据；只能删除本人数据，具备管理他人权限时可删除他人数据。"
+      }
+    },
+    "parameter": {
+      "common": {
+        "item_id": "示例数据 ID。",
+        "keyword": "搜索关键字，可匹配名称或说明。",
+        "category": "分类筛选。",
+        "is_active": "是否启用。",
+        "created_by": "创建人筛选：me 表示自己。",
+        "sort_order": "创建时间排序方向：ascend 或 descend。",
+        "page": "页码，从 1 开始。",
+        "page_size": "每页数量。"
+      }
+    },
+    "schema": {
+      "property": {
+        "name": "示例名称。",
+        "category": "示例分类。",
+        "description": "示例说明。",
+        "is_active": "是否启用。",
+        "created_by": "创建人用户 ID。",
+        "created_by_username": "创建人账号。",
+        "created_at": "创建时间。",
+        "updated_at": "更新时间。",
+        "items": "当前页示例数据列表。",
+        "total": "总数量。",
+        "page": "当前页码。",
+        "page_size": "每页数量。"
+      }
+    }
   }
 }
