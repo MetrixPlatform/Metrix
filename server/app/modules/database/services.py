@@ -600,6 +600,7 @@ class SqlScriptService:
 
     def create(self, actor: User, payload: SqlScriptPayload) -> SqlScriptItem:
         self._ensure_connection_visible(actor, payload.connection_id)
+        self._ensure_unique_name(payload.connection_id, payload.database, payload.name)
         script = self.scripts.create(
             SqlScript(
                 name=payload.name,
@@ -619,6 +620,7 @@ class SqlScriptService:
         script = self._get(script_id)
         self._ensure_can_manage(actor, script)
         self._ensure_connection_visible(actor, payload.connection_id)
+        self._ensure_unique_name(payload.connection_id, payload.database, payload.name, script.id)
         before = _script_snapshot(script)
         script.name = payload.name
         script.content = payload.content
@@ -665,6 +667,10 @@ class SqlScriptService:
         if connection.created_by == actor.id or connection.is_shared or has_permission(actor, DATABASE_MANAGE_OTHERS):
             return
         raise forbidden()
+
+    def _ensure_unique_name(self, connection_id: int | None, database: str, name: str, exclude_id: int | None = None) -> None:
+        if self.scripts.get_by_scope_name(connection_id, database, name, exclude_id):
+            raise bad_request("error.sqlScriptNameDuplicate", "SQL script name already exists")
 
     def _item(self, script: SqlScript) -> SqlScriptItem:
         connection = self.connections.get(script.connection_id) if script.connection_id else None

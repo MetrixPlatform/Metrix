@@ -82,6 +82,7 @@
                 <template #icon><n-icon :component="Database20Regular" /></template>
                 {{ selectedDatabase || t("database.allSchemas") }}
               </n-tag>
+              <n-button @click="startTemporaryScript">{{ t("database.script.temporary") }}</n-button>
               <n-tag v-if="currentScript" class="database-active-schema" size="small" :bordered="false">
                 {{ currentScript.name }}
               </n-tag>
@@ -1542,6 +1543,15 @@ async function loadScriptIntoEditor(script: SqlScript) {
   } catch (error) {
     showError(message, error);
   }
+}
+
+function startTemporaryScript() {
+  currentScript.value = null;
+  scriptDetailModal.show = false;
+  selectedDatabase.value = "";
+  selectedKeys.value = [];
+  resetTableView();
+  activeTab.value = "sql";
 }
 
 async function showScriptDetail(script: SqlScript) {

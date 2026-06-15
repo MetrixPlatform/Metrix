@@ -62,7 +62,8 @@
     "dataJobNotDownloadable": "Database task is not downloadable",
     "dataJobFileMissing": "Database task file is missing",
     "dataJobInterrupted": "Database task interrupted by service restart",
-    "sqlScriptConnectionMismatch": "The script does not belong to the current database connection"
+    "sqlScriptConnectionMismatch": "The script does not belong to the current database connection",
+    "sqlScriptNameDuplicate": "A script with this name already exists in the current database"
   },
   "database": {
     "searchPlaceholder": "Search name, ID, host, database, or creator",
@@ -144,6 +145,7 @@
       "untitled": "Untitled script",
       "deleteConfirm": "Delete script {name}?",
       "create": "New script",
+      "temporary": "Temporary SQL",
       "edit": "Edit",
       "update": "Update script",
       "detail": "Script detail",

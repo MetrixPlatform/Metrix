@@ -62,7 +62,8 @@
     "dataJobNotDownloadable": "数据库任务暂不可下载",
     "dataJobFileMissing": "数据库任务文件不存在",
     "dataJobInterrupted": "数据库任务因服务重启中断",
-    "sqlScriptConnectionMismatch": "脚本不属于当前数据库连接"
+    "sqlScriptConnectionMismatch": "脚本不属于当前数据库连接",
+    "sqlScriptNameDuplicate": "SQL \u811a\u672c\u540d\u79f0\u5728\u5f53\u524d\u5e93\u4e0b\u5df2\u5b58\u5728"
   },
   "database": {
     "searchPlaceholder": "搜索名称、ID、主机、库名、创建人",
@@ -144,6 +145,7 @@
       "untitled": "未命名脚本",
       "deleteConfirm": "确认删除脚本 {name}？",
       "create": "新建脚本",
+      "temporary": "\u4e34\u65f6 SQL",
       "edit": "编辑",
       "update": "更新脚本",
       "detail": "脚本详情",

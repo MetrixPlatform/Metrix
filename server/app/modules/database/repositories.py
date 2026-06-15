@@ -85,6 +85,16 @@ class SqlScriptRepository:
     def get(self, script_id: int) -> SqlScript | None:
         return self.db.get(SqlScript, script_id)
 
+    def get_by_scope_name(self, connection_id: int | None, database: str, name: str, exclude_id: int | None = None) -> SqlScript | None:
+        query = self.db.query(SqlScript).filter(
+            SqlScript.connection_id == connection_id,
+            SqlScript.database == database,
+            SqlScript.name == name,
+        )
+        if exclude_id is not None:
+            query = query.filter(SqlScript.id != exclude_id)
+        return query.first()
+
     def list(
         self,
         keyword: str = "",

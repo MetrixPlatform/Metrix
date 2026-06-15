@@ -2399,10 +2399,44 @@ a {
     background 0.15s ease;
 }
 
+.database-sidebar-resizer::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 38px;
+  content: "";
+  transform: translate(-50%, -50%);
+  border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--muted-color) 82%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--muted-color) 82%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 50% 66%, color-mix(in srgb, var(--muted-color) 82%, transparent) 0 2px, transparent 2.5px),
+    color-mix(in srgb, var(--panel-bg) 88%, var(--app-bg));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--shadow-color) 60%, transparent);
+  pointer-events: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
 .database-sidebar-resizer:hover::before,
 .database-sidebar-resizing .database-sidebar-resizer::before {
   width: 4px;
   background: color-mix(in srgb, var(--primary-color) 75%, var(--border-color));
+}
+
+.database-sidebar-resizer:hover::after,
+.database-sidebar-resizing .database-sidebar-resizer::after {
+  border-color: color-mix(in srgb, var(--primary-color) 72%, var(--border-color));
+  background:
+    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--primary-color) 84%, var(--text-color)) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--primary-color) 84%, var(--text-color)) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 50% 66%, color-mix(in srgb, var(--primary-color) 84%, var(--text-color)) 0 2px, transparent 2.5px),
+    color-mix(in srgb, var(--primary-soft) 55%, var(--panel-bg));
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--primary-color) 24%, transparent);
 }
 
 .database-sidebar-resizing {

@@ -366,6 +366,26 @@ def test_sql_script_is_database_scoped(tmp_path, monkeypatch):
         headers=headers,
     )
     assert second.status_code == 200
+    duplicate = client.post(
+        "/api/sql-scripts",
+        json={"name": "report_0421", "content": "SELECT 4", "connection_id": connection_id, "database": "0421"},
+        headers=headers,
+    )
+    assert duplicate.status_code == 400
+    assert duplicate.json()["detail"]["code"] == "error.sqlScriptNameDuplicate"
+    same_name_other_database = client.post(
+        "/api/sql-scripts",
+        json={"name": "report_0421", "content": "SELECT 5", "connection_id": connection_id, "database": "report"},
+        headers=headers,
+    )
+    assert same_name_other_database.status_code == 200
+    duplicate_update = client.put(
+        f"/api/sql-scripts/{second.json()['id']}",
+        json={"name": "report_0421", "content": "SELECT 6", "connection_id": connection_id, "database": "0421"},
+        headers=headers,
+    )
+    assert duplicate_update.status_code == 400
+    assert duplicate_update.json()["detail"]["code"] == "error.sqlScriptNameDuplicate"
 
     scoped = client.get(f"/api/sql-scripts?connection_id={connection_id}&database=0421", headers=headers)
     assert scoped.status_code == 200
