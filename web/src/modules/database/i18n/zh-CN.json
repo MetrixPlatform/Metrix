@@ -153,9 +153,9 @@
       "temporary": "\u4e34\u65f6 SQL",
       "temporaryNamed": "\u4e34\u65f6 SQL {index}",
       "edit": "编辑",
-      "rename": "重命名脚本",
+      "rename": "重命名",
       "update": "更新脚本",
-      "detail": "脚本详情",
+      "detail": "详情",
       "id": "脚本 ID",
       "content": "脚本内容",
       "statementCount": "语句数量"

@@ -153,9 +153,9 @@
       "temporary": "Temporary SQL",
       "temporaryNamed": "Temporary SQL {index}",
       "edit": "Edit",
-      "rename": "Rename script",
-      "update": "Update script",
-      "detail": "Script detail",
+      "rename": "Rename",
+      "update": "Update Script",
+      "detail": "detail",
       "id": "Script ID",
       "content": "Script content",
       "statementCount": "Statement count"
