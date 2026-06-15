@@ -13,7 +13,7 @@
       </n-badge>
     </div>
 
-    <div class="database-workbench-body">
+    <div ref="workbenchBodyRef" class="database-workbench-body" :style="workbenchBodyStyle">
       <aside class="database-sidebar">
         <n-tree
           v-if="treeData.length"
@@ -37,6 +37,16 @@
           </template>
         </n-empty>
       </aside>
+      <div
+        class="database-sidebar-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        :aria-valuenow="sidebarWidth"
+        :aria-valuemin="SIDEBAR_MIN_WIDTH"
+        :aria-valuemax="SIDEBAR_MAX_WIDTH"
+        @mousedown="startSidebarResize"
+        @dblclick="resetSidebarWidth"
+      />
 
       <main class="database-main">
         <n-tabs v-model:value="activeTab" type="line" animated>
@@ -283,7 +293,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref, watch, type Component, type VNode } from "vue";
+import { computed, h, onBeforeUnmount, onMounted, reactive, ref, watch, type Component, type VNode } from "vue";
 import {
   Add20Regular,
   ArrowClockwise20Regular,
@@ -374,6 +384,11 @@ const emit = defineEmits<{
 const message = useMessage();
 const dialog = useDialog();
 const activeTab = ref<"data" | "sql">("data");
+const SIDEBAR_DEFAULT_WIDTH = 280;
+const SIDEBAR_MIN_WIDTH = 220;
+const SIDEBAR_MAX_WIDTH = 560;
+const SIDEBAR_MIN_MAIN_WIDTH = 520;
+const SIDEBAR_WIDTH_STORAGE_KEY = "metrix.databaseWorkbench.sidebarWidth";
 const schemas = ref<{ name: string }[]>([]);
 const tables = ref<TableItem[]>([]);
 const treeData = ref<TreeOption[]>([]);
@@ -398,6 +413,13 @@ const savingScript = ref(false);
 const showImport = ref(false);
 const importTarget = reactive({ database: "", table: "" });
 const pendingDownloadCount = ref(0);
+const workbenchBodyRef = ref<HTMLElement | null>(null);
+const sidebarWidth = ref(loadSidebarWidth());
+const resizeState = reactive({
+  resizing: false,
+  startX: 0,
+  startWidth: SIDEBAR_DEFAULT_WIDTH
+});
 const exportModal = reactive({
   show: false,
   format: "xlsx" as DataFormat,
@@ -520,6 +542,7 @@ watch(
   }
 );
 const objectModalTitle = computed(() => (objectModal.kind === "schema" ? t("database.schema.create") : t("database.table.create")));
+const workbenchBodyStyle = computed(() => ({ "--database-sidebar-width": `${sidebarWidth.value}px` }));
 const suggestions = computed(() => [
   ...schemas.value.map((item) => item.name),
   ...tables.value.map((item) => item.name),
@@ -584,9 +607,64 @@ const queryColumns = computed<DataTableColumns<Record<string, unknown>>>(() => {
 const queryRows = computed(() => queryResult.value?.rows || []);
 
 onMounted(async () => {
+  sidebarWidth.value = clampSidebarWidth(sidebarWidth.value);
+  window.addEventListener("resize", clampSidebarWidthToViewport);
   await refreshMetadata();
   await loadDownloadCount();
 });
+
+onBeforeUnmount(() => {
+  stopSidebarResize();
+  window.removeEventListener("resize", clampSidebarWidthToViewport);
+});
+
+function loadSidebarWidth() {
+  const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+  return clampSidebarWidth(Number.isFinite(saved) ? saved : SIDEBAR_DEFAULT_WIDTH);
+}
+
+function clampSidebarWidth(width: number) {
+  const bodyWidth = workbenchBodyRef.value?.clientWidth ?? 0;
+  const layoutMax = bodyWidth > 0 ? Math.max(SIDEBAR_MIN_WIDTH, bodyWidth - SIDEBAR_MIN_MAIN_WIDTH) : SIDEBAR_MAX_WIDTH;
+  const maxWidth = Math.min(SIDEBAR_MAX_WIDTH, layoutMax);
+  return Math.min(Math.max(Math.round(width), SIDEBAR_MIN_WIDTH), maxWidth);
+}
+
+function saveSidebarWidth() {
+  localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(sidebarWidth.value));
+}
+
+function startSidebarResize(event: MouseEvent) {
+  event.preventDefault();
+  resizeState.resizing = true;
+  resizeState.startX = event.clientX;
+  resizeState.startWidth = sidebarWidth.value;
+  document.body.classList.add("database-sidebar-resizing");
+  window.addEventListener("mousemove", handleSidebarResize);
+  window.addEventListener("mouseup", stopSidebarResize);
+}
+
+function handleSidebarResize(event: MouseEvent) {
+  if (!resizeState.resizing) return;
+  sidebarWidth.value = clampSidebarWidth(resizeState.startWidth + event.clientX - resizeState.startX);
+}
+
+function clampSidebarWidthToViewport() {
+  sidebarWidth.value = clampSidebarWidth(sidebarWidth.value);
+}
+
+function stopSidebarResize() {
+  if (resizeState.resizing) saveSidebarWidth();
+  resizeState.resizing = false;
+  document.body.classList.remove("database-sidebar-resizing");
+  window.removeEventListener("mousemove", handleSidebarResize);
+  window.removeEventListener("mouseup", stopSidebarResize);
+}
+
+function resetSidebarWidth() {
+  sidebarWidth.value = clampSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
+  saveSidebarWidth();
+}
 
 function schemaKey(name: string) {
   return `schema:${name}`;

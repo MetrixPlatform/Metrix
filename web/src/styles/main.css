@@ -2357,8 +2357,8 @@ a {
 
 .database-workbench-body {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: var(--database-sidebar-width, 280px) 10px minmax(0, 1fr);
+  gap: 6px;
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden;
@@ -2367,7 +2367,7 @@ a {
 .database-sidebar {
   display: flex;
   min-height: 0;
-  min-width: 260px;
+  min-width: 0;
   flex-direction: column;
   gap: 10px;
   padding: 10px;
@@ -2375,6 +2375,39 @@ a {
   border-radius: 8px;
   background: var(--panel-bg-hover);
   overflow: hidden;
+}
+
+.database-sidebar-resizer {
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: 999px;
+}
+
+.database-sidebar-resizer::before {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  width: 2px;
+  content: "";
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-color) 85%, transparent);
+  transition:
+    width 0.15s ease,
+    background 0.15s ease;
+}
+
+.database-sidebar-resizer:hover::before,
+.database-sidebar-resizing .database-sidebar-resizer::before {
+  width: 4px;
+  background: color-mix(in srgb, var(--primary-color) 75%, var(--border-color));
+}
+
+.database-sidebar-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .database-node-actions {
