@@ -186,7 +186,7 @@ const engineStatus = reactive<ContainerEngineStatus>({
 const containers = ref<ContainerItem[]>([]);
 const images = ref<ImageItem[]>([]);
 const jobs = ref<ContainerJobItem[]>([]);
-const containerFilters = reactive({ keyword: "", status: "", pageSize: 20 });
+const containerFilters = reactive<{ keyword: string; status: string | null; pageSize: number }>({ keyword: "", status: null, pageSize: 20 });
 const imageFilters = reactive({ keyword: "", pageSize: 20 });
 const jobFilters = reactive({ keyword: "", pageSize: 20 });
 const containerPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
@@ -265,7 +265,7 @@ async function loadStatus() {
 async function loadContainers(page = 1) {
   containersLoading.value = true;
   try {
-    const result = await listContainers({ keyword: containerFilters.keyword, status: containerFilters.status, page, page_size: containerFilters.pageSize });
+    const result = await listContainers({ keyword: containerFilters.keyword, status: containerFilters.status ?? "", page, page_size: containerFilters.pageSize });
     containers.value = result.items;
     containerPagination.page = result.page;
     containerPagination.pageSize = result.page_size;

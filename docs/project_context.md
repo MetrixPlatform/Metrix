@@ -839,3 +839,4 @@
 - 前端新增 `web/src/modules/containers` 模块，页面 `/containers` 分为容器、镜像和任务页签；支持容器创建、启动、停止、重启、日志查看、删除，镜像导入、导出、删除、公共/私有切换，以及导入/导出任务列表和下载。模块 i18n 已接入中英文页面文案、权限、错误码、审计和 OpenAPI 文案。
 - 新增后端依赖 `docker`；本地验证使用 fake Docker client 覆盖核心 API、权限隔离、镜像归属、导入/导出任务，不依赖真实 Docker daemon。
 - 容器管理页和 CRUD 示例页筛选栏使用 `table-filter-row`，搜索框、下拉框和查询按钮保持单行展示；容器状态下拉和状态标签必须走 i18n，不显示 Docker 内部英文状态值。无平台归属记录的 Docker 镜像视为公共镜像，可供所有用户查看和创建容器；普通用户不能删除这类镜像，只有管理员/`manage_others` 可删除。
+- Naive UI `NSelect` 的清空/未选中状态要使用 `null`，不要用空字符串作为默认值；否则没有匹配 option 时 placeholder 不显示，会出现状态筛选框默认空白的问题。
