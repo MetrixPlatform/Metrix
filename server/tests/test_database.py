@@ -65,7 +65,10 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     numeric_schema_tables = client.get("/api/databases/db_sqlite_test/tables?database=0421", headers=headers)
     assert numeric_schema_tables.status_code == 200
 
-    invalid_schema_tables = client.get("/api/databases/db_sqlite_test/tables?database=bad-name", headers=headers)
+    chinese_schema_tables = client.get("/api/databases/db_sqlite_test/tables", params={"database": "中文库"}, headers=headers)
+    assert chinese_schema_tables.status_code == 200
+
+    invalid_schema_tables = client.get("/api/databases/db_sqlite_test/tables", params={"database": "bad\nname"}, headers=headers)
     assert invalid_schema_tables.status_code == 400
 
     table_data = client.get("/api/databases/db_sqlite_test/table-data?table=people&page_size=10", headers=headers)

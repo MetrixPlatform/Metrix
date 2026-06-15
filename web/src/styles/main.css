@@ -2395,6 +2395,21 @@ a {
   flex: 0 0 auto;
 }
 
+.database-tree .n-tree-node-content__text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.database-tree-label {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 .database-sub-toolbar {
   display: flex;
   align-items: center;

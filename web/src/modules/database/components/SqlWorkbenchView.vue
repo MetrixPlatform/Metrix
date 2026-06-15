@@ -23,6 +23,7 @@
           :expanded-keys="expandedKeys"
           :selected-keys="selectedKeys"
           :on-load="handleTreeLoad"
+          :render-label="renderTreeLabel"
           :render-prefix="renderTreePrefix"
           :render-suffix="renderTreeSuffix"
           @update:expanded-keys="handleExpand"
@@ -605,6 +606,11 @@ function scriptNodeKey(database: string, id: number) {
 
 function renderTreePrefix({ option }: { option: TreeOption }) {
   return h(NIcon, { component: PREFIX_ICONS[String(option.kind)] || Table20Regular });
+}
+
+function renderTreeLabel({ option }: { option: TreeOption }) {
+  const label = String(option.label ?? "");
+  return h("span", { class: "database-tree-label", title: label }, label);
 }
 
 function renderTreeSuffix({ option }: { option: TreeOption }) {
