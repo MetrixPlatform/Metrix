@@ -48,6 +48,7 @@ from app.modules.database.schemas import (
     SqlScriptListResponse,
     SqlScriptPayload,
     TableDataResponse,
+    TableStructureResponse,
     TableItem,
 )
 from app.modules.database.services import DatabaseService, SqlScriptService
@@ -228,14 +229,14 @@ def create_table(
     return message_response("common.saved", "Saved")
 
 
-@router.get("/{conn_id}/tables/{table}", response_model=dict, tags=DATA_TAGS)
+@router.get("/{conn_id}/tables/{table}", response_model=TableStructureResponse, tags=DATA_TAGS)
 def table_detail(
     conn_id: str,
     table: str,
     database: str = "",
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_READ)),
-) -> dict:
+) -> TableStructureResponse:
     return DatabaseService(db).table_detail(actor, conn_id, database, table)
 
 
@@ -377,6 +378,15 @@ def create_sql_script(
     actor: User = Depends(require_permission(SQL_SCRIPT_CREATE)),
 ) -> SqlScriptItem:
     return SqlScriptService(db).create(actor, payload)
+
+
+@scripts_router.get("/{script_id}", response_model=SqlScriptItem)
+def get_sql_script(
+    script_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(SQL_SCRIPT_READ)),
+) -> SqlScriptItem:
+    return SqlScriptService(db).get(actor, script_id)
 
 
 @scripts_router.put("/{script_id}", response_model=SqlScriptItem)

@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 CONN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$")
@@ -120,6 +120,18 @@ class ColumnItem(BaseModel):
     comment: str = ""
 
 
+class TableIndexItem(BaseModel):
+    name: str
+    columns: list[str]
+    unique: bool = False
+
+
+class TableStructureResponse(BaseModel):
+    columns: list[ColumnItem]
+    primary_keys: list[str]
+    indexes: list[TableIndexItem] = Field(default_factory=list)
+
+
 class TableDataResponse(BaseModel):
     columns: list[ColumnItem]
     primary_keys: list[str]
@@ -230,10 +242,27 @@ class ColumnDefinition(BaseModel):
         return clean_identifier(value, "column")
 
 
+class IndexDefinition(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    columns: list[str] = Field(min_length=1, max_length=16)
+    unique: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return clean_identifier(value, "index")
+
+    @field_validator("columns")
+    @classmethod
+    def validate_columns(cls, value: list[str]) -> list[str]:
+        return [clean_identifier(item, "column") for item in value]
+
+
 class CreateTableRequest(BaseModel):
     database: str = Field(default="", max_length=128)
     name: str = Field(min_length=1, max_length=128)
     columns: list[ColumnDefinition] = Field(min_length=1)
+    indexes: list[IndexDefinition] = Field(default_factory=list)
     if_not_exists: bool = True
 
     @field_validator("database")
@@ -258,14 +287,32 @@ class AlterTableAction(BaseModel):
         return clean_optional_identifier(value)
 
 
+class AlterIndexAction(BaseModel):
+    action: Literal["add_index", "drop_index"]
+    index: IndexDefinition | None = None
+    name: str = Field(default="", max_length=128)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return clean_optional_identifier(value)
+
+
 class AlterTableRequest(BaseModel):
     database: str = Field(default="", max_length=128)
-    actions: list[AlterTableAction] = Field(min_length=1)
+    actions: list[AlterTableAction] = Field(default_factory=list)
+    index_actions: list[AlterIndexAction] = Field(default_factory=list)
 
     @field_validator("database")
     @classmethod
     def validate_database(cls, value: str) -> str:
         return clean_optional_identifier(value)
+
+    @model_validator(mode="after")
+    def validate_actions(self) -> AlterTableRequest:
+        if not self.actions and not self.index_actions:
+            raise PydanticCustomError("validation.tableAlterEmpty", "No table alter action provided")
+        return self
 
 
 class RenameTableRequest(BaseModel):
@@ -411,6 +458,7 @@ class SqlScriptItem(BaseModel):
     is_shared: bool
     created_by: int | None
     created_by_username: str = ""
+    statement_count: int = 0
     created_at: datetime
     updated_at: datetime
 

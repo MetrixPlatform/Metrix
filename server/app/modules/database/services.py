@@ -50,6 +50,7 @@ from app.modules.database.schemas import (
     SqlScriptListResponse,
     SqlScriptPayload,
     TableDataResponse,
+    TableStructureResponse,
     TableItem,
     clean_identifier,
 )
@@ -283,12 +284,16 @@ class DatabaseService:
         if not has_permission(actor, DATABASE_OPERATE):
             raise forbidden()
         content = payload.content.strip()
-        if not content and payload.script_id is not None:
+        script_id: int | None = None
+        if payload.script_id is not None:
             script = self._get_script_visible(actor, payload.script_id)
+            if script.connection_id is not None and script.connection_id != connection.id:
+                raise bad_request("error.sqlScriptConnectionMismatch", "SQL script does not belong to this connection")
             content = script.content.strip()
+            script_id = script.id
         if not content:
             raise bad_request("error.sqlScriptContentRequired", "SQL script content is required")
-        database = self._database_name(connection, payload.database)
+        database = self._database_name(connection, payload.database or (script.database if payload.script_id is not None else ""))
         statements = split_sql_statements(content)
         results: list[ScriptStatementResult] = []
         stopped = False
@@ -313,7 +318,7 @@ class DatabaseService:
             "database",
             connection.conn_id,
             connection.name,
-            audit_detail(connection.name, meta={"count": len(results), "stopped": stopped}),
+            audit_detail(connection.name, meta={"count": len(results), "stopped": stopped, "script_id": script_id}),
         )
         self.db.commit()
         return RunScriptResponse(results=results, stopped=stopped)
@@ -359,13 +364,19 @@ class DatabaseService:
             prefix = "CREATE TABLE IF NOT EXISTS" if payload.if_not_exists else "CREATE TABLE"
             columns_sql = ", ".join(_column_definition_sql(runtime, column) for column in payload.columns)
             runtime.execute_write(f"{prefix} {table_name} ({columns_sql})")
+            for index in payload.indexes:
+                runtime.execute_write(_create_index_sql(runtime, table_name, index.name, index.columns, index.unique))
         self._audit_operate(actor, connection, "database.table_create", {"table": payload.name})
 
-    def table_detail(self, actor: User, conn_id: str, database: str, table: str) -> dict[str, Any]:
+    def table_detail(self, actor: User, conn_id: str, database: str, table: str) -> TableStructureResponse:
         connection = self._get_usable(actor, conn_id)
         database = self._database_name(connection, database)
         with self._runtime(connection, database) as runtime:
-            return {"columns": runtime.columns(table, database), "primary_keys": runtime.primary_keys(table, database)}
+            return TableStructureResponse(
+                columns=runtime.columns(table, database),
+                primary_keys=runtime.primary_keys(table, database),
+                indexes=runtime.indexes(table, database),
+            )
 
     def alter_table(self, actor: User, conn_id: str, table: str, payload: AlterTableRequest) -> None:
         connection = self._get_usable(actor, conn_id)
@@ -381,6 +392,13 @@ class DatabaseService:
                     runtime.execute_write(f"ALTER TABLE {table_name} {keyword} {_column_definition_sql(runtime, item.column)}")
                 elif item.action == "drop_column" and item.name:
                     runtime.execute_write(f"ALTER TABLE {table_name} DROP COLUMN {runtime.quote_identifier(item.name)}")
+                else:
+                    raise bad_request("error.databaseAlterInvalid", "Invalid alter table action")
+            for item in payload.index_actions:
+                if item.action == "add_index" and item.index:
+                    runtime.execute_write(_create_index_sql(runtime, table_name, item.index.name, item.index.columns, item.index.unique))
+                elif item.action == "drop_index" and item.name:
+                    runtime.execute_write(_drop_index_sql(runtime, table_name, item.name))
                 else:
                     raise bad_request("error.databaseAlterInvalid", "Invalid alter table action")
         self._audit_operate(actor, connection, "database.table_alter", {"table": table})
@@ -565,6 +583,12 @@ class SqlScriptService:
         rows, total = self.scripts.list(keyword, connection_id, database, is_shared, created_by_user_id, visible_to, page, page_size)
         return SqlScriptListResponse(items=[self._item(row) for row in rows], total=total, page=page, page_size=page_size)
 
+    def get(self, actor: User, script_id: int) -> SqlScriptItem:
+        script = self._get(script_id)
+        if script.created_by == actor.id or script.is_shared or has_permission(actor, SQL_SCRIPT_MANAGE_OTHERS):
+            return self._item(script)
+        raise forbidden()
+
     def create(self, actor: User, payload: SqlScriptPayload) -> SqlScriptItem:
         self._ensure_connection_visible(actor, payload.connection_id)
         script = self.scripts.create(
@@ -642,6 +666,7 @@ class SqlScriptService:
             update={
                 "connection_name": connection.name if connection else "",
                 "created_by_username": creator_name,
+                "statement_count": len(split_sql_statements(script.content)),
             }
         )
 
@@ -712,16 +737,34 @@ def _estimated_total(page: int, page_size: int, row_count: int) -> int:
 
 def _column_definition_sql(runtime: ExternalDatabase, column: ColumnDefinition) -> str:
     column_type = _safe_column_type(column.type)
+    if runtime.connection.db_type == "sqlite" and column.primary_key and column.autoincrement:
+        column_type = "INTEGER"
     parts = [runtime.quote_identifier(column.name), column_type]
     if column.primary_key:
         parts.append("PRIMARY KEY")
     if column.autoincrement:
-        parts.append("AUTO_INCREMENT")
+        parts.append("AUTOINCREMENT" if runtime.connection.db_type == "sqlite" else "AUTO_INCREMENT")
     if not column.nullable:
         parts.append("NOT NULL")
     if column.default:
         parts.append(f"DEFAULT {_literal_default(column.default)}")
+    if column.comment and runtime.connection.db_type != "sqlite":
+        parts.append(f"COMMENT {_literal_default(column.comment)}")
     return " ".join(parts)
+
+
+def _create_index_sql(runtime: ExternalDatabase, table_name: str, name: str, columns: list[str], unique: bool) -> str:
+    index_name = runtime.quote_identifier(clean_identifier(name, "index"))
+    column_sql = ", ".join(runtime.quote_identifier(clean_identifier(column, "column")) for column in columns)
+    prefix = "CREATE UNIQUE INDEX" if unique else "CREATE INDEX"
+    return f"{prefix} {index_name} ON {table_name} ({column_sql})"
+
+
+def _drop_index_sql(runtime: ExternalDatabase, table_name: str, name: str) -> str:
+    index_name = runtime.quote_identifier(clean_identifier(name, "index"))
+    if runtime.connection.db_type == "sqlite":
+        return f"DROP INDEX {index_name}"
+    return f"DROP INDEX {index_name} ON {table_name}"
 
 
 def _safe_column_type(value: str) -> str:

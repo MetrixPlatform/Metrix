@@ -11,7 +11,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.exceptions import bad_request, service_unavailable
 from app.modules.database.models import DatabaseConnection
-from app.modules.database.schemas import ColumnItem, clean_identifier
+from app.modules.database.schemas import ColumnItem, TableIndexItem, clean_identifier
 
 READ_SQL_KEYWORDS = {"SELECT", "SHOW", "DESC", "DESCRIBE", "EXPLAIN", "WITH"}
 PAGEABLE_READ_KEYWORDS = {"SELECT", "WITH"}
@@ -90,6 +90,19 @@ class ExternalDatabase:
     def primary_keys(self, table: str, database: str = "") -> list[str]:
         schema = _schema_arg(database or self.database, self.connection.db_type)
         return list(inspect(self.engine).get_pk_constraint(table, schema=schema).get("constrained_columns") or [])
+
+    def indexes(self, table: str, database: str = "") -> list[TableIndexItem]:
+        schema = _schema_arg(database or self.database, self.connection.db_type)
+        indexes = []
+        for item in inspect(self.engine).get_indexes(table, schema=schema):
+            indexes.append(
+                TableIndexItem(
+                    name=str(item.get("name") or ""),
+                    columns=[str(column) for column in item.get("column_names") or []],
+                    unique=bool(item.get("unique", False)),
+                )
+            )
+        return indexes
 
     def table_total(self, table: str, database: str = "", where_sql: str = "", params: dict[str, Any] | None = None) -> int:
         sql = f"SELECT COUNT(*) AS total FROM {self.qualified_table(table, database)}{where_sql}"

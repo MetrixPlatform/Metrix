@@ -111,6 +111,40 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     assert script.status_code == 200
     assert len(script.json()["results"]) == 2
 
+    designed = client.post(
+        "/api/databases/db_sqlite_test/tables",
+        json={
+            "name": "designed",
+            "columns": [
+                {"name": "id", "type": "INTEGER", "nullable": False, "primary_key": True, "autoincrement": True},
+                {"name": "code", "type": "TEXT", "nullable": False, "default": "A"},
+            ],
+            "indexes": [{"name": "idx_designed_code", "columns": ["code"], "unique": True}],
+        },
+        headers=headers,
+    )
+    assert designed.status_code == 200
+    designed_detail = client.get("/api/databases/db_sqlite_test/tables/designed", headers=headers)
+    assert designed_detail.status_code == 200
+    assert [column["name"] for column in designed_detail.json()["columns"]] == ["id", "code"]
+    assert designed_detail.json()["primary_keys"] == ["id"]
+    assert {"name": "idx_designed_code", "columns": ["code"], "unique": True} in designed_detail.json()["indexes"]
+    altered = client.post(
+        "/api/databases/db_sqlite_test/tables/designed/alter",
+        json={
+            "actions": [{"action": "add_column", "column": {"name": "title", "type": "TEXT", "nullable": True}}],
+            "index_actions": [
+                {"action": "drop_index", "name": "idx_designed_code"},
+                {"action": "add_index", "index": {"name": "idx_designed_title", "columns": ["title"], "unique": False}},
+            ],
+        },
+        headers=headers,
+    )
+    assert altered.status_code == 200
+    altered_detail = client.get("/api/databases/db_sqlite_test/tables/designed", headers=headers).json()
+    assert "title" in {column["name"] for column in altered_detail["columns"]}
+    assert {"name": "idx_designed_title", "columns": ["title"], "unique": False} in altered_detail["indexes"]
+
     submitted = client.post(
         "/api/databases/db_sqlite_test/export",
         json={"format": "csv", "tables": ["people"]},
@@ -260,11 +294,26 @@ def test_sql_script_is_database_scoped(tmp_path, monkeypatch):
 
     first = client.post(
         "/api/sql-scripts",
-        json={"name": "report_0421", "content": "SELECT 1", "connection_id": connection_id, "database": "0421"},
+        json={"name": "report_0421", "content": "SELECT 1; SELECT 2;", "connection_id": connection_id, "database": "0421"},
         headers=headers,
     )
     assert first.status_code == 200
     assert first.json()["database"] == "0421"
+    assert first.json()["statement_count"] == 2
+    detail = client.get(f"/api/sql-scripts/{first.json()['id']}", headers=headers)
+    assert detail.status_code == 200
+    assert detail.json()["id"] == first.json()["id"]
+    assert detail.json()["statement_count"] == 2
+    updated = client.put(
+        f"/api/sql-scripts/{first.json()['id']}",
+        json={"name": "report_0421", "content": "SELECT 3", "connection_id": connection_id, "database": "0421", "description": "updated", "is_shared": False},
+        headers=headers,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["description"] == "updated"
+    run_saved = client.post("/api/databases/db_scripts_test/run-script", json={"script_id": first.json()["id"]}, headers=headers)
+    assert run_saved.status_code == 200
+    assert run_saved.json()["results"][0]["rows"] == [{"3": 3}]
     second = client.post(
         "/api/sql-scripts",
         json={"name": "report_other", "content": "SELECT 2", "connection_id": connection_id, "database": "report"},

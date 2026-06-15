@@ -2484,6 +2484,86 @@ a {
   color: var(--muted-color);
 }
 
+.database-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.database-detail-list > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.database-detail-list > div:last-child {
+  border-bottom: 0;
+}
+
+.database-detail-list span {
+  color: var(--muted-color);
+}
+
+.database-detail-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-designer-modal {
+  width: min(1080px, calc(100vw - 48px));
+}
+
+.table-designer {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.table-designer-section {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.table-designer-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.table-designer-grid {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.table-designer-grid > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-color);
+}
+
+.table-designer-columns {
+  grid-template-columns: minmax(120px, 1.1fr) minmax(120px, 1fr) 62px 62px 82px minmax(110px, 0.9fr) minmax(120px, 1fr) 76px;
+}
+
+.table-designer-indexes {
+  grid-template-columns: minmax(140px, 1fr) minmax(220px, 1.5fr) 70px 76px;
+}
+
+.database-dropped-row {
+  opacity: 0.52;
+}
+
 .database-export-form {
   gap: 12px;
 }

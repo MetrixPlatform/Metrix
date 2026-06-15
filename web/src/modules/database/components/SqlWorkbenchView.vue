@@ -71,9 +71,13 @@
                 <template #icon><n-icon :component="Database20Regular" /></template>
                 {{ selectedDatabase || t("database.allSchemas") }}
               </n-tag>
+              <n-tag v-if="currentScript" class="database-active-schema" size="small" :bordered="false">
+                {{ currentScript.name }}
+              </n-tag>
+              <n-button v-if="currentScript" @click="scriptDetailModal.show = true">{{ t("database.script.detail") }}</n-button>
               <n-button type="primary" :loading="executing" @click="executeSql">{{ t("database.sql.execute") }}</n-button>
               <n-button @click="openResultExport">{{ t("database.export.result") }}</n-button>
-              <permission-button :permission="SQL_SCRIPT_CREATE" @click="openSaveScript">{{ t("database.script.save") }}</permission-button>
+              <permission-button :permission="scriptSavePermission" @click="openSaveScript">{{ scriptSaveText }}</permission-button>
             </div>
             <monaco-editor v-model="sql" class="database-sql-editor" :suggestions="suggestions" />
             <div class="database-result-bar">
@@ -113,13 +117,16 @@
       </template>
     </n-modal>
 
-    <n-modal v-model:show="scriptModal.show" preset="card" class="modal-card" :title="t('database.script.save')">
+    <n-modal v-model:show="scriptModal.show" preset="card" class="modal-card" :title="scriptModalTitle">
       <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
         <n-form-item :label="t('field.name')">
           <n-input v-model:value="scriptModal.name" />
         </n-form-item>
         <n-form-item :label="t('field.description')">
           <n-input v-model:value="scriptModal.description" />
+        </n-form-item>
+        <n-form-item :label="t('database.script.content')">
+          <n-input v-model:value="scriptModal.content" type="textarea" :autosize="{ minRows: 8, maxRows: 16 }" />
         </n-form-item>
         <n-form-item :label="t('database.shared')">
           <n-switch v-model:value="scriptModal.is_shared" />
@@ -133,6 +140,15 @@
       </template>
     </n-modal>
 
+    <n-modal v-model:show="scriptDetailModal.show" preset="card" class="modal-card" :title="t('database.script.detail')">
+      <div v-if="currentScript" class="database-detail-list">
+        <div><span>{{ t("database.script.id") }}</span><strong>{{ currentScript.id }}</strong></div>
+        <div><span>{{ t("database.script.statementCount") }}</span><strong>{{ currentScript.statement_count }}</strong></div>
+        <div><span>{{ t("field.createdAt") }}</span><strong>{{ formatDateTime(currentScript.created_at) }}</strong></div>
+        <div><span>{{ t("field.updatedAt") }}</span><strong>{{ formatDateTime(currentScript.updated_at) }}</strong></div>
+      </div>
+    </n-modal>
+
     <n-modal v-model:show="objectModal.show" preset="card" class="modal-card" :title="objectModalTitle">
       <n-form class="form-stack inline-form" label-placement="left" label-width="auto" @keyup.enter="saveObject">
         <n-form-item :label="objectModal.kind === 'schema' ? t('database.schema.name') : t('database.table.name')">
@@ -143,6 +159,70 @@
         <div class="form-actions modal-fixed-actions">
           <n-button @click="objectModal.show = false">{{ t("common.cancel") }}</n-button>
           <n-button type="primary" :loading="objectModal.saving" @click="saveObject">{{ t("common.save") }}</n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="tableDesigner.show" preset="card" class="modal-card table-designer-modal" :title="tableDesignerTitle">
+      <div class="table-designer">
+        <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
+          <n-form-item :label="t('database.table.name')">
+            <n-input v-model:value="tableDesigner.name" :disabled="tableDesigner.mode === 'edit'" />
+          </n-form-item>
+        </n-form>
+        <section class="table-designer-section">
+          <div class="table-designer-section-head">
+            <strong>{{ t("database.table.columns") }}</strong>
+            <n-button size="small" @click="addDesignerColumn">{{ t("database.table.addColumn") }}</n-button>
+          </div>
+          <div class="table-designer-grid table-designer-columns">
+            <span>{{ t("field.name") }}</span>
+            <span>{{ t("database.table.columnType") }}</span>
+            <span>{{ t("database.table.nullable") }}</span>
+            <span>{{ t("database.table.primaryKey") }}</span>
+            <span>{{ t("database.table.autoincrement") }}</span>
+            <span>{{ t("database.table.defaultValue") }}</span>
+            <span>{{ t("field.description") }}</span>
+            <span>{{ t("common.actions") }}</span>
+            <template v-for="column in tableDesigner.columns" :key="column.key">
+              <n-input v-model:value="column.name" size="small" :disabled="column.existing" :class="{ 'database-dropped-row': column.drop }" />
+              <n-input v-model:value="column.type" size="small" :disabled="column.drop" />
+              <n-checkbox v-model:checked="column.nullable" :disabled="column.drop" />
+              <n-checkbox v-model:checked="column.primary_key" :disabled="column.drop" />
+              <n-checkbox v-model:checked="column.autoincrement" :disabled="column.drop" />
+              <n-input v-model:value="column.default" size="small" :disabled="column.drop" />
+              <n-input v-model:value="column.comment" size="small" :disabled="column.drop" />
+              <n-button size="tiny" quaternary :type="column.drop ? 'default' : 'error'" @click="toggleDesignerColumnDrop(column)">
+                {{ column.drop ? t("database.table.restore") : t("common.delete") }}
+              </n-button>
+            </template>
+          </div>
+        </section>
+        <section class="table-designer-section">
+          <div class="table-designer-section-head">
+            <strong>{{ t("database.table.indexes") }}</strong>
+            <n-button size="small" @click="addDesignerIndex">{{ t("database.table.addIndex") }}</n-button>
+          </div>
+          <div class="table-designer-grid table-designer-indexes">
+            <span>{{ t("field.name") }}</span>
+            <span>{{ t("database.table.indexColumns") }}</span>
+            <span>{{ t("database.table.unique") }}</span>
+            <span>{{ t("common.actions") }}</span>
+            <template v-for="index in tableDesigner.indexes" :key="index.key">
+              <n-input v-model:value="index.name" size="small" :disabled="index.existing || index.drop" :class="{ 'database-dropped-row': index.drop }" />
+              <n-input v-model:value="index.columns" size="small" :disabled="index.drop" :placeholder="t('database.table.indexColumnsPlaceholder')" />
+              <n-checkbox v-model:checked="index.unique" :disabled="index.drop" />
+              <n-button size="tiny" quaternary :type="index.drop ? 'default' : 'error'" @click="toggleDesignerIndexDrop(index)">
+                {{ index.drop ? t("database.table.restore") : t("common.delete") }}
+              </n-button>
+            </template>
+          </div>
+        </section>
+      </div>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
+          <n-button @click="tableDesigner.show = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :loading="tableDesigner.saving" @click="saveTableDesigner">{{ t("common.save") }}</n-button>
         </div>
       </template>
     </n-modal>
@@ -183,6 +263,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref, watch, type Component, type VNode } from "vue";
 import {
+  Add20Regular,
   ArrowClockwise20Regular,
   ArrowLeft20Regular,
   ChevronDown20Regular,
@@ -218,7 +299,7 @@ import {
 import type { DataTableColumns, DataTableSortState, DropdownOption, TreeOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
-import { t } from "../../../i18n";
+import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { showError } from "../../../utils/message";
 import { withResizableColumns } from "../../../utils/table";
@@ -232,6 +313,8 @@ import {
   dropSchema,
   dropTable,
   getDataJobDownloadCount,
+  getSqlScript,
+  getTableStructure,
   getTableData,
   listSchemas,
   listSqlScripts,
@@ -240,15 +323,21 @@ import {
   runSqlScript,
   submitExport,
   truncateTable,
+  alterTable,
   updateRow,
+  updateSqlScript,
+  type AlterTablePayload,
   type ColumnItem,
+  type ColumnDefinition,
   type DatabaseConnection,
   type DataFormat,
+  type IndexDefinition,
   type QueryResult,
   type SqlScript,
+  type TableIndexItem,
   type TableItem
 } from "../api";
-import { DATABASE_OPERATE, SQL_SCRIPT_CREATE, SQL_SCRIPT_DELETE } from "../permissions";
+import { DATABASE_OPERATE, SQL_SCRIPT_CREATE, SQL_SCRIPT_DELETE, SQL_SCRIPT_UPDATE } from "../permissions";
 import ImportWizard from "./ImportWizard.vue";
 import MonacoEditor from "./MonacoEditor.vue";
 
@@ -279,6 +368,7 @@ const executing = ref(false);
 const resultCollapsed = ref(false);
 const sql = ref("SELECT 1;");
 const queryResult = ref<QueryResult | null>(null);
+const currentScript = ref<SqlScript | null>(null);
 const savingRow = ref(false);
 const savingScript = ref(false);
 const showImport = ref(false);
@@ -298,14 +388,52 @@ const rowModal = reactive({
 });
 const scriptModal = reactive({
   show: false,
+  mode: "create" as "create" | "update",
+  id: null as number | null,
   name: "",
   description: "",
-  is_shared: false
+  is_shared: false,
+  content: ""
+});
+const scriptDetailModal = reactive({
+  show: false
 });
 const objectModal = reactive({
   show: false,
   kind: "schema" as "schema" | "table",
   name: "",
+  saving: false
+});
+interface TableColumnDraft {
+  key: string;
+  existing: boolean;
+  original: ColumnDefinition;
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary_key: boolean;
+  autoincrement: boolean;
+  default: string;
+  comment: string;
+  drop: boolean;
+}
+interface TableIndexDraft {
+  key: string;
+  existing: boolean;
+  original: IndexDefinition;
+  name: string;
+  columns: string;
+  unique: boolean;
+  drop: boolean;
+}
+const tableDesigner = reactive({
+  show: false,
+  mode: "create" as "create" | "edit",
+  database: "",
+  name: "",
+  originalName: "",
+  columns: [] as TableColumnDraft[],
+  indexes: [] as TableIndexDraft[],
   saving: false
 });
 const dataPagination = reactive({
@@ -326,6 +454,10 @@ const exportOptions = [
 
 const canOperate = computed(() => authStore.has(DATABASE_OPERATE));
 const canDeleteScript = computed(() => authStore.has(SQL_SCRIPT_DELETE));
+const scriptSavePermission = computed(() => (currentScript.value ? SQL_SCRIPT_UPDATE : SQL_SCRIPT_CREATE));
+const scriptSaveText = computed(() => (currentScript.value ? t("database.script.update") : t("database.script.save")));
+const scriptModalTitle = computed(() => (scriptModal.mode === "update" ? t("database.script.update") : t("database.script.save")));
+const tableDesignerTitle = computed(() => (tableDesigner.mode === "edit" ? t("database.table.editStructure") : t("database.table.create")));
 const exportFormatOptions = computed(() => {
   const all = [
     { label: "CSV", value: "csv" },
@@ -449,12 +581,21 @@ function renderTreeSuffix({ option }: { option: TreeOption }) {
     }
     return nodeActions(actions);
   }
+  if (option.kind === "tablesCat" && canOperate.value) {
+    const database = option.database as string;
+    return nodeActions([iconButton(Add20Regular, t("database.table.create"), () => openCreateTableDesigner(database))]);
+  }
+  if (option.kind === "scriptsCat" && authStore.has(SQL_SCRIPT_CREATE)) {
+    const database = option.database as string;
+    return nodeActions([iconButton(Add20Regular, t("database.script.create"), () => openCreateScript(database))]);
+  }
   if (option.kind === "table" && canOperate.value) {
     const database = option.database as string;
     const table = option.table as string;
     return nodeActions([
       opsButton(
         [
+          { label: t("database.table.editStructure"), key: "structure" },
           { label: t("database.import.title"), key: "import" },
           { label: t("database.table.truncate"), key: "truncate" },
           { label: t("database.table.drop"), key: "drop" }
@@ -466,7 +607,8 @@ function renderTreeSuffix({ option }: { option: TreeOption }) {
   if (option.kind === "script") {
     const script = option.script as SqlScript;
     const options: DropdownOption[] = [
-      { label: t("database.script.load"), key: "load" },
+      { label: t("database.script.edit"), key: "load" },
+      { label: t("database.script.detail"), key: "detail" },
       { label: t("database.script.run"), key: "run" }
     ];
     if (canDeleteScript.value) options.push({ label: t("common.delete"), key: "delete" });
@@ -607,7 +749,7 @@ async function handleTreeSelect(keys: Array<string | number>, options: Array<Tre
     return;
   }
   if (node.kind === "script") {
-    loadScriptIntoEditor(node.script as SqlScript);
+    await loadScriptIntoEditor(node.script as SqlScript);
     return;
   }
   selectedDatabase.value = node.database as string;
@@ -896,7 +1038,7 @@ function createSchemaPrompt() {
 
 function createTablePrompt() {
   if (!selectedDatabase.value) return;
-  Object.assign(objectModal, { show: true, kind: "table", name: "", saving: false });
+  openCreateTableDesigner(selectedDatabase.value);
 }
 
 function handleSchemaOp(key: string, database: string) {
@@ -908,7 +1050,8 @@ function handleSchemaOp(key: string, database: string) {
 }
 
 function handleTableOp(key: string, database: string, table: string) {
-  if (key === "import") openImportForTable(database, table);
+  if (key === "structure") void openEditTableDesigner(database, table);
+  else if (key === "import") openImportForTable(database, table);
   else if (key === "truncate") truncateTableByName(database, table);
   else if (key === "drop") dropTableByName(database, table);
 }
@@ -926,9 +1069,197 @@ function openImportForTable(database: string, table: string) {
 }
 
 function handleScriptOp(key: string, script: SqlScript) {
-  if (key === "load") loadScriptIntoEditor(script);
+  if (key === "load") void loadScriptIntoEditor(script);
+  else if (key === "detail") void showScriptDetail(script);
   else if (key === "run") void executeScript(script);
   else if (key === "delete") confirmDeleteScript(script);
+}
+
+function openCreateTableDesigner(database: string) {
+  selectedDatabase.value = database;
+  Object.assign(tableDesigner, {
+    show: true,
+    mode: "create",
+    database,
+    name: "",
+    originalName: "",
+    saving: false
+  });
+  tableDesigner.columns = [
+    columnDraft({ name: "id", type: "INT", nullable: false, primary_key: true, autoincrement: true, default: "", comment: "" }, false),
+    columnDraft({ name: "name", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false, default: "", comment: "" }, false)
+  ];
+  tableDesigner.indexes = [];
+}
+
+async function openEditTableDesigner(database: string, table: string) {
+  selectedDatabase.value = database;
+  try {
+    const detail = await getTableStructure(props.connection.conn_id, database, table);
+    Object.assign(tableDesigner, {
+      show: true,
+      mode: "edit",
+      database,
+      name: table,
+      originalName: table,
+      saving: false
+    });
+    tableDesigner.columns = detail.columns.map((column) => columnDraft(columnToDefinition(column), true));
+    tableDesigner.indexes = detail.indexes.map((index) => indexDraft(indexToDefinition(index), true));
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+function addDesignerColumn() {
+  tableDesigner.columns.push(columnDraft({ name: "", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false, default: "", comment: "" }, false));
+}
+
+function addDesignerIndex() {
+  tableDesigner.indexes.push(indexDraft({ name: "", columns: [], unique: false }, false));
+}
+
+function toggleDesignerColumnDrop(column: TableColumnDraft) {
+  if (column.existing) column.drop = !column.drop;
+  else tableDesigner.columns = tableDesigner.columns.filter((item) => item.key !== column.key);
+}
+
+function toggleDesignerIndexDrop(index: TableIndexDraft) {
+  if (index.existing) index.drop = !index.drop;
+  else tableDesigner.indexes = tableDesigner.indexes.filter((item) => item.key !== index.key);
+}
+
+async function saveTableDesigner() {
+  const name = tableDesigner.name.trim();
+  if (!name || !activeDesignerColumns().length) return;
+  tableDesigner.saving = true;
+  try {
+    if (tableDesigner.mode === "create") {
+      await createTable(props.connection.conn_id, {
+        database: tableDesigner.database,
+        name,
+        columns: activeDesignerColumns().map(draftToColumnDefinition),
+        indexes: activeDesignerIndexes().map(draftToIndexDefinition)
+      });
+      selectedTable.value = name;
+    } else {
+      const payload = buildAlterTablePayload();
+      await alterTable(props.connection.conn_id, tableDesigner.originalName, payload);
+      selectedTable.value = tableDesigner.originalName;
+    }
+    tableDesigner.show = false;
+    await reloadSchema(tableDesigner.database);
+    await openSchemaTables(tableDesigner.database);
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    tableDesigner.saving = false;
+  }
+}
+
+function buildAlterTablePayload(): AlterTablePayload {
+  const actions: AlterTablePayload["actions"] = [];
+  const indexActions: AlterTablePayload["index_actions"] = [];
+  for (const column of tableDesigner.columns) {
+    if (column.existing && column.drop) {
+      actions?.push({ action: "drop_column", name: column.original.name });
+    } else if (!column.existing && !column.drop) {
+      actions?.push({ action: "add_column", column: draftToColumnDefinition(column) });
+    } else if (column.existing && !column.drop && columnChanged(column)) {
+      actions?.push({ action: "modify_column", column: draftToColumnDefinition(column) });
+    }
+  }
+  for (const index of tableDesigner.indexes) {
+    if (index.existing && index.drop) {
+      indexActions?.push({ action: "drop_index", name: index.original.name });
+    } else if (!index.existing && !index.drop) {
+      indexActions?.push({ action: "add_index", index: draftToIndexDefinition(index) });
+    } else if (index.existing && !index.drop && indexChanged(index)) {
+      indexActions?.push({ action: "drop_index", name: index.original.name });
+      indexActions?.push({ action: "add_index", index: draftToIndexDefinition(index) });
+    }
+  }
+  return { database: tableDesigner.database, actions, index_actions: indexActions };
+}
+
+function activeDesignerColumns() {
+  return tableDesigner.columns.filter((column) => !column.drop && column.name.trim());
+}
+
+function activeDesignerIndexes() {
+  return tableDesigner.indexes.filter((index) => !index.drop && index.name.trim() && splitIndexColumns(index.columns).length);
+}
+
+function columnDraft(column: ColumnDefinition, existing: boolean): TableColumnDraft {
+  return {
+    key: crypto.randomUUID(),
+    existing,
+    original: { ...column },
+    name: column.name,
+    type: column.type,
+    nullable: column.nullable,
+    primary_key: column.primary_key,
+    autoincrement: column.autoincrement,
+    default: column.default || "",
+    comment: column.comment || "",
+    drop: false
+  };
+}
+
+function indexDraft(index: IndexDefinition, existing: boolean): TableIndexDraft {
+  return {
+    key: crypto.randomUUID(),
+    existing,
+    original: { ...index, columns: [...index.columns] },
+    name: index.name,
+    columns: index.columns.join(", "),
+    unique: index.unique,
+    drop: false
+  };
+}
+
+function columnToDefinition(column: ColumnItem): ColumnDefinition {
+  return {
+    name: column.name,
+    type: column.type,
+    nullable: column.nullable,
+    primary_key: column.primary_key,
+    autoincrement: column.autoincrement,
+    default: column.default == null ? "" : String(column.default),
+    comment: column.comment
+  };
+}
+
+function indexToDefinition(index: TableIndexItem): IndexDefinition {
+  return { name: index.name, columns: index.columns, unique: index.unique };
+}
+
+function draftToColumnDefinition(column: TableColumnDraft): ColumnDefinition {
+  return {
+    name: column.name.trim(),
+    type: column.type.trim() || "VARCHAR(255)",
+    nullable: column.nullable,
+    primary_key: column.primary_key,
+    autoincrement: column.autoincrement,
+    default: column.default.trim(),
+    comment: column.comment.trim()
+  };
+}
+
+function draftToIndexDefinition(index: TableIndexDraft): IndexDefinition {
+  return { name: index.name.trim(), columns: splitIndexColumns(index.columns), unique: index.unique };
+}
+
+function splitIndexColumns(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function columnChanged(column: TableColumnDraft) {
+  return JSON.stringify(draftToColumnDefinition(column)) !== JSON.stringify(column.original);
+}
+
+function indexChanged(index: TableIndexDraft) {
+  return JSON.stringify(draftToIndexDefinition(index)) !== JSON.stringify(index.original);
 }
 
 async function saveObject() {
@@ -949,7 +1280,7 @@ async function saveObject() {
         name,
         columns: [
           { name: "id", type: "INT", nullable: false, primary_key: true, autoincrement: true },
-          { name: "name", type: "VARCHAR(255)", nullable: true }
+          { name: "name", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false }
         ]
       });
       objectModal.show = false;
@@ -993,14 +1324,26 @@ function dropSchemaByName(database: string) {
   });
 }
 
-function loadScriptIntoEditor(script: SqlScript) {
-  sql.value = script.content;
-  activeTab.value = "sql";
+async function loadScriptIntoEditor(script: SqlScript) {
+  try {
+    const detail = await getSqlScript(script.id);
+    currentScript.value = detail;
+    selectedDatabase.value = detail.database || selectedDatabase.value;
+    sql.value = detail.content;
+    activeTab.value = "sql";
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+async function showScriptDetail(script: SqlScript) {
+  await loadScriptIntoEditor(script);
+  scriptDetailModal.show = true;
 }
 
 async function executeScript(script: SqlScript) {
   try {
-    const result = await runSqlScript(props.connection.conn_id, { script_id: script.id, database: selectedDatabase.value });
+    const result = await runSqlScript(props.connection.conn_id, { script_id: script.id, database: script.database || selectedDatabase.value });
     message.success(t("database.script.result", { count: result.results.length }));
   } catch (error) {
     showError(message, error);
@@ -1015,23 +1358,45 @@ function confirmDeleteScript(script: SqlScript) {
 }
 
 function openSaveScript() {
+  scriptModal.mode = currentScript.value ? "update" : "create";
+  scriptModal.id = currentScript.value?.id ?? null;
+  scriptModal.name = currentScript.value?.name || "";
+  scriptModal.description = currentScript.value?.description || "";
+  scriptModal.is_shared = currentScript.value?.is_shared ?? false;
+  scriptModal.content = sql.value;
+  scriptModal.show = true;
+}
+
+function openCreateScript(database: string) {
+  selectedDatabase.value = database;
+  currentScript.value = null;
+  scriptModal.mode = "create";
+  scriptModal.id = null;
   scriptModal.name = "";
   scriptModal.description = "";
   scriptModal.is_shared = false;
+  scriptModal.content = "SELECT 1;";
   scriptModal.show = true;
 }
 
 async function saveScript() {
   savingScript.value = true;
   try {
-    await createSqlScript({
+    const payload = {
       name: scriptModal.name || t("database.script.untitled"),
-      content: sql.value,
+      content: scriptModal.content,
       connection_id: props.connection.id,
       database: selectedDatabase.value,
       description: scriptModal.description,
       is_shared: scriptModal.is_shared
-    });
+    };
+    const saved =
+      scriptModal.mode === "update" && scriptModal.id
+        ? await updateSqlScript(scriptModal.id, payload)
+        : await createSqlScript(payload);
+    currentScript.value = saved;
+    selectedDatabase.value = saved.database || selectedDatabase.value;
+    sql.value = saved.content;
     scriptModal.show = false;
     await reloadScripts();
   } catch (error) {

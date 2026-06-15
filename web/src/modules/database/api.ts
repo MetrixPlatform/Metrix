@@ -75,6 +75,40 @@ export interface ColumnItem {
   comment: string;
 }
 
+export interface TableIndexItem {
+  name: string;
+  columns: string[];
+  unique: boolean;
+}
+
+export interface TableStructure {
+  columns: ColumnItem[];
+  primary_keys: string[];
+  indexes: TableIndexItem[];
+}
+
+export interface ColumnDefinition {
+  name: string;
+  type: string;
+  nullable: boolean;
+  primary_key: boolean;
+  default?: string;
+  autoincrement: boolean;
+  comment?: string;
+}
+
+export interface IndexDefinition {
+  name: string;
+  columns: string[];
+  unique: boolean;
+}
+
+export interface AlterTablePayload {
+  database?: string;
+  actions?: Array<{ action: "add_column" | "drop_column" | "modify_column"; column?: ColumnDefinition; name?: string }>;
+  index_actions?: Array<{ action: "add_index" | "drop_index"; index?: IndexDefinition; name?: string }>;
+}
+
 export interface TableData {
   columns: ColumnItem[];
   primary_keys: string[];
@@ -133,6 +167,7 @@ export interface SqlScript {
   is_shared: boolean;
   created_by: number | null;
   created_by_username: string;
+  statement_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -231,8 +266,16 @@ export function deleteRow(connId: string, payload: { database?: string; table: s
   return request<ServerMessage>(`/databases/${encodeURIComponent(connId)}/table-rows`, { method: "DELETE", body: JSON.stringify(payload) });
 }
 
-export function createTable(connId: string, payload: { database?: string; name: string; columns: unknown[] }) {
+export function createTable(connId: string, payload: { database?: string; name: string; columns: ColumnDefinition[]; indexes?: IndexDefinition[] }) {
   return post<ServerMessage>(`/databases/${encodeURIComponent(connId)}/tables`, payload);
+}
+
+export function getTableStructure(connId: string, database: string, table: string) {
+  return request<TableStructure>(`/databases/${encodeURIComponent(connId)}/tables/${encodeURIComponent(table)}${queryString({ database })}`);
+}
+
+export function alterTable(connId: string, table: string, payload: AlterTablePayload) {
+  return post<ServerMessage>(`/databases/${encodeURIComponent(connId)}/tables/${encodeURIComponent(table)}/alter`, payload);
 }
 
 export function renameTable(connId: string, table: string, payload: { database?: string; new_name: string }) {
@@ -280,6 +323,10 @@ export function listSqlScripts(filters: { keyword?: string; connection_id?: numb
 
 export function createSqlScript(payload: SqlScriptPayload) {
   return post<SqlScript>("/sql-scripts", payload);
+}
+
+export function getSqlScript(id: number) {
+  return request<SqlScript>(`/sql-scripts/${id}`);
 }
 
 export function updateSqlScript(id: number, payload: SqlScriptPayload) {

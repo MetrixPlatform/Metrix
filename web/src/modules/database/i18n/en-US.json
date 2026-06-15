@@ -61,7 +61,8 @@
     "sqlScriptContentRequired": "SQL script content is required",
     "dataJobNotDownloadable": "Database task is not downloadable",
     "dataJobFileMissing": "Database task file is missing",
-    "dataJobInterrupted": "Database task interrupted by service restart"
+    "dataJobInterrupted": "Database task interrupted by service restart",
+    "sqlScriptConnectionMismatch": "The script does not belong to the current database connection"
   },
   "database": {
     "searchPlaceholder": "Search name, ID, host, database, or creator",
@@ -104,7 +105,21 @@
       "truncateConfirm": "Truncate table {name}? All rows will be removed, structure kept.",
       "name": "Table name",
       "search": "Search current table",
-      "totalEstimate": "Loaded at least {count} rows"
+      "totalEstimate": "Loaded at least {count} rows",
+      "editStructure": "Edit structure",
+      "columns": "Columns",
+      "indexes": "Indexes",
+      "addColumn": "Add column",
+      "addIndex": "Add index",
+      "columnType": "Type",
+      "nullable": "Nullable",
+      "primaryKey": "Primary key",
+      "autoincrement": "Auto inc.",
+      "defaultValue": "Default",
+      "unique": "Unique",
+      "indexColumns": "Index columns",
+      "indexColumnsPlaceholder": "Separate multiple columns with commas",
+      "restore": "Restore"
     },
     "row": {
       "add": "Add row",
@@ -125,7 +140,14 @@
       "run": "Run",
       "result": "Executed {count} statement(s)",
       "untitled": "Untitled script",
-      "deleteConfirm": "Delete script {name}?"
+      "deleteConfirm": "Delete script {name}?",
+      "create": "New script",
+      "edit": "Edit",
+      "update": "Update script",
+      "detail": "Script detail",
+      "id": "Script ID",
+      "content": "Script content",
+      "statementCount": "Statement count"
     },
     "export": {
       "title": "Export",
@@ -226,7 +248,7 @@
       },
       "database_data.create_table": {
         "summary": "Create table",
-        "description": "Create a table in the selected database/schema from column definitions."
+        "description": "Create a table in the selected database/schema from column and index definitions."
       },
       "database_data.list_columns": {
         "summary": "List columns",
@@ -242,7 +264,7 @@
       },
       "database_data.run_script": {
         "summary": "Run SQL script",
-        "description": "Run multiple SQL statements or a saved script. Requires database operate permission."
+        "description": "Run multiple SQL statements or a saved script by script_id. Connection ID is required and database name is optional."
       },
       "database_data.create_row": {
         "summary": "Create row",
@@ -258,15 +280,15 @@
       },
       "database_data.table_detail": {
         "summary": "Get table structure",
-        "description": "Get column and primary key metadata for a table."
+        "description": "Get columns, primary key, and index metadata for a table."
       },
       "database_data.delete_table": {
         "summary": "Delete table",
         "description": "Delete the selected table and its data. Requires database operate permission."
       },
       "database_data.alter_table": {
-        "summary": "Alter table",
-        "description": "Modify column structure for the selected table."
+        "summary": "Alter table structure",
+        "description": "Modify column and index structure for the selected table."
       },
       "database_data.rename_table": {
         "summary": "Rename table",
@@ -311,6 +333,10 @@
       "database_transfer_jobs.download_database_transfer_job": {
         "summary": "Download database export file",
         "description": "Download a completed database export file. After the stream finishes, the file is cleaned up and marked as downloaded."
+      },
+      "sql_scripts.get_sql_script": {
+        "summary": "Get SQL script detail",
+        "description": "Get one SQL script with content, ID, created time, updated time, and statement count."
       }
     },
     "parameter": {
@@ -351,7 +377,11 @@
         "expires_at": "Job file expiration time.",
         "total_exact": "Whether total is an exact count.",
         "queries": "Multiple query results to export.",
-        "tables": "Table names to export."
+        "tables": "Table names to export.",
+        "indexes": "Table index definitions.",
+        "index_actions": "Index alter actions.",
+        "statement_count": "SQL script statement count.",
+        "script_id": "Saved SQL script ID to run."
       }
     }
   }
