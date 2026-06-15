@@ -271,6 +271,7 @@ const tableColumns = ref<ColumnItem[]>([]);
 const tableRows = ref<Record<string, unknown>[]>([]);
 const primaryKeys = ref<string[]>([]);
 const tableFilter = ref("");
+const dataTotalExact = ref(true);
 const dataSort = reactive<{ columnKey: string | null; order: "ascend" | "descend" | false }>({ columnKey: null, order: false });
 const loadingData = ref(false);
 const executing = ref(false);
@@ -308,11 +309,12 @@ const objectModal = reactive({
 });
 const dataPagination = reactive({
   page: 1,
-  pageSize: 100,
+  pageSize: 50,
   itemCount: 0,
   pageSizes: [50, 100, 200, 500],
   showSizePicker: true,
-  prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
+  prefix: ({ itemCount }: { itemCount: number | undefined }) =>
+    dataTotalExact.value ? t("common.total", { count: itemCount ?? 0 }) : t("database.table.totalEstimate", { count: itemCount ?? 0 })
 });
 const exportOptions = [
   { label: "CSV", key: "csv" },
@@ -353,6 +355,7 @@ const PREFIX_ICONS: Record<string, Component> = {
   table: Table20Regular,
   script: DocumentText20Regular
 };
+let tableDataRequestId = 0;
 
 const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() => [
   ...tableColumns.value.map((column) => ({
@@ -572,7 +575,7 @@ async function openSchemaTables(database: string) {
   const match = cat.children.find((child) => child.table === selectedTable.value) || cat.children[0];
   if (match) {
     selectedKeys.value = [String(match.key)];
-    await selectTable(database, match.table as string);
+    selectTable(database, match.table as string);
   } else {
     selectedKeys.value = [schemaKey(database)];
     resetTableView();
@@ -594,7 +597,7 @@ async function handleTreeSelect(keys: Array<string | number>, options: Array<Tre
   selectedKeys.value = keys.map(String);
   if (node.kind === "table") {
     updateTablesForDb(node.database as string);
-    await selectTable(node.database as string, node.table as string);
+    selectTable(node.database as string, node.table as string);
     return;
   }
   if (node.kind === "script") {
@@ -640,18 +643,25 @@ async function reloadScripts() {
   }
 }
 
-async function selectTable(database: string, table: string) {
+function selectTable(database: string, table: string) {
   selectedDatabase.value = database;
   selectedTable.value = table;
   dataPagination.page = 1;
-  await loadTableData();
+  tableRows.value = [];
+  tableColumns.value = [];
+  primaryKeys.value = [];
+  dataPagination.itemCount = 0;
+  dataTotalExact.value = true;
+  void loadTableData();
 }
 
 function resetTableView() {
   selectedTable.value = "";
   tableRows.value = [];
   tableColumns.value = [];
+  primaryKeys.value = [];
   dataPagination.itemCount = 0;
+  dataTotalExact.value = true;
 }
 
 function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | null) {
@@ -669,6 +679,7 @@ function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | nu
 
 async function loadTableData() {
   if (!selectedTable.value) return;
+  const requestId = ++tableDataRequestId;
   loadingData.value = true;
   try {
     const result = await getTableData(
@@ -679,16 +690,20 @@ async function loadTableData() {
       dataPagination.pageSize,
       dataSort.columnKey || "",
       dataSort.order === "descend",
-      tableFilter.value
+      tableFilter.value,
+      false
     );
+    if (requestId !== tableDataRequestId) return;
     tableColumns.value = result.columns;
     tableRows.value = result.rows;
     primaryKeys.value = result.primary_keys;
     dataPagination.itemCount = result.total;
+    dataTotalExact.value = result.total_exact;
   } catch (error) {
+    if (requestId !== tableDataRequestId) return;
     showError(message, error);
   } finally {
-    loadingData.value = false;
+    if (requestId === tableDataRequestId) loadingData.value = false;
   }
 }
 

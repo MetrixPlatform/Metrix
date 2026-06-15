@@ -67,7 +67,13 @@ def test_database_metadata_query_rows_and_export(tmp_path, monkeypatch):
     table_data = client.get("/api/databases/db_sqlite_test/table-data?table=people&page_size=10", headers=headers)
     assert table_data.status_code == 200
     assert table_data.json()["total"] == 2
+    assert table_data.json()["total_exact"] is True
     assert table_data.json()["primary_keys"] == ["id"]
+
+    fast_table_data = client.get("/api/databases/db_sqlite_test/table-data?table=people&page_size=1&include_total=false", headers=headers)
+    assert fast_table_data.status_code == 200
+    assert fast_table_data.json()["total"] == 2
+    assert fast_table_data.json()["total_exact"] is False
 
     ordered_desc = client.get("/api/databases/db_sqlite_test/table-data?table=people&order_by=name&order_desc=true&page_size=10", headers=headers)
     assert ordered_desc.status_code == 200

@@ -103,7 +103,8 @@
       "truncate": "清空表",
       "truncateConfirm": "确认清空表 {name}？所有数据将被删除，结构保留。",
       "name": "表名",
-      "search": "搜索当前表数据"
+      "search": "搜索当前表数据",
+      "totalEstimate": "已加载至少 {count} 条"
     },
     "row": {
       "add": "新增行",
@@ -333,6 +334,7 @@
         "page_size": "每页数量。",
         "order_by": "排序字段名。",
         "order_desc": "是否倒序排序。",
+        "include_total": "是否返回精确总数；大表首屏加载可设为 false 跳过 COUNT(*)。",
         "filter": "表数据关键字过滤条件。",
         "format": "导入文件格式。",
         "target_table": "导入目标表名。",
@@ -351,6 +353,7 @@
         "created_by_username": "创建人账号。",
         "downloaded_at": "下载完成时间。",
         "expires_at": "任务文件过期时间。",
+        "total_exact": "total 是否为精确总数。",
         "queries": "要导出的多个查询结果。",
         "tables": "要导出的表名列表。"
       }

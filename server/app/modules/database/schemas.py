@@ -125,6 +125,7 @@ class TableDataResponse(BaseModel):
     primary_keys: list[str]
     rows: list[dict[str, Any]]
     total: int
+    total_exact: bool = True
     page: int
     page_size: int
 

@@ -222,6 +222,7 @@ class DatabaseService:
         order_by: str = "",
         order_desc: bool = False,
         filter_value: str = "",
+        include_total: bool = True,
     ) -> TableDataResponse:
         connection = self._get_usable(actor, conn_id)
         database = self._database_name(connection, database)
@@ -230,9 +231,18 @@ class DatabaseService:
             columns = runtime.columns(table, database)
             primary_keys = runtime.primary_keys(table, database)
             where_sql, params = _filter_clause(runtime, columns, filter_value)
-            total = runtime.table_total(table, database, where_sql, params)
             rows = runtime.table_rows(table, database, page, page_size, order_by, order_desc, where_sql, params)
-        return TableDataResponse(columns=columns, primary_keys=primary_keys, rows=rows, total=total, page=page, page_size=page_size)
+            total_exact = include_total or len(rows) < page_size
+            total = runtime.table_total(table, database, where_sql, params) if include_total else _estimated_total(page, page_size, len(rows))
+        return TableDataResponse(
+            columns=columns,
+            primary_keys=primary_keys,
+            rows=rows,
+            total=total,
+            total_exact=total_exact,
+            page=page,
+            page_size=page_size,
+        )
 
     def query(self, actor: User, conn_id: str, payload: QueryRequest) -> QueryResponse:
         connection = self._get_usable(actor, conn_id)
@@ -693,6 +703,11 @@ def _where_keys(runtime: ExternalDatabase, keys: dict[str, Any]) -> tuple[str, d
         parts.append(f"{runtime.quote_identifier(clean)} = :{param}")
         params[param] = value
     return " AND ".join(parts), params
+
+
+def _estimated_total(page: int, page_size: int, row_count: int) -> int:
+    loaded_until = max(page - 1, 0) * page_size + row_count
+    return loaded_until + (1 if row_count >= page_size else 0)
 
 
 def _column_definition_sql(runtime: ExternalDatabase, column: ColumnDefinition) -> str:

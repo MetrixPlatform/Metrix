@@ -80,6 +80,7 @@ export interface TableData {
   primary_keys: string[];
   rows: Record<string, unknown>[];
   total: number;
+  total_exact: boolean;
   page: number;
   page_size: number;
 }
@@ -204,9 +205,9 @@ export function listColumns(connId: string, database: string, table: string) {
   return request<ColumnItem[]>(`/databases/${encodeURIComponent(connId)}/columns${queryString({ database, table })}`);
 }
 
-export function getTableData(connId: string, database: string, table: string, page = 1, pageSize = 100, orderBy = "", orderDesc = false, filter = "") {
+export function getTableData(connId: string, database: string, table: string, page = 1, pageSize = 100, orderBy = "", orderDesc = false, filter = "", includeTotal = true) {
   return request<TableData>(
-    `/databases/${encodeURIComponent(connId)}/table-data${queryString({ database, table, page, page_size: pageSize, order_by: orderBy, order_desc: orderDesc, filter })}`
+    `/databases/${encodeURIComponent(connId)}/table-data${queryString({ database, table, page, page_size: pageSize, order_by: orderBy, order_desc: orderDesc, filter, include_total: includeTotal })}`
   );
 }
 

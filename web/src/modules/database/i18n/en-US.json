@@ -103,7 +103,8 @@
       "truncate": "Truncate",
       "truncateConfirm": "Truncate table {name}? All rows will be removed, structure kept.",
       "name": "Table name",
-      "search": "Search current table"
+      "search": "Search current table",
+      "totalEstimate": "Loaded at least {count} rows"
     },
     "row": {
       "add": "Add row",
@@ -333,6 +334,7 @@
         "page_size": "Items per page.",
         "order_by": "Sort column name.",
         "order_desc": "Whether to sort descending.",
+        "include_total": "Whether to return an exact total. Set false on large tables to skip COUNT(*) for faster first paint.",
         "filter": "Table data keyword filter.",
         "format": "Import file format.",
         "target_table": "Import target table name.",
@@ -351,6 +353,7 @@
         "created_by_username": "Creator username.",
         "downloaded_at": "Download completion time.",
         "expires_at": "Job file expiration time.",
+        "total_exact": "Whether total is an exact count.",
         "queries": "Multiple query results to export.",
         "tables": "Table names to export."
       }
