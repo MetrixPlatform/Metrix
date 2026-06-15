@@ -440,7 +440,8 @@
       "password_changed": "密码已修改",
       "reason": "原因",
       "tables": "备份表",
-      "database_type": "数据库类型"
+      "database_type": "数据库类型",
+      "navigation_order": "导航栏排序"
     }
   },
   "settings": {
@@ -460,7 +461,13 @@
     "retention30": "最近 1 个月",
     "retention90": "最近 3 个月",
     "retention180": "最近 6 个月",
-    "retention365": "最近 1 年"
+    "retention365": "最近 1 年",
+    "navigation": "导航栏",
+    "navigationDesc": "调整平台侧边导航的显示顺序。分组及其子菜单分层排序，不会改变权限控制和功能开关。",
+    "navigationGroup": "分组",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "restoreDefaultNavigation": "恢复默认排序"
   },
   "token": {
     "title": "API Token",

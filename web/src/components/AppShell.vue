@@ -107,7 +107,13 @@ const collapsed = ref(localStorage.getItem(SIDEBAR_KEY) === "1");
 const route = useRoute();
 const router = useRouter();
 
-const menuItems = computed(() => getVisibleMenuItems((code) => authStore.has(code), (feature) => settingsStore.featureEnabled(feature)));
+const menuItems = computed(() =>
+  getVisibleMenuItems(
+    (code) => authStore.has(code),
+    (feature) => settingsStore.featureEnabled(feature),
+    settingsStore.navigationOrder()
+  )
+);
 const menuOptions = computed<MenuOption[]>(() => toMenuOptions(menuItems.value));
 const activeMenu = computed(() => (hasMenuPath(menuItems.value, route.path) ? route.path : null));
 const expandedKeys = ref<string[]>([]);

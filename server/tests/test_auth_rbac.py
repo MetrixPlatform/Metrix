@@ -1823,6 +1823,7 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
     assert public_defaults.json()["registration_approval_required"] is True
     assert public_defaults.json()["api_enabled"] is True
     assert public_defaults.json()["api_token_reveal_enabled"] is True
+    assert public_defaults.json()["navigation_order"] == []
 
     settings_payload = {
         "app_name": "Data Portal",
@@ -1838,17 +1839,27 @@ def test_system_settings_control_registration_retention_and_backup(tmp_path, mon
         "default_locale": "en-US",
         "api_enabled": True,
         "api_token_reveal_enabled": False,
+        "navigation_order": [
+            "path:/storage",
+            "group:system",
+            "path:/database",
+            "path:/storage",
+            "bad:key",
+            "../unsafe",
+        ],
     }
     updated = client.put("/api/settings", json=settings_payload, headers=admin_headers)
     assert updated.status_code == 200
     assert updated.json()["app_name"] == "Data Portal"
     assert updated.json()["api_token_reveal_enabled"] is False
+    assert updated.json()["navigation_order"] == ["path:/storage", "group:system", "path:/database"]
 
     public_updated = client.get("/api/settings/public").json()
     assert public_updated["registration_enabled"] is False
     assert public_updated["registration_approval_required"] is True
     assert public_updated["default_locale"] == "en-US"
     assert public_updated["api_token_reveal_enabled"] is False
+    assert public_updated["navigation_order"] == ["path:/storage", "group:system", "path:/database"]
     disabled_register = client.post(
         "/api/auth/register",
         json={

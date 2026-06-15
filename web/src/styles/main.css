@@ -1795,6 +1795,71 @@ a {
   overflow-wrap: anywhere;
 }
 
+.navigation-order-list {
+  display: grid;
+  gap: 10px;
+}
+
+.navigation-order-card {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--panel-bg-hover);
+}
+
+.navigation-order-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.navigation-order-child {
+  min-height: 40px;
+  padding-left: 28px;
+  border-top: 1px solid var(--border-color);
+  background: var(--panel-bg);
+}
+
+.navigation-order-children {
+  border-top: 1px solid var(--border-color);
+}
+
+.navigation-order-label,
+.navigation-order-actions {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.navigation-order-label {
+  gap: 8px;
+  font-weight: 500;
+}
+
+.navigation-order-label .n-icon {
+  flex: 0 0 auto;
+  color: var(--muted-color);
+}
+
+.navigation-order-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navigation-order-actions {
+  gap: 4px;
+}
+
+.settings-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 .settings-backup-panel {
   display: flex;
   align-items: center;

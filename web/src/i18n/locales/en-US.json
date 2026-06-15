@@ -440,7 +440,8 @@
       "password_changed": "Password changed",
       "reason": "Reason",
       "tables": "Backup tables",
-      "database_type": "Database type"
+      "database_type": "Database type",
+      "navigation_order": "Navigation order"
     }
   },
   "settings": {
@@ -460,7 +461,13 @@
     "retention30": "Last 1 month",
     "retention90": "Last 3 months",
     "retention180": "Last 6 months",
-    "retention365": "Last 1 year"
+    "retention365": "Last 1 year",
+    "navigation": "Navigation",
+    "navigationDesc": "Adjust the display order of the platform sidebar. Groups and child menus are ordered within their own level without changing permissions or feature switches.",
+    "navigationGroup": "Group",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "restoreDefaultNavigation": "Restore default order"
   },
   "token": {
     "title": "API tokens",

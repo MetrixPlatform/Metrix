@@ -19,7 +19,8 @@ export const settingsStore = reactive({
     },
     default_locale: DEFAULT_LOCALE,
     api_enabled: true,
-    api_token_reveal_enabled: true
+    api_token_reveal_enabled: true,
+    navigation_order: []
   } as PublicSettings,
   async loadPublic() {
     this.publicSettings = await getPublicSettings();
@@ -42,6 +43,9 @@ export const settingsStore = reactive({
   },
   apiTokenRevealEnabled() {
     return this.publicSettings.api_token_reveal_enabled;
+  },
+  navigationOrder() {
+    return this.publicSettings.navigation_order || [];
   },
   featureEnabled(feature?: string) {
     return feature !== "api" || this.apiEnabled();

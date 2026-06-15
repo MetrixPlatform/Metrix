@@ -19,6 +19,53 @@
           </section>
         </n-tab-pane>
 
+        <n-tab-pane name="navigation" :tab="t('settings.navigation')" display-directive="show">
+          <section class="settings-section">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.navigation") }}</h2>
+              <p>{{ t("settings.navigationDesc") }}</p>
+            </div>
+            <div class="navigation-order-list">
+              <div v-for="item in navigationLayout" :key="item.navigationKey" class="navigation-order-card">
+                <div class="navigation-order-row">
+                  <div class="navigation-order-label">
+                    <n-icon :component="item.icon" />
+                    <span :title="item.label">{{ item.label }}</span>
+                    <n-tag v-if="item.children?.length" size="small" :bordered="false">{{ t("settings.navigationGroup") }}</n-tag>
+                  </div>
+                  <div class="navigation-order-actions">
+                    <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'up')" @click="moveNavigation(item.navigationKey, 'up')">
+                      {{ t("settings.moveUp") }}
+                    </n-button>
+                    <n-button size="tiny" quaternary :disabled="!canMoveNavigation(item.navigationKey, 'down')" @click="moveNavigation(item.navigationKey, 'down')">
+                      {{ t("settings.moveDown") }}
+                    </n-button>
+                  </div>
+                </div>
+                <div v-if="item.children?.length" class="navigation-order-children">
+                  <div v-for="child in item.children" :key="child.navigationKey" class="navigation-order-row navigation-order-child">
+                    <div class="navigation-order-label">
+                      <n-icon :component="child.icon" />
+                      <span :title="child.label">{{ child.label }}</span>
+                    </div>
+                    <div class="navigation-order-actions">
+                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'up')" @click="moveNavigation(child.navigationKey, 'up')">
+                        {{ t("settings.moveUp") }}
+                      </n-button>
+                      <n-button size="tiny" quaternary :disabled="!canMoveNavigation(child.navigationKey, 'down')" @click="moveNavigation(child.navigationKey, 'down')">
+                        {{ t("settings.moveDown") }}
+                      </n-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="settings-inline-actions">
+              <n-button @click="resetNavigationOrder">{{ t("settings.restoreDefaultNavigation") }}</n-button>
+            </div>
+          </section>
+        </n-tab-pane>
+
         <n-tab-pane name="registration" :tab="t('settings.registration')" display-directive="show">
           <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
@@ -121,7 +168,21 @@
 
 <script setup lang="ts">
 import { Archive20Regular } from "@vicons/fluent";
-import { NCheckbox, NForm, NFormItem, NIcon, NInput, NInputNumber, NSelect, NSwitch, NTabPane, NTabs, useMessage } from "naive-ui";
+import {
+  NButton,
+  NCheckbox,
+  NForm,
+  NFormItem,
+  NIcon,
+  NInput,
+  NInputNumber,
+  NSelect,
+  NSwitch,
+  NTabPane,
+  NTag,
+  NTabs,
+  useMessage
+} from "naive-ui";
 import type { FormInst, FormRules } from "naive-ui";
 import { computed, onMounted, reactive, ref } from "vue";
 
@@ -129,12 +190,14 @@ import { backupData, getSystemSettings, updateSystemSettings } from "../api/sett
 import type { SystemSettings } from "../api/types";
 import PermissionButton from "../components/PermissionButton.vue";
 import { ensureLocaleNames, localeOptions, t } from "../i18n";
+import { flattenNavigationKeys, getNavigationLayout } from "../router/page-registry";
 import { settingsStore } from "../stores/settings";
 import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
-type SettingsTab = "basic" | "registration" | "api" | "audit" | "dataJobs" | "backup";
+type SettingsTab = "basic" | "navigation" | "registration" | "api" | "audit" | "dataJobs" | "backup";
+type NavigationMove = "up" | "down";
 
 const message = useMessage();
 const formRef = ref<FormInst | null>(null);
@@ -156,13 +219,15 @@ const form = reactive<SystemSettings>({
   api_enabled: true,
   api_token_reveal_enabled: true,
   data_job_max_workers: 2,
-  data_job_retention_days: 7
+  data_job_retention_days: 7,
+  navigation_order: []
 });
 
 const rules = computed<FormRules>(() => ({
   app_name: [requiredRule(t("field.platformName")), maxLengthRule(t("field.platformName"), 80)]
 }));
 const localeSelectOptions = computed(() => localeOptions.value);
+const navigationLayout = computed(() => getNavigationLayout(form.navigation_order));
 const retentionOptions = computed(() => [
   { label: t("settings.retention7"), value: 7 },
   { label: t("settings.retention30"), value: 30 },
@@ -224,6 +289,43 @@ function assignSettings(settings: SystemSettings) {
   form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
   form.data_job_max_workers = settings.data_job_max_workers;
   form.data_job_retention_days = settings.data_job_retention_days;
+  form.navigation_order = [...settings.navigation_order];
+}
+
+function canMoveNavigation(key: string, direction: NavigationMove) {
+  const siblings = navigationSiblings(key);
+  const index = siblings.indexOf(key);
+  if (index < 0) return false;
+  return direction === "up" ? index > 0 : index < siblings.length - 1;
+}
+
+function moveNavigation(key: string, direction: NavigationMove) {
+  const siblings = navigationSiblings(key);
+  const index = siblings.indexOf(key);
+  if (index < 0) return;
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  const targetKey = siblings[targetIndex];
+  if (!targetKey) return;
+  const order = flattenNavigationKeys(navigationLayout.value);
+  const left = order.indexOf(key);
+  const right = order.indexOf(targetKey);
+  if (left < 0 || right < 0) return;
+  [order[left], order[right]] = [order[right], order[left]];
+  form.navigation_order = order;
+}
+
+function resetNavigationOrder() {
+  form.navigation_order = [];
+}
+
+function navigationSiblings(key: string) {
+  const topLevel = navigationLayout.value.map((item) => item.navigationKey);
+  if (topLevel.includes(key)) return topLevel;
+  for (const item of navigationLayout.value) {
+    const childKeys = item.children?.map((child) => child.navigationKey) || [];
+    if (childKeys.includes(key)) return childKeys;
+  }
+  return [];
 }
 
 </script>

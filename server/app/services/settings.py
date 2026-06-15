@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -22,9 +24,11 @@ SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
 SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
 SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
+SETTING_NAVIGATION_ORDER = "navigation_order"
 DEFAULT_LOG_RETENTION_DAYS = 90
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
 DEFAULT_DATA_JOB_RETENTION_DAYS = 7
+NAVIGATION_KEY_RE = re.compile(r"^(path:/[a-zA-Z0-9_./-]*|group:[a-zA-Z0-9_-]+)$")
 
 
 class SettingService:
@@ -42,6 +46,7 @@ class SettingService:
             default_locale=data.default_locale,
             api_enabled=data.api_enabled,
             api_token_reveal_enabled=data.api_token_reveal_enabled,
+            navigation_order=data.navigation_order,
         )
 
     def get_settings(self) -> SystemSettings:
@@ -61,6 +66,7 @@ class SettingService:
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
                 SETTING_DATA_JOB_MAX_WORKERS: str(payload.data_job_max_workers),
                 SETTING_DATA_JOB_RETENTION_DAYS: str(payload.data_job_retention_days),
+                SETTING_NAVIGATION_ORDER: json.dumps(_clean_navigation_order(payload.navigation_order)),
             }
         )
         after = _settings_snapshot(self.get_settings())
@@ -131,6 +137,7 @@ class SettingService:
                 raw.get(SETTING_DATA_JOB_RETENTION_DAYS),
                 defaults.data_job_retention_days,
             ),
+            navigation_order=_parse_navigation_order(raw.get(SETTING_NAVIGATION_ORDER), defaults.navigation_order),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -159,6 +166,7 @@ def _default_settings() -> SystemSettings:
         api_token_reveal_enabled=True,
         data_job_max_workers=DEFAULT_DATA_JOB_MAX_WORKERS,
         data_job_retention_days=DEFAULT_DATA_JOB_RETENTION_DAYS,
+        navigation_order=[],
     )
 
 
@@ -174,6 +182,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "api_token_reveal_enabled": settings.api_token_reveal_enabled,
         "data_job_max_workers": settings.data_job_max_workers,
         "data_job_retention_days": settings.data_job_retention_days,
+        "navigation_order": settings.navigation_order,
     }
 
 
@@ -211,6 +220,30 @@ def _parse_retention_days(value: str | None, fallback: int) -> int:
 
 def _parse_locale(value: str | None, fallback: str):
     return value if value in {"zh-CN", "en-US"} else fallback
+
+
+def _parse_navigation_order(value: str | None, fallback: list[str]) -> list[str]:
+    if not value:
+        return fallback
+    try:
+        parsed = json.loads(value)
+    except ValueError:
+        return fallback
+    return _clean_navigation_order(parsed) if isinstance(parsed, list) else fallback
+
+
+def _clean_navigation_order(value: list[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        key = item.strip()
+        if not key or key in seen or not NAVIGATION_KEY_RE.match(key):
+            continue
+        seen.add(key)
+        result.append(key)
+    return result
 
 
 def _parse_int(value: str | None, fallback: int, minimum: int, maximum: int) -> int:

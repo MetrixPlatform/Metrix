@@ -11,6 +11,7 @@ type IsFeatureEnabled = (feature?: string) => boolean;
 export interface AppMenuItem {
   key?: string;
   path?: string;
+  navigationKey: string;
   label: string;
   permission?: string;
   icon: Component;
@@ -45,13 +46,35 @@ export function getPageTitle(path: string) {
   return page ? t(page.titleKey) : undefined;
 }
 
-export function getVisibleMenuItems(hasPermission: HasPermission, isFeatureEnabled: IsFeatureEnabled = () => true) {
+export function getVisibleMenuItems(
+  hasPermission: HasPermission,
+  isFeatureEnabled: IsFeatureEnabled = () => true,
+  navigationOrder: string[] = []
+) {
+  return buildMenuItems(hasPermission, isFeatureEnabled, navigationOrder);
+}
+
+export function getNavigationLayout(navigationOrder: string[] = []) {
+  return buildMenuItems(() => true, () => true, navigationOrder);
+}
+
+export function defaultNavigationOrder() {
+  return flattenNavigationKeys(getNavigationLayout());
+}
+
+export function flattenNavigationKeys(items: AppMenuItem[]): string[] {
+  return items.flatMap((item) => [item.navigationKey, ...(item.children ? flattenNavigationKeys(item.children) : [])]);
+}
+
+function buildMenuItems(hasPermission: HasPermission, isFeatureEnabled: IsFeatureEnabled, navigationOrder: string[]) {
+  const customOrder = createNavigationOrderMap(navigationOrder);
   const groupMap = new Map<string, AppMenuItem & { order: number; children: AppMenuItem[] }>();
   const topLevel: Array<AppMenuItem & { order: number }> = [];
 
   for (const group of menuGroups) {
     groupMap.set(group.key, {
       key: group.key,
+      navigationKey: navigationGroupKey(group.key),
       label: t(group.labelKey),
       icon: group.icon,
       order: group.order,
@@ -78,10 +101,10 @@ export function getVisibleMenuItems(hasPermission: HasPermission, isFeatureEnabl
     .filter((group) => group.children.length > 0)
     .map((group) => ({
       ...group,
-      children: group.children.sort(sortMenuItems)
+      children: group.children.sort((left, right) => sortMenuItems(left, right, customOrder))
     }));
 
-  return [...topLevel, ...visibleGroups].sort(sortMenuItems);
+  return [...topLevel, ...visibleGroups].sort((left, right) => sortMenuItems(left, right, customOrder));
 }
 
 export function hasMenuPath(items: AppMenuItem[], path: string): boolean {
@@ -118,6 +141,7 @@ function canAccessPage(page: AppPage, hasPermission: HasPermission, isFeatureEna
 function pageToMenuItem(page: AppPage, menu: NonNullable<AppPage["menu"]>): AppMenuItem & { order: number } {
   return {
     path: page.path,
+    navigationKey: navigationPathKey(page.path),
     label: t(page.titleKey),
     permission: page.permission,
     icon: menu.icon,
@@ -125,6 +149,27 @@ function pageToMenuItem(page: AppPage, menu: NonNullable<AppPage["menu"]>): AppM
   };
 }
 
-function sortMenuItems(left: AppMenuItem & { order?: number }, right: AppMenuItem & { order?: number }) {
+function sortMenuItems(
+  left: AppMenuItem & { order?: number },
+  right: AppMenuItem & { order?: number },
+  customOrder: Map<string, number>
+) {
+  const leftCustom = customOrder.get(left.navigationKey);
+  const rightCustom = customOrder.get(right.navigationKey);
+  if (leftCustom !== undefined && rightCustom !== undefined) return leftCustom - rightCustom;
+  if (leftCustom !== undefined) return -1;
+  if (rightCustom !== undefined) return 1;
   return (left.order || 0) - (right.order || 0);
+}
+
+function createNavigationOrderMap(order: string[]) {
+  return new Map(order.map((key, index) => [key, index]));
+}
+
+function navigationPathKey(path: string) {
+  return `path:${path}`;
+}
+
+function navigationGroupKey(group: string) {
+  return `group:${group}`;
 }

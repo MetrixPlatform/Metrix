@@ -141,6 +141,7 @@ export interface PublicSettings {
   default_locale: "zh-CN" | "en-US";
   api_enabled: boolean;
   api_token_reveal_enabled: boolean;
+  navigation_order: string[];
 }
 
 export interface SystemSettings extends PublicSettings {

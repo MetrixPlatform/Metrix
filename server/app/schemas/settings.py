@@ -22,6 +22,7 @@ class PublicSettings(BaseModel):
     default_locale: LocaleCode
     api_enabled: bool
     api_token_reveal_enabled: bool
+    navigation_order: list[str] = Field(default_factory=list)
 
 
 class SystemSettings(PublicSettings):
@@ -41,3 +42,4 @@ class SystemSettingsUpdate(BaseModel):
     api_token_reveal_enabled: bool
     data_job_max_workers: int = Field(default=2, ge=1, le=16)
     data_job_retention_days: LogRetentionDays = 7
+    navigation_order: list[str] = Field(default_factory=list, max_length=200)
