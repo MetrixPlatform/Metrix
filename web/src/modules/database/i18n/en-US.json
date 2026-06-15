@@ -31,8 +31,8 @@
     "creator": "Creator",
     "createdAt": "Created at",
     "updatedAt": "Updated at",
-    "dataJobMaxWorkers": "Database import/export workers",
-    "dataJobRetention": "Database import/export retention"
+    "dataJobMaxWorkers": "Database task workers",
+    "dataJobRetention": "Database task retention"
   },
   "validation": {
     "connId": "Connection ID must be 3-64 letters, digits, - or _"
@@ -59,9 +59,9 @@
     "databaseTargetTableRequired": "Target table is required",
     "databaseImportNoColumns": "No import columns found",
     "sqlScriptContentRequired": "SQL script content is required",
-    "dataJobNotDownloadable": "Database import/export job is not downloadable",
-    "dataJobFileMissing": "Database import/export job file is missing",
-    "dataJobInterrupted": "Database import/export job interrupted by service restart"
+    "dataJobNotDownloadable": "Database task is not downloadable",
+    "dataJobFileMissing": "Database task file is missing",
+    "dataJobInterrupted": "Database task interrupted by service restart"
   },
   "database": {
     "searchPlaceholder": "Search name, ID, host or database",
@@ -147,7 +147,7 @@
       "fileRequired": "Please choose an import file"
     },
     "jobs": {
-      "view": "Import/export jobs",
+      "view": "Data jobs",
       "id": "Job ID",
       "kind": "Kind",
       "status": "Status",
@@ -167,13 +167,13 @@
       "clearScope": "Clear connection filter",
       "currentScope": "Connection: {name}",
       "creatorOthers": "Others",
-      "submitted": "Import/export job submitted: {id}. Check it in import/export jobs.",
+      "submitted": "Data job submitted: {id}. Check it in data jobs.",
       "deleteConfirm": "Delete this job?"
     }
   },
   "settings": {
-    "dataJobs": "Database import/export jobs",
-    "dataJobsDesc": "Configure background concurrency and retention for database import/export jobs."
+    "dataJobs": "Database tasks",
+    "dataJobsDesc": "Configure background concurrency and retention for database tasks."
   },
   "auditLog": {
     "action": {
@@ -207,13 +207,13 @@
     "target": {
       "database": "Database connection",
       "sql_script": "SQL script",
-      "data_job": "Database import/export job"
+      "data_job": "Database task"
     }
   },
   "openapi": {
     "tag": {
       "database-data": "Database data",
-      "database-transfer-jobs": "Database import/export jobs"
+      "database-transfer-jobs": "Database tasks"
     },
     "operation": {
       "database_data.list_schemas": {
@@ -297,20 +297,20 @@
         "description": "Upload a file and submit an asynchronous database import job. Supports CSV, XLSX, SQLite, and SQL."
       },
       "database_transfer_jobs.list_database_transfer_jobs": {
-        "summary": "List database import/export jobs",
-        "description": "Page through database import/export jobs with keyword, connection, kind, status, creator, and created-at sorting filters."
+        "summary": "List database tasks",
+        "description": "Page through database tasks with keyword, connection, kind, status, creator, and created-at sorting filters."
       },
       "database_transfer_jobs.database_transfer_job_download_count": {
         "summary": "Count undownloaded export jobs",
         "description": "Count completed but undownloaded database export jobs for the current user, optionally scoped to a database connection."
       },
       "database_transfer_jobs.get_database_transfer_job": {
-        "summary": "Get database import/export job",
-        "description": "Get status, file, row count, and expiration details for one database import/export job."
+        "summary": "Get database task",
+        "description": "Get status, file, row count, and expiration details for one database task."
       },
       "database_transfer_jobs.delete_database_transfer_job": {
-        "summary": "Delete database import/export job",
-        "description": "Delete one database import/export job and its file."
+        "summary": "Delete database task",
+        "description": "Delete one database task and its file."
       },
       "database_transfer_jobs.download_database_transfer_job": {
         "summary": "Download database export file",
@@ -323,7 +323,7 @@
         "database": "Database/schema name. Leave empty to use the connection default or current connection scope.",
         "table": "Table name.",
         "name": "Database/schema name.",
-        "job_id": "Database import/export job ID.",
+        "job_id": "Database task ID.",
         "keyword": "Search keyword.",
         "kind": "Job kind: export or import.",
         "status": "Job status: pending, running, success, or failed.",
@@ -345,7 +345,7 @@
     },
     "schema": {
       "property": {
-        "job_id": "Database import/export job ID.",
+        "job_id": "Database task ID.",
         "kind": "Job kind.",
         "connection_id": "Database connection record ID.",
         "conn_id": "Database connection ID.",

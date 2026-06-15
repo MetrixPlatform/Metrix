@@ -31,8 +31,8 @@
     "creator": "创建人",
     "createdAt": "创建时间",
     "updatedAt": "更新时间",
-    "dataJobMaxWorkers": "数据库导入导出并发数",
-    "dataJobRetention": "数据库导入导出保留时长"
+    "dataJobMaxWorkers": "数据库任务并发数",
+    "dataJobRetention": "数据库任务保留时长"
   },
   "validation": {
     "connId": "连接 ID 需为 3-64 位字母、数字、- 或 _"
@@ -59,9 +59,9 @@
     "databaseTargetTableRequired": "请选择目标表",
     "databaseImportNoColumns": "导入文件没有可用字段",
     "sqlScriptContentRequired": "请输入 SQL 脚本",
-    "dataJobNotDownloadable": "数据库导入导出任务暂不可下载",
-    "dataJobFileMissing": "数据库导入导出任务文件不存在",
-    "dataJobInterrupted": "数据库导入导出任务因服务重启中断"
+    "dataJobNotDownloadable": "数据库任务暂不可下载",
+    "dataJobFileMissing": "数据库任务文件不存在",
+    "dataJobInterrupted": "数据库任务因服务重启中断"
   },
   "database": {
     "searchPlaceholder": "搜索名称、ID、主机、库名",
@@ -147,7 +147,7 @@
       "fileRequired": "请选择导入文件"
     },
     "jobs": {
-      "view": "导入导出任务",
+      "view": "导数任务",
       "id": "任务 ID",
       "kind": "类型",
       "status": "状态",
@@ -167,13 +167,13 @@
       "clearScope": "取消当前连接过滤",
       "currentScope": "当前连接：{name}",
       "creatorOthers": "其他人",
-      "submitted": "导入导出任务已提交：{id}，请到导入导出任务中查看。",
+      "submitted": "导数任务已提交：{id}，请到导数任务中查看。",
       "deleteConfirm": "确认删除该任务？"
     }
   },
   "settings": {
-    "dataJobs": "数据库导入导出任务",
-    "dataJobsDesc": "设置数据库导入导出任务的后台并发数和保留时长。"
+    "dataJobs": "数据库任务",
+    "dataJobsDesc": "设置数据库任务的后台并发数和保留时长。"
   },
   "auditLog": {
     "action": {
@@ -207,13 +207,13 @@
     "target": {
       "database": "数据库连接",
       "sql_script": "SQL 脚本",
-      "data_job": "数据库导入导出任务"
+      "data_job": "数据库任务"
     }
   },
   "openapi": {
     "tag": {
       "database-data": "数据库数据",
-      "database-transfer-jobs": "数据库导入导出任务"
+      "database-transfer-jobs": "数据库任务"
     },
     "operation": {
       "database_data.list_schemas": {
@@ -297,20 +297,20 @@
         "description": "上传文件并提交异步数据库导入任务，支持 CSV、XLSX、SQLite 和 SQL。"
       },
       "database_transfer_jobs.list_database_transfer_jobs": {
-        "summary": "查询数据库导入导出任务",
-        "description": "分页查询数据库导入导出任务，支持关键字、连接、类型、状态、创建人和创建时间排序。"
+        "summary": "查询数据库任务",
+        "description": "分页查询数据库任务，支持关键字、连接、类型、状态、创建人和创建时间排序。"
       },
       "database_transfer_jobs.database_transfer_job_download_count": {
         "summary": "查询未下载导出任务数量",
         "description": "查询当前用户已完成但未下载的数据库导出任务数量，可按数据库连接过滤。"
       },
       "database_transfer_jobs.get_database_transfer_job": {
-        "summary": "查询数据库导入导出任务详情",
-        "description": "查询指定数据库导入导出任务的状态、文件、行数和过期时间。"
+        "summary": "查询数据库任务详情",
+        "description": "查询指定数据库任务的状态、文件、行数和过期时间。"
       },
       "database_transfer_jobs.delete_database_transfer_job": {
-        "summary": "删除数据库导入导出任务",
-        "description": "删除指定数据库导入导出任务及其文件。"
+        "summary": "删除数据库任务",
+        "description": "删除指定数据库任务及其文件。"
       },
       "database_transfer_jobs.download_database_transfer_job": {
         "summary": "下载数据库导出文件",
@@ -323,7 +323,7 @@
         "database": "库/schema 名称，留空时使用连接默认库或当前连接范围。",
         "table": "数据表名称。",
         "name": "库/schema 名称。",
-        "job_id": "数据库导入导出任务 ID。",
+        "job_id": "数据库任务 ID。",
         "keyword": "搜索关键字。",
         "kind": "任务类型：export 或 import。",
         "status": "任务状态：pending、running、success 或 failed。",
@@ -345,7 +345,7 @@
     },
     "schema": {
       "property": {
-        "job_id": "数据库导入导出任务 ID。",
+        "job_id": "数据库任务 ID。",
         "kind": "任务类型。",
         "connection_id": "数据库连接记录 ID。",
         "conn_id": "数据库连接 ID。",
