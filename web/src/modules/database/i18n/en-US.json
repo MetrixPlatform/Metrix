@@ -90,7 +90,10 @@
     },
     "tabs": {
       "data": "Data",
-      "sql": "SQL"
+      "sql": "SQL",
+      "new": "New tab",
+      "empty": "No page is open. Select a table/script on the left, or click + to create one.",
+      "noDatabase": "Please select or create a database first"
     },
     "schema": {
       "create": "New database",
@@ -100,6 +103,8 @@
     },
     "table": {
       "create": "New table",
+      "createTab": "New table",
+      "editTab": "Edit - {name}",
       "drop": "Drop table",
       "dropConfirm": "Drop table {name}?",
       "truncate": "Truncate",
@@ -146,6 +151,7 @@
       "deleteConfirm": "Delete script {name}?",
       "create": "New script",
       "temporary": "Temporary SQL",
+      "temporaryNamed": "Temporary SQL {index}",
       "edit": "Edit",
       "update": "Update script",
       "detail": "Script detail",

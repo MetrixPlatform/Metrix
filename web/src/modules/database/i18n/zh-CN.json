@@ -90,7 +90,10 @@
     },
     "tabs": {
       "data": "数据",
-      "sql": "SQL"
+      "sql": "SQL",
+      "new": "新建标签",
+      "empty": "未打开任何页面，请从左侧选择表/脚本，或点击 + 新建。",
+      "noDatabase": "请先选择或创建一个数据库"
     },
     "schema": {
       "create": "新建库",
@@ -100,6 +103,8 @@
     },
     "table": {
       "create": "新建表",
+      "createTab": "新增表",
+      "editTab": "编辑 - {name}",
       "drop": "删表",
       "dropConfirm": "确认删除表 {name}？",
       "truncate": "清空表",
@@ -146,6 +151,7 @@
       "deleteConfirm": "确认删除脚本 {name}？",
       "create": "新建脚本",
       "temporary": "\u4e34\u65f6 SQL",
+      "temporaryNamed": "\u4e34\u65f6 SQL {index}",
       "edit": "编辑",
       "update": "更新脚本",
       "detail": "脚本详情",

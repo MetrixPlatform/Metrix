@@ -2520,6 +2520,42 @@ a {
   flex-direction: column;
 }
 
+.database-tab-add {
+  margin-left: 8px;
+}
+
+.database-tab-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 180px;
+  min-width: 0;
+}
+
+.database-tab-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-tab-info {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  color: var(--muted-color);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.database-workbench-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .database-main .n-tabs-pane-wrapper {
   display: flex;
   flex-direction: column;
@@ -2596,14 +2632,24 @@ a {
   white-space: nowrap;
 }
 
-.table-designer-modal {
-  width: min(920px, calc(100vw - 48px));
-}
-
 .table-designer {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.table-designer-tab {
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 0;
+}
+
+.table-designer-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 12px 0 0;
+  background: var(--card-bg);
 }
 
 .table-designer-section {
@@ -2673,6 +2719,41 @@ a {
 .monaco-editor-box {
   width: 100%;
   height: 100%;
+}
+
+.monaco-editor-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.monaco-context-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.monaco-context-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--text-color);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.monaco-context-menu button:hover {
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
 }
 
 .database-result-table {

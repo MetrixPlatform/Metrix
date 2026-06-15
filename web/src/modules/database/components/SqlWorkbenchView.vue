@@ -49,73 +49,196 @@
       />
 
       <main class="database-main">
-        <n-tabs v-model:value="activeTab" type="line" animated>
-          <n-tab-pane class="database-tab-pane" name="data" :tab="t('database.tabs.data')" display-directive="show">
-            <div class="database-sub-toolbar">
-              <n-input v-model:value="tableFilter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="loadTableData" />
-              <n-button :disabled="!selectedTable" @click="loadTableData">{{ t("common.search") }}</n-button>
-              <permission-button :permission="DATABASE_OPERATE" :disabled="!selectedTable" @click="openAddRow">{{ t("database.row.add") }}</permission-button>
-              <permission-button :permission="DATABASE_OPERATE" :disabled="!selectedTable" @click="openImport">{{ t("database.import.title") }}</permission-button>
-              <n-dropdown :options="exportOptions" :disabled="!selectedTable" @select="exportTable">
-                <n-button>{{ t("database.export.title") }}</n-button>
-              </n-dropdown>
-            </div>
-            <n-data-table
-              class="page-data-table database-result-table"
-              flex-height
-              remote
-              size="small"
-              :columns="dataColumns"
-              :data="tableRows"
-              :loading="loadingData"
-              :pagination="dataPagination"
-              :scroll-x="Math.max(960, dataColumns.length * 180 + TABLE_SCROLL_END_BUFFER)"
-              @update:sorter="handleDataSorter"
-              @update:page="handleDataPage"
-              @update:page-size="handleDataPageSize"
-            />
-          </n-tab-pane>
-
-          <n-tab-pane class="database-tab-pane" name="sql" :tab="t('database.tabs.sql')" display-directive="show">
-            <div class="database-sub-toolbar">
-              <n-tag class="database-active-schema" size="small" :bordered="false" type="primary">
-                <template #icon><n-icon :component="Database20Regular" /></template>
-                {{ selectedDatabase || t("database.allSchemas") }}
-              </n-tag>
-              <n-button @click="startTemporaryScript">{{ t("database.script.temporary") }}</n-button>
-              <n-tag v-if="currentScript" class="database-active-schema" size="small" :bordered="false">
-                {{ currentScript.name }}
-              </n-tag>
-              <n-button v-if="currentScript" @click="scriptDetailModal.show = true">{{ t("database.script.detail") }}</n-button>
-              <n-button type="primary" :loading="executing" @click="executeSql">{{ t("database.sql.execute") }}</n-button>
-              <n-button @click="openResultExport">{{ t("database.export.result") }}</n-button>
-              <permission-button :permission="scriptSavePermission" @click="openSaveScript">{{ scriptSaveText }}</permission-button>
-            </div>
-            <monaco-editor v-model="sql" class="database-sql-editor" :suggestions="suggestions" />
-            <div class="database-result-bar">
-              <span class="database-result-title">{{ t("database.sql.resultTitle") }}</span>
-              <n-button
-                quaternary
-                size="small"
-                :title="resultCollapsed ? t('database.sql.showResult') : t('database.sql.hideResult')"
-                @click="resultCollapsed = !resultCollapsed"
-              >
-                <template #icon><n-icon :component="resultCollapsed ? ChevronUp20Regular : ChevronDown20Regular" /></template>
-                {{ resultCollapsed ? t("database.sql.showResult") : t("database.sql.hideResult") }}
+        <n-tabs
+          v-if="workbenchTabs.length"
+          v-model:value="activeTabKey"
+          type="card"
+          closable
+          animated
+          @close="closeWorkbenchTab"
+          @update:value="activateWorkbenchTab"
+        >
+          <template #suffix>
+            <n-dropdown trigger="click" placement="bottom-end" :options="newTabOptions" @select="handleNewTabSelect">
+              <n-button class="database-tab-add" size="small" quaternary circle :title="t('database.tabs.new')" :aria-label="t('database.tabs.new')">
+                <template #icon><n-icon :component="Add20Regular" /></template>
               </n-button>
-            </div>
-            <n-data-table
-              v-show="!resultCollapsed"
-              class="page-data-table database-query-table"
-              flex-height
-              size="small"
-              :columns="queryColumns"
-              :data="queryRows"
-              :loading="executing"
-              :scroll-x="Math.max(960, queryColumns.length * 180 + TABLE_SCROLL_END_BUFFER)"
-            />
+            </n-dropdown>
+          </template>
+
+          <n-tab-pane v-for="tab in workbenchTabs" :key="tab.key" class="database-tab-pane" :name="tab.key" display-directive="show">
+            <template #tab>
+              <span class="database-tab-title" :title="tab.title">
+                <span>{{ tab.title }}</span>
+                <n-button
+                  v-if="tab.type === 'sql-script' && tab.script"
+                  class="database-tab-info"
+                  size="tiny"
+                  text
+                  :title="t('database.script.detail')"
+                  @click.stop="showScriptDetail(tab.script)"
+                >
+                  i
+                </n-button>
+              </span>
+            </template>
+
+            <template v-if="tab.type === 'table-data'">
+              <div class="database-sub-toolbar">
+                <n-input v-model:value="tab.filter" class="filter-keyword" clearable :placeholder="t('database.table.search')" @keyup.enter="loadTableData(tab)" />
+                <n-button @click="loadTableData(tab)">{{ t("common.search") }}</n-button>
+                <permission-button :permission="DATABASE_OPERATE" @click="openAddRow(tab)">{{ t("database.row.add") }}</permission-button>
+                <permission-button :permission="DATABASE_OPERATE" @click="openImport(tab)">{{ t("database.import.title") }}</permission-button>
+                <n-dropdown :options="exportOptions" @select="(format) => exportTable(format, tab)">
+                  <n-button>{{ t("database.export.title") }}</n-button>
+                </n-dropdown>
+              </div>
+              <n-data-table
+                class="page-data-table database-result-table"
+                flex-height
+                remote
+                size="small"
+                :columns="dataColumns(tab)"
+                :data="tab.rows"
+                :loading="tab.loading"
+                :pagination="tab.pagination"
+                :scroll-x="Math.max(960, dataColumns(tab).length * 180 + TABLE_SCROLL_END_BUFFER)"
+                @update:sorter="(sorter) => handleDataSorter(sorter, tab)"
+                @update:page="(page) => handleDataPage(page, tab)"
+                @update:page-size="(pageSize) => handleDataPageSize(pageSize, tab)"
+              />
+            </template>
+
+            <template v-else-if="tab.type === 'sql-script'">
+              <div class="database-sub-toolbar">
+                <n-tag class="database-active-schema" size="small" :bordered="false" type="primary">
+                  <template #icon><n-icon :component="Database20Regular" /></template>
+                  {{ tab.database || t("database.allSchemas") }}
+                </n-tag>
+                <n-button type="primary" :loading="tab.executing" @click="executeSql(tab)">{{ t("database.sql.execute") }}</n-button>
+                <n-button @click="openResultExport(tab)">{{ t("database.export.result") }}</n-button>
+                <permission-button :permission="scriptSavePermission(tab)" @click="openSaveScript(tab)">{{ scriptSaveText(tab) }}</permission-button>
+              </div>
+              <monaco-editor v-model="tab.sql" class="database-sql-editor" :suggestions="suggestions" />
+              <div class="database-result-bar">
+                <span class="database-result-title">{{ t("database.sql.resultTitle") }}</span>
+                <n-button
+                  quaternary
+                  size="small"
+                  :title="tab.resultCollapsed ? t('database.sql.showResult') : t('database.sql.hideResult')"
+                  @click="tab.resultCollapsed = !tab.resultCollapsed"
+                >
+                  <template #icon><n-icon :component="tab.resultCollapsed ? ChevronUp20Regular : ChevronDown20Regular" /></template>
+                  {{ tab.resultCollapsed ? t("database.sql.showResult") : t("database.sql.hideResult") }}
+                </n-button>
+              </div>
+              <n-data-table
+                v-show="!tab.resultCollapsed"
+                class="page-data-table database-query-table"
+                flex-height
+                size="small"
+                :columns="queryColumns(tab)"
+                :data="queryRows(tab)"
+                :loading="tab.executing"
+                :scroll-x="Math.max(960, queryColumns(tab).length * 180 + TABLE_SCROLL_END_BUFFER)"
+              />
+            </template>
+
+            <template v-else>
+              <div class="table-designer table-designer-tab">
+                <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
+                  <n-form-item :label="t('database.table.name')">
+                    <n-input v-model:value="tab.name" />
+                  </n-form-item>
+                </n-form>
+                <section class="table-designer-section">
+                  <div class="table-designer-section-head">
+                    <strong>{{ t("database.table.columns") }}</strong>
+                    <n-button size="small" @click="addDesignerColumn(tab)">{{ t("database.table.addColumn") }}</n-button>
+                  </div>
+                  <div class="table-designer-grid table-designer-columns">
+                    <span>{{ t("field.name") }}</span>
+                    <span>{{ t("database.table.columnType") }}</span>
+                    <span>{{ t("database.table.nullable") }}</span>
+                    <span>{{ t("database.table.primaryKey") }}</span>
+                    <span>{{ t("database.table.autoincrement") }}</span>
+                    <span>{{ t("database.table.defaultValue") }}</span>
+                    <span>{{ t("field.description") }}</span>
+                    <span>{{ t("common.actions") }}</span>
+                    <template v-for="column in tab.columns" :key="column.key">
+                      <n-input v-model:value="column.name" size="small" :disabled="column.drop" :class="{ 'database-dropped-row': column.drop }" />
+                      <div class="table-designer-type-control">
+                        <n-select v-model:value="column.typeName" size="small" :options="columnTypeOptions" :disabled="column.drop" @update:value="syncColumnType(column)" />
+                        <n-input-number
+                          v-if="column.typeName !== CUSTOM_COLUMN_TYPE"
+                          v-model:value="column.typeLength"
+                          size="small"
+                          :show-button="false"
+                          :min="1"
+                          :max="65535"
+                          :disabled="column.drop || !typeAllowsLength(column.typeName)"
+                          :placeholder="t('database.table.typeLength')"
+                          @update:value="syncColumnType(column)"
+                        />
+                        <n-input
+                          v-else
+                          v-model:value="column.customType"
+                          size="small"
+                          :disabled="column.drop"
+                          :placeholder="t('database.table.customType')"
+                          @update:value="syncColumnType(column)"
+                        />
+                      </div>
+                      <n-checkbox v-model:checked="column.nullable" :disabled="column.drop" />
+                      <n-checkbox v-model:checked="column.primary_key" :disabled="column.drop" />
+                      <n-checkbox v-model:checked="column.autoincrement" :disabled="column.drop" />
+                      <n-input v-model:value="column.default" size="small" :disabled="column.drop" />
+                      <n-input v-model:value="column.comment" size="small" :disabled="column.drop" />
+                      <n-button size="tiny" quaternary :type="column.drop ? 'default' : 'error'" @click="toggleDesignerColumnDrop(tab, column)">
+                        {{ column.drop ? t("database.table.restore") : t("common.delete") }}
+                      </n-button>
+                    </template>
+                  </div>
+                </section>
+                <section class="table-designer-section">
+                  <div class="table-designer-section-head">
+                    <strong>{{ t("database.table.indexes") }}</strong>
+                    <n-button size="small" @click="addDesignerIndex(tab)">{{ t("database.table.addIndex") }}</n-button>
+                  </div>
+                  <div class="table-designer-grid table-designer-indexes">
+                    <span>{{ t("field.name") }}</span>
+                    <span>{{ t("database.table.indexColumns") }}</span>
+                    <span>{{ t("database.table.unique") }}</span>
+                    <span>{{ t("common.actions") }}</span>
+                    <template v-for="index in tab.indexes" :key="index.key">
+                      <n-input v-model:value="index.name" size="small" :disabled="index.existing || index.drop" :class="{ 'database-dropped-row': index.drop }" />
+                      <n-input v-model:value="index.columns" size="small" :disabled="index.drop" :placeholder="t('database.table.indexColumnsPlaceholder')" />
+                      <n-checkbox v-model:checked="index.unique" :disabled="index.drop" />
+                      <n-button size="tiny" quaternary :type="index.drop ? 'default' : 'error'" @click="toggleDesignerIndexDrop(tab, index)">
+                        {{ index.drop ? t("database.table.restore") : t("common.delete") }}
+                      </n-button>
+                    </template>
+                  </div>
+                </section>
+                <div class="form-actions table-designer-actions">
+                  <n-button @click="closeWorkbenchTab(tab.key)">{{ t("common.cancel") }}</n-button>
+                  <n-button type="primary" :loading="tab.saving" @click="saveTableDesigner(tab)">{{ t("common.save") }}</n-button>
+                </div>
+              </div>
+            </template>
           </n-tab-pane>
         </n-tabs>
+
+        <n-empty v-else class="database-workbench-empty" :description="t('database.tabs.empty')">
+          <template #extra>
+            <n-dropdown trigger="click" placement="bottom" :options="newTabOptions" @select="handleNewTabSelect">
+              <n-button type="primary">
+                <template #icon><n-icon :component="Add20Regular" /></template>
+                {{ t("database.tabs.new") }}
+              </n-button>
+            </n-dropdown>
+          </template>
+        </n-empty>
       </main>
     </div>
 
@@ -153,11 +276,11 @@
     </n-modal>
 
     <n-modal v-model:show="scriptDetailModal.show" preset="card" class="modal-card" :title="t('database.script.detail')">
-      <div v-if="currentScript" class="database-detail-list">
-        <div><span>{{ t("database.script.id") }}</span><strong>{{ currentScript.id }}</strong></div>
-        <div><span>{{ t("database.script.statementCount") }}</span><strong>{{ currentScript.statement_count }}</strong></div>
-        <div><span>{{ t("field.createdAt") }}</span><strong>{{ formatDateTime(currentScript.created_at) }}</strong></div>
-        <div><span>{{ t("field.updatedAt") }}</span><strong>{{ formatDateTime(currentScript.updated_at) }}</strong></div>
+      <div v-if="scriptDetailModal.script" class="database-detail-list">
+        <div><span>{{ t("database.script.id") }}</span><strong>{{ scriptDetailModal.script.id }}</strong></div>
+        <div><span>{{ t("database.script.statementCount") }}</span><strong>{{ scriptDetailModal.script.statement_count }}</strong></div>
+        <div><span>{{ t("field.createdAt") }}</span><strong>{{ formatDateTime(scriptDetailModal.script.created_at) }}</strong></div>
+        <div><span>{{ t("field.updatedAt") }}</span><strong>{{ formatDateTime(scriptDetailModal.script.updated_at) }}</strong></div>
       </div>
     </n-modal>
 
@@ -171,91 +294,6 @@
         <div class="form-actions modal-fixed-actions">
           <n-button @click="objectModal.show = false">{{ t("common.cancel") }}</n-button>
           <n-button type="primary" :loading="objectModal.saving" @click="saveObject">{{ t("common.save") }}</n-button>
-        </div>
-      </template>
-    </n-modal>
-
-    <n-modal v-model:show="tableDesigner.show" preset="card" class="modal-card table-designer-modal" :title="tableDesignerTitle">
-      <div class="table-designer">
-        <n-form class="form-stack inline-form" label-placement="left" label-width="auto">
-          <n-form-item :label="t('database.table.name')">
-            <n-input v-model:value="tableDesigner.name" />
-          </n-form-item>
-        </n-form>
-        <section class="table-designer-section">
-          <div class="table-designer-section-head">
-            <strong>{{ t("database.table.columns") }}</strong>
-            <n-button size="small" @click="addDesignerColumn">{{ t("database.table.addColumn") }}</n-button>
-          </div>
-          <div class="table-designer-grid table-designer-columns">
-            <span>{{ t("field.name") }}</span>
-            <span>{{ t("database.table.columnType") }}</span>
-            <span>{{ t("database.table.nullable") }}</span>
-            <span>{{ t("database.table.primaryKey") }}</span>
-            <span>{{ t("database.table.autoincrement") }}</span>
-            <span>{{ t("database.table.defaultValue") }}</span>
-            <span>{{ t("field.description") }}</span>
-            <span>{{ t("common.actions") }}</span>
-            <template v-for="column in tableDesigner.columns" :key="column.key">
-              <n-input v-model:value="column.name" size="small" :disabled="column.drop" :class="{ 'database-dropped-row': column.drop }" />
-              <div class="table-designer-type-control">
-                <n-select v-model:value="column.typeName" size="small" :options="columnTypeOptions" :disabled="column.drop" @update:value="syncColumnType(column)" />
-                <n-input-number
-                  v-if="column.typeName !== CUSTOM_COLUMN_TYPE"
-                  v-model:value="column.typeLength"
-                  size="small"
-                  :show-button="false"
-                  :min="1"
-                  :max="65535"
-                  :disabled="column.drop || !typeAllowsLength(column.typeName)"
-                  :placeholder="t('database.table.typeLength')"
-                  @update:value="syncColumnType(column)"
-                />
-                <n-input
-                  v-else
-                  v-model:value="column.customType"
-                  size="small"
-                  :disabled="column.drop"
-                  :placeholder="t('database.table.customType')"
-                  @update:value="syncColumnType(column)"
-                />
-              </div>
-              <n-checkbox v-model:checked="column.nullable" :disabled="column.drop" />
-              <n-checkbox v-model:checked="column.primary_key" :disabled="column.drop" />
-              <n-checkbox v-model:checked="column.autoincrement" :disabled="column.drop" />
-              <n-input v-model:value="column.default" size="small" :disabled="column.drop" />
-              <n-input v-model:value="column.comment" size="small" :disabled="column.drop" />
-              <n-button size="tiny" quaternary :type="column.drop ? 'default' : 'error'" @click="toggleDesignerColumnDrop(column)">
-                {{ column.drop ? t("database.table.restore") : t("common.delete") }}
-              </n-button>
-            </template>
-          </div>
-        </section>
-        <section class="table-designer-section">
-          <div class="table-designer-section-head">
-            <strong>{{ t("database.table.indexes") }}</strong>
-            <n-button size="small" @click="addDesignerIndex">{{ t("database.table.addIndex") }}</n-button>
-          </div>
-          <div class="table-designer-grid table-designer-indexes">
-            <span>{{ t("field.name") }}</span>
-            <span>{{ t("database.table.indexColumns") }}</span>
-            <span>{{ t("database.table.unique") }}</span>
-            <span>{{ t("common.actions") }}</span>
-            <template v-for="index in tableDesigner.indexes" :key="index.key">
-              <n-input v-model:value="index.name" size="small" :disabled="index.existing || index.drop" :class="{ 'database-dropped-row': index.drop }" />
-              <n-input v-model:value="index.columns" size="small" :disabled="index.drop" :placeholder="t('database.table.indexColumnsPlaceholder')" />
-              <n-checkbox v-model:checked="index.unique" :disabled="index.drop" />
-              <n-button size="tiny" quaternary :type="index.drop ? 'default' : 'error'" @click="toggleDesignerIndexDrop(index)">
-                {{ index.drop ? t("database.table.restore") : t("common.delete") }}
-              </n-button>
-            </template>
-          </div>
-        </section>
-      </div>
-      <template #action>
-        <div class="form-actions modal-fixed-actions">
-          <n-button @click="tableDesigner.show = false">{{ t("common.cancel") }}</n-button>
-          <n-button type="primary" :loading="tableDesigner.saving" @click="saveTableDesigner">{{ t("common.save") }}</n-button>
         </div>
       </template>
     </n-modal>
@@ -384,7 +422,6 @@ const emit = defineEmits<{
 
 const message = useMessage();
 const dialog = useDialog();
-const activeTab = ref<"data" | "sql">("data");
 const SIDEBAR_DEFAULT_WIDTH = 280;
 const SIDEBAR_MIN_WIDTH = 220;
 const SIDEBAR_MAX_WIDTH = 560;
@@ -396,19 +433,6 @@ const treeData = ref<TreeOption[]>([]);
 const expandedKeys = ref<string[]>([]);
 const selectedKeys = ref<string[]>([]);
 const selectedDatabase = ref(props.connection.default_database || "");
-const selectedTable = ref("");
-const tableColumns = ref<ColumnItem[]>([]);
-const tableRows = ref<Record<string, unknown>[]>([]);
-const primaryKeys = ref<string[]>([]);
-const tableFilter = ref("");
-const dataTotalExact = ref(true);
-const dataSort = reactive<{ columnKey: string | null; order: "ascend" | "descend" | false }>({ columnKey: null, order: false });
-const loadingData = ref(false);
-const executing = ref(false);
-const resultCollapsed = ref(false);
-const sql = ref("SELECT 1;");
-const queryResult = ref<QueryResult | null>(null);
-const currentScript = ref<SqlScript | null>(null);
 const savingRow = ref(false);
 const savingScript = ref(false);
 const showImport = ref(false);
@@ -423,6 +447,7 @@ const resizeState = reactive({
 });
 const exportModal = reactive({
   show: false,
+  tabKey: "",
   format: "xlsx" as DataFormat,
   statements: [] as string[],
   selected: [] as number[]
@@ -430,12 +455,14 @@ const exportModal = reactive({
 const rowModal = reactive({
   show: false,
   mode: "add" as "add" | "edit",
+  tabKey: "",
   json: "{}",
   original: null as Record<string, unknown> | null
 });
 const scriptModal = reactive({
   show: false,
   mode: "create" as "create" | "update",
+  tabKey: "",
   id: null as number | null,
   name: "",
   description: "",
@@ -443,7 +470,8 @@ const scriptModal = reactive({
   content: ""
 });
 const scriptDetailModal = reactive({
-  show: false
+  show: false,
+  script: null as SqlScript | null
 });
 const objectModal = reactive({
   show: false,
@@ -477,25 +505,57 @@ interface TableIndexDraft {
   unique: boolean;
   drop: boolean;
 }
-const tableDesigner = reactive({
-  show: false,
-  mode: "create" as "create" | "edit",
-  database: "",
-  name: "",
-  originalName: "",
-  columns: [] as TableColumnDraft[],
-  indexes: [] as TableIndexDraft[],
-  saving: false
-});
-const dataPagination = reactive({
-  page: 1,
-  pageSize: 50,
-  itemCount: 0,
-  pageSizes: [50, 100, 200, 500],
-  showSizePicker: true,
-  prefix: ({ itemCount }: { itemCount: number | undefined }) =>
-    dataTotalExact.value ? t("common.total", { count: itemCount ?? 0 }) : t("database.table.totalEstimate", { count: itemCount ?? 0 })
-});
+interface DataPagination {
+  page: number;
+  pageSize: number;
+  itemCount: number;
+  pageSizes: number[];
+  showSizePicker: boolean;
+  prefix: (payload: { itemCount: number | undefined }) => string;
+}
+interface TableDataTab {
+  type: "table-data";
+  key: string;
+  title: string;
+  database: string;
+  table: string;
+  filter: string;
+  columns: ColumnItem[];
+  rows: Record<string, unknown>[];
+  primaryKeys: string[];
+  totalExact: boolean;
+  sort: { columnKey: string | null; order: "ascend" | "descend" | false };
+  loading: boolean;
+  requestId: number;
+  pagination: DataPagination;
+}
+interface SqlEditorTab {
+  type: "sql-script";
+  key: string;
+  title: string;
+  database: string;
+  script: SqlScript | null;
+  sql: string;
+  queryResult: QueryResult | null;
+  executing: boolean;
+  resultCollapsed: boolean;
+}
+interface TableDesignerTab {
+  type: "table-designer";
+  key: string;
+  title: string;
+  mode: "create" | "edit";
+  database: string;
+  name: string;
+  originalName: string;
+  columns: TableColumnDraft[];
+  indexes: TableIndexDraft[];
+  saving: boolean;
+}
+type WorkbenchTab = TableDataTab | SqlEditorTab | TableDesignerTab;
+const workbenchTabs = ref<WorkbenchTab[]>([]);
+const activeTabKey = ref("");
+const temporaryScriptCounter = ref(0);
 const exportOptions = [
   { label: "CSV", key: "csv" },
   { label: "XLSX", key: "xlsx" },
@@ -522,10 +582,13 @@ const columnTypeOptions = [
 
 const canOperate = computed(() => authStore.has(DATABASE_OPERATE));
 const canDeleteScript = computed(() => authStore.has(SQL_SCRIPT_DELETE));
-const scriptSavePermission = computed(() => (currentScript.value ? SQL_SCRIPT_UPDATE : SQL_SCRIPT_CREATE));
-const scriptSaveText = computed(() => (currentScript.value ? t("database.script.update") : t("database.script.save")));
 const scriptModalTitle = computed(() => (scriptModal.mode === "update" ? t("database.script.update") : t("database.script.save")));
-const tableDesignerTitle = computed(() => (tableDesigner.mode === "edit" ? t("database.table.editStructure") : t("database.table.create")));
+const newTabOptions = computed<DropdownOption[]>(() => [
+  { label: t("database.table.create"), key: "table-create", disabled: !canOperate.value },
+  { label: t("database.script.temporary"), key: "temp-sql" }
+]);
+const activeWorkbenchTab = computed(() => workbenchTabs.value.find((tab) => tab.key === activeTabKey.value) || null);
+const activeTableTab = computed(() => (activeWorkbenchTab.value?.type === "table-data" ? activeWorkbenchTab.value : null));
 const exportFormatOptions = computed(() => {
   const all = [
     { label: "CSV", value: "csv" },
@@ -547,7 +610,7 @@ const workbenchBodyStyle = computed(() => ({ "--database-sidebar-width": `${side
 const suggestions = computed(() => [
   ...schemas.value.map((item) => item.name),
   ...tables.value.map((item) => item.name),
-  ...tableColumns.value.map((item) => item.name)
+  ...(activeTableTab.value?.columns || []).map((item) => item.name)
 ]);
 
 const PREFIX_ICONS: Record<string, Component> = {
@@ -557,40 +620,48 @@ const PREFIX_ICONS: Record<string, Component> = {
   table: Table20Regular,
   script: DocumentText20Regular
 };
-let tableDataRequestId = 0;
 const TABLE_SCROLL_END_BUFFER = 64;
 
-const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() =>
-  withResizableColumns([
-    ...tableColumns.value.map((column) => ({
+function scriptSavePermission(tab: SqlEditorTab) {
+  return tab.script ? SQL_SCRIPT_UPDATE : SQL_SCRIPT_CREATE;
+}
+
+function scriptSaveText(tab: SqlEditorTab) {
+  return tab.script ? t("database.script.update") : t("database.script.save");
+}
+
+function dataColumns(tab: TableDataTab): DataTableColumns<Record<string, unknown>> {
+  return withResizableColumns([
+    ...tab.columns.map((column) => ({
       title: column.name,
       key: column.name,
       width: 180,
       minWidth: 80,
       resizable: true,
       sorter: true,
-      sortOrder: dataSort.columnKey === column.name ? dataSort.order : false,
+      sortOrder: tab.sort.columnKey === column.name ? tab.sort.order : false,
       ellipsis: { tooltip: true },
       render: (row: Record<string, unknown>) => formatCell(row[column.name])
     })),
     {
       title: t("common.actions"),
       key: "actions",
-      fixed: "right",
+      fixed: "right" as const,
       width: 150,
       resizable: false,
       render: (row: Record<string, unknown>) =>
         h("div", { class: "table-actions" }, [
-          h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row) }, () => t("common.edit")),
-          h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDeleteRow(row) }, () => t("common.delete"))
+          h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row, tab) }, () => t("common.edit")),
+          h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDeleteRow(row, tab) }, () => t("common.delete"))
         ])
     }
-  ])
-);
-const queryColumns = computed<DataTableColumns<Record<string, unknown>>>(() => {
-  const columns = queryResult.value?.columns || [];
-  if (!columns.length && queryResult.value?.statement_type === "write") {
-    return [{ title: t("database.sql.affectedRows"), key: "affected_rows", render: () => queryResult.value?.affected_rows ?? 0 }];
+  ]);
+}
+
+function queryColumns(tab: SqlEditorTab): DataTableColumns<Record<string, unknown>> {
+  const columns = tab.queryResult?.columns || [];
+  if (!columns.length && tab.queryResult?.statement_type === "write") {
+    return [{ title: t("database.sql.affectedRows"), key: "affected_rows", render: () => tab.queryResult?.affected_rows ?? 0 }];
   }
   return withResizableColumns(
     columns.map((column) => ({
@@ -601,11 +672,14 @@ const queryColumns = computed<DataTableColumns<Record<string, unknown>>>(() => {
       resizable: true,
       sorter: "default" as const,
       ellipsis: { tooltip: true },
-      render: (row) => formatCell(row[column])
+      render: (row: Record<string, unknown>) => formatCell(row[column])
     }))
   );
-});
-const queryRows = computed(() => queryResult.value?.rows || []);
+}
+
+function queryRows(tab: SqlEditorTab) {
+  return tab.queryResult?.rows || [];
+}
 
 onMounted(async () => {
   sidebarWidth.value = clampSidebarWidth(sidebarWidth.value);
@@ -665,6 +739,146 @@ function stopSidebarResize() {
 function resetSidebarWidth() {
   sidebarWidth.value = clampSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
   saveSidebarWidth();
+}
+
+function createTableDataTab(database: string, table: string): TableDataTab {
+  const tab: TableDataTab = {
+    type: "table-data",
+    key: tableTabKey(database, table),
+    title: table,
+    database,
+    table,
+    filter: "",
+    columns: [],
+    rows: [],
+    primaryKeys: [],
+    totalExact: true,
+    sort: { columnKey: null, order: false },
+    loading: false,
+    requestId: 0,
+    pagination: {} as DataPagination
+  };
+  tab.pagination = createDataPagination(tab);
+  return tab;
+}
+
+function createDataPagination(tab: TableDataTab): DataPagination {
+  return {
+    page: 1,
+    pageSize: 50,
+    itemCount: 0,
+    pageSizes: [50, 100, 200, 500],
+    showSizePicker: true,
+    prefix: ({ itemCount }: { itemCount: number | undefined }) =>
+      tab.totalExact ? t("common.total", { count: itemCount ?? 0 }) : t("database.table.totalEstimate", { count: itemCount ?? 0 })
+  };
+}
+
+function createSqlTab(database: string, script: SqlScript | null, sqlText: string): SqlEditorTab {
+  return {
+    type: "sql-script",
+    key: script ? sqlTabKey(script.id) : temporarySqlTabKey(++temporaryScriptCounter.value),
+    title: script?.name || temporarySqlTitle(temporaryScriptCounter.value),
+    database,
+    script,
+    sql: sqlText,
+    queryResult: null,
+    executing: false,
+    resultCollapsed: false
+  };
+}
+
+function createDesignerTab(mode: "create" | "edit", database: string, table = ""): TableDesignerTab {
+  return {
+    type: "table-designer",
+    key: mode === "create" ? designerCreateTabKey(database) : designerEditTabKey(database, table),
+    title: mode === "create" ? t("database.table.createTab") : t("database.table.editTab", { name: table }),
+    mode,
+    database,
+    name: table,
+    originalName: table,
+    columns: [],
+    indexes: [],
+    saving: false
+  };
+}
+
+function tableTabKey(database: string, table: string) {
+  return `data:${database}:${table}`;
+}
+
+function sqlTabKey(id: number) {
+  return `script:${id}`;
+}
+
+function temporarySqlTabKey(counter: number) {
+  return `temp:${counter}`;
+}
+
+function designerCreateTabKey(database: string) {
+  return `designer:create:${database}`;
+}
+
+function designerEditTabKey(database: string, table: string) {
+  return `designer:edit:${database}:${table}`;
+}
+
+function temporarySqlTitle(counter: number) {
+  return counter === 1 ? t("database.script.temporary") : t("database.script.temporaryNamed", { index: counter });
+}
+
+function activateWorkbenchTab(key: string | number) {
+  activeTabKey.value = String(key);
+  const tab = activeWorkbenchTab.value;
+  if (!tab) return;
+  selectedDatabase.value = tab.database;
+  if (tab.type === "table-data") {
+    selectedKeys.value = [tableNodeKey(tab.database, tab.table)];
+  } else if (tab.type === "sql-script" && tab.script) {
+    selectedKeys.value = [scriptNodeKey(tab.database, tab.script.id)];
+  }
+  updateTablesForDb(tab.database);
+}
+
+function upsertWorkbenchTab<T extends WorkbenchTab>(tab: T) {
+  const existing = workbenchTabs.value.find((item) => item.key === tab.key);
+  if (existing) {
+    activeTabKey.value = existing.key;
+    activateWorkbenchTab(existing.key);
+    return existing as T;
+  }
+  workbenchTabs.value.push(tab);
+  activeTabKey.value = tab.key;
+  activateWorkbenchTab(tab.key);
+  return tab;
+}
+
+function closeWorkbenchTab(key: string | number) {
+  const tabKey = String(key);
+  const index = workbenchTabs.value.findIndex((tab) => tab.key === tabKey);
+  if (index < 0) return;
+  workbenchTabs.value.splice(index, 1);
+  if (activeTabKey.value !== tabKey) return;
+  const next = workbenchTabs.value[Math.max(0, index - 1)] || workbenchTabs.value[index] || null;
+  activeTabKey.value = next?.key || "";
+  if (next) activateWorkbenchTab(next.key);
+}
+
+function handleNewTabSelect(key: string | number) {
+  if (key === "table-create") {
+    const database = preferredDatabase();
+    if (!database) {
+      message.warning(t("database.tabs.noDatabase"));
+      return;
+    }
+    openCreateTableDesigner(database);
+  } else if (key === "temp-sql") {
+    startTemporaryScript();
+  }
+}
+
+function preferredDatabase() {
+  return selectedDatabase.value || props.connection.default_database || schemas.value[0]?.name || "";
 }
 
 function schemaKey(name: string) {
@@ -792,8 +1006,16 @@ async function refreshMetadata() {
     expandedKeys.value = [];
     selectedKeys.value = [];
     selectedDatabase.value = initial;
-    if (initial) await openSchemaTables(initial);
-    else resetTableView();
+    if (initial) {
+      const cat = findCategory(initial, "tablesCat");
+      if (cat) {
+        cat.children = await loadTableNodes(initial);
+        updateTablesForDb(initial);
+        expandedKeys.value = [schemaKey(initial), tablesCatKey(initial)];
+      }
+    } else {
+      tables.value = [];
+    }
   } catch (error) {
     showError(message, error);
   }
@@ -849,14 +1071,8 @@ async function openSchemaTables(database: string) {
   cat.children = await loadTableNodes(database);
   updateTablesForDb(database);
   expandedKeys.value = [schemaKey(database), tablesCatKey(database)];
-  const match = cat.children.find((child) => child.table === selectedTable.value) || cat.children[0];
-  if (match) {
-    selectedKeys.value = [String(match.key)];
-    selectTable(database, match.table as string);
-  } else {
-    selectedKeys.value = [schemaKey(database)];
-    resetTableView();
-  }
+  const match = cat.children.find((child) => child.table === activeTableTab.value?.table);
+  selectedKeys.value = match ? [String(match.key)] : [schemaKey(database)];
 }
 
 function updateTablesForDb(database: string) {
@@ -883,8 +1099,7 @@ async function handleTreeSelect(keys: Array<string | number>, options: Array<Tre
   }
   selectedDatabase.value = node.database as string;
   if (node.kind === "schema") {
-    selectedTable.value = "";
-    resetTableView();
+    selectedKeys.value = [String(node.key)];
   }
   await toggleNode(node);
 }
@@ -922,112 +1137,104 @@ async function reloadScripts() {
 
 function selectTable(database: string, table: string) {
   selectedDatabase.value = database;
-  selectedTable.value = table;
-  dataPagination.page = 1;
-  tableRows.value = [];
-  tableColumns.value = [];
-  primaryKeys.value = [];
-  dataPagination.itemCount = 0;
-  dataTotalExact.value = true;
-  void loadTableData();
+  const tab = upsertWorkbenchTab(createTableDataTab(database, table));
+  tab.pagination.page = 1;
+  void loadTableData(tab);
 }
 
 function resetTableView() {
-  selectedTable.value = "";
-  tableRows.value = [];
-  tableColumns.value = [];
-  primaryKeys.value = [];
-  dataPagination.itemCount = 0;
-  dataTotalExact.value = true;
+  selectedKeys.value = [];
 }
 
-function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | null) {
+function handleDataSorter(sorter: DataTableSortState | DataTableSortState[] | null, tab: TableDataTab) {
   const state = Array.isArray(sorter) ? sorter[0] : sorter;
   if (!state || !state.order) {
-    dataSort.columnKey = null;
-    dataSort.order = false;
+    tab.sort.columnKey = null;
+    tab.sort.order = false;
   } else {
-    dataSort.columnKey = String(state.columnKey);
-    dataSort.order = state.order;
+    tab.sort.columnKey = String(state.columnKey);
+    tab.sort.order = state.order;
   }
-  dataPagination.page = 1;
-  void loadTableData();
+  tab.pagination.page = 1;
+  void loadTableData(tab);
 }
 
-async function loadTableData() {
-  if (!selectedTable.value) return;
-  const requestId = ++tableDataRequestId;
-  loadingData.value = true;
+async function loadTableData(tab: TableDataTab) {
+  const requestId = ++tab.requestId;
+  tab.loading = true;
   try {
     const result = await getTableData(
       props.connection.conn_id,
-      selectedDatabase.value || "",
-      selectedTable.value,
-      dataPagination.page,
-      dataPagination.pageSize,
-      dataSort.columnKey || "",
-      dataSort.order === "descend",
-      tableFilter.value,
+      tab.database || "",
+      tab.table,
+      tab.pagination.page,
+      tab.pagination.pageSize,
+      tab.sort.columnKey || "",
+      tab.sort.order === "descend",
+      tab.filter,
       false
     );
-    if (requestId !== tableDataRequestId) return;
-    tableColumns.value = result.columns;
-    tableRows.value = result.rows;
-    primaryKeys.value = result.primary_keys;
-    dataPagination.itemCount = result.total;
-    dataTotalExact.value = result.total_exact;
+    if (requestId !== tab.requestId) return;
+    tab.columns = result.columns;
+    tab.rows = result.rows;
+    tab.primaryKeys = result.primary_keys;
+    tab.pagination.itemCount = result.total;
+    tab.totalExact = result.total_exact;
   } catch (error) {
-    if (requestId !== tableDataRequestId) return;
+    if (requestId !== tab.requestId) return;
     showError(message, error);
   } finally {
-    if (requestId === tableDataRequestId) loadingData.value = false;
+    if (requestId === tab.requestId) tab.loading = false;
   }
 }
 
-async function executeSql() {
-  executing.value = true;
+async function executeSql(tab: SqlEditorTab) {
+  tab.executing = true;
   try {
-    queryResult.value = await queryDatabase(props.connection.conn_id, { sql: sql.value, database: selectedDatabase.value || "" });
-    resultCollapsed.value = false;
+    tab.queryResult = await queryDatabase(props.connection.conn_id, { sql: tab.sql, database: tab.database || "" });
+    tab.resultCollapsed = false;
     message.success(t("database.sql.executed"));
   } catch (error) {
     showError(message, error);
   } finally {
-    executing.value = false;
+    tab.executing = false;
   }
 }
 
-function openAddRow() {
+function openAddRow(tab: TableDataTab) {
   rowModal.mode = "add";
+  rowModal.tabKey = tab.key;
   rowModal.original = null;
-  rowModal.json = JSON.stringify(Object.fromEntries(tableColumns.value.map((column) => [column.name, null])), null, 2);
+  rowModal.json = JSON.stringify(Object.fromEntries(tab.columns.map((column) => [column.name, null])), null, 2);
   rowModal.show = true;
 }
 
-function openEditRow(row: Record<string, unknown>) {
+function openEditRow(row: Record<string, unknown>, tab: TableDataTab) {
   rowModal.mode = "edit";
+  rowModal.tabKey = tab.key;
   rowModal.original = row;
   rowModal.json = JSON.stringify(row, null, 2);
   rowModal.show = true;
 }
 
 async function saveRow() {
-  if (!selectedTable.value) return;
+  const tab = workbenchTabs.value.find((item): item is TableDataTab => item.key === rowModal.tabKey && item.type === "table-data");
+  if (!tab) return;
   savingRow.value = true;
   try {
     const values = JSON.parse(rowModal.json) as Record<string, unknown>;
     if (rowModal.mode === "add") {
-      await createRow(props.connection.conn_id, { database: selectedDatabase.value, table: selectedTable.value, values });
+      await createRow(props.connection.conn_id, { database: tab.database, table: tab.table, values });
     } else {
       await updateRow(props.connection.conn_id, {
-        database: selectedDatabase.value,
-        table: selectedTable.value,
-        keys: rowKeys(rowModal.original || {}),
+        database: tab.database,
+        table: tab.table,
+        keys: rowKeys(rowModal.original || {}, tab),
         values
       });
     }
     rowModal.show = false;
-    await loadTableData();
+    await loadTableData(tab);
   } catch (error) {
     showError(message, error);
   } finally {
@@ -1045,29 +1252,30 @@ function confirmAction(content: string, onConfirm: () => Promise<void>, positive
   });
 }
 
-function confirmDeleteRow(row: Record<string, unknown>) {
+function confirmDeleteRow(row: Record<string, unknown>, tab: TableDataTab) {
   confirmAction(t("database.row.deleteConfirm"), async () => {
-    await deleteRow(props.connection.conn_id, { database: selectedDatabase.value, table: selectedTable.value, keys: rowKeys(row) });
-    await loadTableData();
+    await deleteRow(props.connection.conn_id, { database: tab.database, table: tab.table, keys: rowKeys(row, tab) });
+    await loadTableData(tab);
   });
 }
 
-function rowKeys(row: Record<string, unknown>) {
-  const keys = primaryKeys.value.length ? primaryKeys.value : tableColumns.value.map((column) => column.name);
+function rowKeys(row: Record<string, unknown>, tab: TableDataTab) {
+  const keys = tab.primaryKeys.length ? tab.primaryKeys : tab.columns.map((column) => column.name);
   return Object.fromEntries(keys.map((key) => [key, row[key]]));
 }
 
-async function exportTable(format: string | number) {
+async function exportTable(format: string | number, tab: TableDataTab) {
   const result = await submitExport(props.connection.conn_id, {
     format: format as DataFormat,
-    database: selectedDatabase.value,
-    tables: selectedTable.value ? [selectedTable.value] : []
+    database: tab.database,
+    tables: [tab.table]
   });
   handleJobSubmitted(result.job_id);
 }
 
-function openResultExport() {
-  const statements = splitReadStatements(sql.value);
+function openResultExport(tab: SqlEditorTab) {
+  const statements = splitReadStatements(tab.sql);
+  exportModal.tabKey = tab.key;
   exportModal.statements = statements;
   exportModal.selected = statements.map((_, index) => index);
   exportModal.format = statements.length > 1 ? "xlsx" : "csv";
@@ -1081,6 +1289,8 @@ function exportLabel(index: number, statement: string) {
 }
 
 async function submitResultExport() {
+  const tab = workbenchTabs.value.find((item): item is SqlEditorTab => item.key === exportModal.tabKey && item.type === "sql-script");
+  if (!tab) return;
   const picked = exportModal.selected
     .slice()
     .sort((a, b) => a - b)
@@ -1089,7 +1299,7 @@ async function submitResultExport() {
   if (!picked.length) return;
   const result = await submitExport(props.connection.conn_id, {
     format: exportModal.format,
-    database: selectedDatabase.value,
+    database: tab.database,
     queries: picked.map((statement, index) => ({ name: `result_${index + 1}`, sql: statement }))
   });
   exportModal.show = false;
@@ -1166,8 +1376,12 @@ function createSchemaPrompt() {
 }
 
 function createTablePrompt() {
-  if (!selectedDatabase.value) return;
-  openCreateTableDesigner(selectedDatabase.value);
+  const database = preferredDatabase();
+  if (!database) {
+    message.warning(t("database.tabs.noDatabase"));
+    return;
+  }
+  openCreateTableDesigner(database);
 }
 
 function handleSchemaOp(key: string, database: string) {
@@ -1185,9 +1399,9 @@ function handleTableOp(key: string, database: string, table: string) {
   else if (key === "drop") dropTableByName(database, table);
 }
 
-function openImport() {
-  importTarget.database = selectedDatabase.value;
-  importTarget.table = selectedTable.value;
+function openImport(tab: TableDataTab) {
+  importTarget.database = tab.database;
+  importTarget.table = tab.table;
   showImport.value = true;
 }
 
@@ -1206,97 +1420,112 @@ function handleScriptOp(key: string, script: SqlScript) {
 
 function openCreateTableDesigner(database: string) {
   selectedDatabase.value = database;
-  Object.assign(tableDesigner, {
-    show: true,
-    mode: "create",
-    database,
-    name: "",
-    originalName: "",
-    saving: false
-  });
-  tableDesigner.columns = [
+  const existing = workbenchTabs.value.find((tab): tab is TableDesignerTab => tab.key === designerCreateTabKey(database) && tab.type === "table-designer");
+  if (existing) {
+    upsertWorkbenchTab(existing);
+    return;
+  }
+  const tab = createDesignerTab("create", database);
+  tab.columns = [
     columnDraft({ name: "id", type: "INT", nullable: false, primary_key: true, autoincrement: true, default: "", comment: "" }, false),
     columnDraft({ name: "name", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false, default: "", comment: "" }, false)
   ];
-  tableDesigner.indexes = [];
+  tab.indexes = [];
+  upsertWorkbenchTab(tab);
 }
 
 async function openEditTableDesigner(database: string, table: string) {
   selectedDatabase.value = database;
+  const existing = workbenchTabs.value.find((tab): tab is TableDesignerTab => tab.key === designerEditTabKey(database, table) && tab.type === "table-designer");
+  if (existing) {
+    upsertWorkbenchTab(existing);
+    return;
+  }
   try {
     const detail = await getTableStructure(props.connection.conn_id, database, table);
-    Object.assign(tableDesigner, {
-      show: true,
-      mode: "edit",
-      database,
-      name: table,
-      originalName: table,
-      saving: false
-    });
-    tableDesigner.columns = detail.columns.map((column) => columnDraft(columnToDefinition(column), true));
-    tableDesigner.indexes = detail.indexes.map((index) => indexDraft(indexToDefinition(index), true));
+    const tab = createDesignerTab("edit", database, table);
+    tab.columns = detail.columns.map((column) => columnDraft(columnToDefinition(column), true));
+    tab.indexes = detail.indexes.map((index) => indexDraft(indexToDefinition(index), true));
+    upsertWorkbenchTab(tab);
   } catch (error) {
     showError(message, error);
   }
 }
 
-function addDesignerColumn() {
-  tableDesigner.columns.push(columnDraft({ name: "", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false, default: "", comment: "" }, false));
+function addDesignerColumn(tab: TableDesignerTab) {
+  tab.columns.push(columnDraft({ name: "", type: "VARCHAR(255)", nullable: true, primary_key: false, autoincrement: false, default: "", comment: "" }, false));
 }
 
-function addDesignerIndex() {
-  tableDesigner.indexes.push(indexDraft({ name: "", columns: [], unique: false }, false));
+function addDesignerIndex(tab: TableDesignerTab) {
+  tab.indexes.push(indexDraft({ name: "", columns: [], unique: false }, false));
 }
 
-function toggleDesignerColumnDrop(column: TableColumnDraft) {
+function toggleDesignerColumnDrop(tab: TableDesignerTab, column: TableColumnDraft) {
   if (column.existing) column.drop = !column.drop;
-  else tableDesigner.columns = tableDesigner.columns.filter((item) => item.key !== column.key);
+  else tab.columns = tab.columns.filter((item) => item.key !== column.key);
 }
 
-function toggleDesignerIndexDrop(index: TableIndexDraft) {
+function toggleDesignerIndexDrop(tab: TableDesignerTab, index: TableIndexDraft) {
   if (index.existing) index.drop = !index.drop;
-  else tableDesigner.indexes = tableDesigner.indexes.filter((item) => item.key !== index.key);
+  else tab.indexes = tab.indexes.filter((item) => item.key !== index.key);
 }
 
-async function saveTableDesigner() {
-  const name = tableDesigner.name.trim();
-  if (!name || !activeDesignerColumns().length) return;
-  tableDesigner.saving = true;
+async function saveTableDesigner(tab: TableDesignerTab) {
+  const name = tab.name.trim();
+  if (!name || !activeDesignerColumns(tab).length) return;
+  tab.saving = true;
   try {
-    if (tableDesigner.mode === "create") {
+    if (tab.mode === "create") {
       await createTable(props.connection.conn_id, {
-        database: tableDesigner.database,
+        database: tab.database,
         name,
-        columns: activeDesignerColumns().map(draftToColumnDefinition),
-        indexes: activeDesignerIndexes().map(draftToIndexDefinition)
+        columns: activeDesignerColumns(tab).map(draftToColumnDefinition),
+        indexes: activeDesignerIndexes(tab).map(draftToIndexDefinition)
       });
-      selectedTable.value = name;
+      tab.mode = "edit";
+      tab.originalName = name;
+      tab.name = name;
+      tab.key = designerEditTabKey(tab.database, name);
+      tab.title = t("database.table.editTab", { name });
+      activeTabKey.value = tab.key;
     } else {
-      let targetTable = tableDesigner.originalName;
-      if (name !== tableDesigner.originalName) {
-        await renameTable(props.connection.conn_id, tableDesigner.originalName, { database: tableDesigner.database, new_name: name });
+      let targetTable = tab.originalName;
+      if (name !== tab.originalName) {
+        await renameTable(props.connection.conn_id, tab.originalName, { database: tab.database, new_name: name });
+        const tableTab = workbenchTabs.value.find((item): item is TableDataTab => item.key === tableTabKey(tab.database, tab.originalName) && item.type === "table-data");
+        if (tableTab) {
+          tableTab.key = tableTabKey(tab.database, name);
+          tableTab.title = name;
+          tableTab.table = name;
+        }
         targetTable = name;
       }
-      const payload = buildAlterTablePayload();
+      const payload = buildAlterTablePayload(tab);
       if ((payload.actions?.length || 0) > 0 || (payload.index_actions?.length || 0) > 0) {
         await alterTable(props.connection.conn_id, targetTable, payload);
       }
-      selectedTable.value = targetTable;
+      tab.originalName = targetTable;
+      tab.name = targetTable;
+      tab.key = designerEditTabKey(tab.database, targetTable);
+      tab.title = t("database.table.editTab", { name: targetTable });
+      activeTabKey.value = tab.key;
     }
-    tableDesigner.show = false;
-    await reloadSchema(tableDesigner.database);
-    await openSchemaTables(tableDesigner.database);
+    await reloadSchema(tab.database);
+    await openSchemaTables(tab.database);
+    const tableTab = workbenchTabs.value.find((item): item is TableDataTab => item.key === tableTabKey(tab.database, name) && item.type === "table-data");
+    if (tableTab) await loadTableData(tableTab);
+    message.success(t("common.saved"));
   } catch (error) {
     showError(message, error);
   } finally {
-    tableDesigner.saving = false;
+    tab.saving = false;
   }
 }
 
-function buildAlterTablePayload(): AlterTablePayload {
+function buildAlterTablePayload(tab: TableDesignerTab): AlterTablePayload {
   const actions: AlterTablePayload["actions"] = [];
   const indexActions: AlterTablePayload["index_actions"] = [];
-  for (const column of tableDesigner.columns) {
+  for (const column of tab.columns) {
     if (column.existing && column.drop) {
       actions?.push({ action: "drop_column", name: column.original.name });
     } else if (!column.existing && !column.drop) {
@@ -1310,7 +1539,7 @@ function buildAlterTablePayload(): AlterTablePayload {
       }
     }
   }
-  for (const index of tableDesigner.indexes) {
+  for (const index of tab.indexes) {
     if (index.existing && index.drop) {
       indexActions?.push({ action: "drop_index", name: index.original.name });
     } else if (!index.existing && !index.drop) {
@@ -1320,15 +1549,15 @@ function buildAlterTablePayload(): AlterTablePayload {
       indexActions?.push({ action: "add_index", index: draftToIndexDefinition(index) });
     }
   }
-  return { database: tableDesigner.database, actions, index_actions: indexActions };
+  return { database: tab.database, actions, index_actions: indexActions };
 }
 
-function activeDesignerColumns() {
-  return tableDesigner.columns.filter((column) => !column.drop && column.name.trim());
+function activeDesignerColumns(tab: TableDesignerTab) {
+  return tab.columns.filter((column) => !column.drop && column.name.trim());
 }
 
-function activeDesignerIndexes() {
-  return tableDesigner.indexes.filter((index) => !index.drop && index.name.trim() && splitIndexColumns(index.columns).length);
+function activeDesignerIndexes(tab: TableDesignerTab) {
+  return tab.indexes.filter((index) => !index.drop && index.name.trim() && splitIndexColumns(index.columns).length);
 }
 
 function columnDraft(column: ColumnDefinition, existing: boolean): TableColumnDraft {
@@ -1480,10 +1709,10 @@ async function saveObject() {
       await createSchema(props.connection.conn_id, { name });
       objectModal.show = false;
       selectedDatabase.value = name;
-      selectedTable.value = "";
       await refreshMetadata();
     } else {
-      const database = selectedDatabase.value;
+      const database = preferredDatabase();
+      if (!database) return;
       await createTable(props.connection.conn_id, {
         database,
         name,
@@ -1493,8 +1722,8 @@ async function saveObject() {
         ]
       });
       objectModal.show = false;
-      selectedTable.value = name;
       await openSchemaTables(database);
+      selectTable(database, name);
     }
   } catch (error) {
     showError(message, error);
@@ -1506,7 +1735,8 @@ async function saveObject() {
 function dropTableByName(database: string, table: string) {
   confirmAction(t("database.table.dropConfirm", { name: table }), async () => {
     await dropTable(props.connection.conn_id, database, table);
-    if (selectedDatabase.value === database && selectedTable.value === table) resetTableView();
+    closeWorkbenchTab(tableTabKey(database, table));
+    closeWorkbenchTab(designerEditTabKey(database, table));
     await reloadSchema(database);
   });
 }
@@ -1516,7 +1746,8 @@ function truncateTableByName(database: string, table: string) {
     t("database.table.truncateConfirm", { name: table }),
     async () => {
       await truncateTable(props.connection.conn_id, database, table);
-      if (selectedDatabase.value === database && selectedTable.value === table) await loadTableData();
+      const tab = workbenchTabs.value.find((item): item is TableDataTab => item.key === tableTabKey(database, table) && item.type === "table-data");
+      if (tab) await loadTableData(tab);
     },
     t("common.confirm")
   );
@@ -1527,8 +1758,9 @@ function dropSchemaByName(database: string) {
     await dropSchema(props.connection.conn_id, database);
     if (selectedDatabase.value === database) {
       selectedDatabase.value = "";
-      selectedTable.value = "";
     }
+    workbenchTabs.value = workbenchTabs.value.filter((tab) => tab.database !== database);
+    activeTabKey.value = workbenchTabs.value[0]?.key || "";
     await refreshMetadata();
   });
 }
@@ -1536,27 +1768,35 @@ function dropSchemaByName(database: string) {
 async function loadScriptIntoEditor(script: SqlScript) {
   try {
     const detail = await getSqlScript(script.id);
-    currentScript.value = detail;
     selectedDatabase.value = detail.database || selectedDatabase.value;
-    sql.value = detail.content;
-    activeTab.value = "sql";
+    const existing = workbenchTabs.value.find((tab): tab is SqlEditorTab => tab.key === sqlTabKey(detail.id) && tab.type === "sql-script");
+    if (existing) {
+      existing.title = detail.name;
+      existing.database = detail.database || existing.database;
+      existing.script = detail;
+      existing.sql = detail.content;
+      upsertWorkbenchTab(existing);
+    } else {
+      upsertWorkbenchTab(createSqlTab(detail.database || selectedDatabase.value, detail, detail.content));
+    }
   } catch (error) {
     showError(message, error);
   }
 }
 
 function startTemporaryScript() {
-  currentScript.value = null;
   scriptDetailModal.show = false;
-  selectedDatabase.value = "";
   selectedKeys.value = [];
-  resetTableView();
-  activeTab.value = "sql";
+  upsertWorkbenchTab(createSqlTab(preferredDatabase(), null, "SELECT 1;"));
 }
 
 async function showScriptDetail(script: SqlScript) {
-  await loadScriptIntoEditor(script);
-  scriptDetailModal.show = true;
+  try {
+    scriptDetailModal.script = await getSqlScript(script.id);
+    scriptDetailModal.show = true;
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 async function executeScript(script: SqlScript) {
@@ -1571,24 +1811,26 @@ async function executeScript(script: SqlScript) {
 function confirmDeleteScript(script: SqlScript) {
   confirmAction(t("database.script.deleteConfirm", { name: script.name }), async () => {
     await deleteSqlScript(script.id);
+    closeWorkbenchTab(sqlTabKey(script.id));
     await reloadScripts();
   });
 }
 
-function openSaveScript() {
-  scriptModal.mode = currentScript.value ? "update" : "create";
-  scriptModal.id = currentScript.value?.id ?? null;
-  scriptModal.name = currentScript.value?.name || "";
-  scriptModal.description = currentScript.value?.description || "";
-  scriptModal.is_shared = currentScript.value?.is_shared ?? false;
-  scriptModal.content = sql.value;
+function openSaveScript(tab: SqlEditorTab) {
+  scriptModal.mode = tab.script ? "update" : "create";
+  scriptModal.tabKey = tab.key;
+  scriptModal.id = tab.script?.id ?? null;
+  scriptModal.name = tab.script?.name || "";
+  scriptModal.description = tab.script?.description || "";
+  scriptModal.is_shared = tab.script?.is_shared ?? false;
+  scriptModal.content = tab.sql;
   scriptModal.show = true;
 }
 
 function openCreateScript(database: string) {
   selectedDatabase.value = database;
-  currentScript.value = null;
   scriptModal.mode = "create";
+  scriptModal.tabKey = "";
   scriptModal.id = null;
   scriptModal.name = "";
   scriptModal.description = "";
@@ -1600,11 +1842,12 @@ function openCreateScript(database: string) {
 async function saveScript() {
   savingScript.value = true;
   try {
+    const tab = workbenchTabs.value.find((item): item is SqlEditorTab => item.key === scriptModal.tabKey && item.type === "sql-script");
     const payload = {
       name: scriptModal.name || t("database.script.untitled"),
       content: scriptModal.content,
       connection_id: props.connection.id,
-      database: selectedDatabase.value,
+      database: tab?.database || selectedDatabase.value,
       description: scriptModal.description,
       is_shared: scriptModal.is_shared
     };
@@ -1612,9 +1855,14 @@ async function saveScript() {
       scriptModal.mode === "update" && scriptModal.id
         ? await updateSqlScript(scriptModal.id, payload)
         : await createSqlScript(payload);
-    currentScript.value = saved;
     selectedDatabase.value = saved.database || selectedDatabase.value;
-    sql.value = saved.content;
+    const targetTab = tab || createSqlTab(saved.database, saved, saved.content);
+    targetTab.key = sqlTabKey(saved.id);
+    targetTab.title = saved.name;
+    targetTab.database = saved.database;
+    targetTab.script = saved;
+    targetTab.sql = saved.content;
+    upsertWorkbenchTab(targetTab);
     scriptModal.show = false;
     await reloadScripts();
   } catch (error) {
@@ -1624,15 +1872,15 @@ async function saveScript() {
   }
 }
 
-function handleDataPage(page: number) {
-  dataPagination.page = page;
-  void loadTableData();
+function handleDataPage(page: number, tab: TableDataTab) {
+  tab.pagination.page = page;
+  void loadTableData(tab);
 }
 
-function handleDataPageSize(pageSize: number) {
-  dataPagination.pageSize = pageSize;
-  dataPagination.page = 1;
-  void loadTableData();
+function handleDataPageSize(pageSize: number, tab: TableDataTab) {
+  tab.pagination.pageSize = pageSize;
+  tab.pagination.page = 1;
+  void loadTableData(tab);
 }
 
 function formatCell(value: unknown) {
