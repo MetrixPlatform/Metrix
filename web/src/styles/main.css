@@ -1072,6 +1072,36 @@ a {
   opacity: 1;
 }
 
+.n-data-table .n-data-table-th,
+.n-data-table .n-data-table-td {
+  white-space: nowrap;
+}
+
+.n-data-table .n-data-table-td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.n-data-table .n-data-table-td__ellipsis,
+.n-data-table .n-data-table-th__title,
+.n-data-table .n-tag,
+.n-data-table .n-button,
+.n-data-table .file-entry,
+.n-data-table .copyable-cell {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.n-data-table .n-button .n-button__content {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .database-job-filter-row {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(120px, 160px)) max-content max-content max-content;
@@ -1342,7 +1372,9 @@ a {
   border: 1px solid var(--border-color);
   text-align: left;
   vertical-align: top;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .audit-log-change-table th {
@@ -1370,7 +1402,9 @@ a {
   margin: 0;
   padding: 9px 10px;
   border-bottom: 1px solid var(--border-color);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .audit-log-meta-list dt {

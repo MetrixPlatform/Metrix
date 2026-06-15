@@ -14,6 +14,7 @@ interface TableColumnWithMeta<T> {
   children?: DataTableColumns<T>;
   minWidth?: string | number;
   resizable?: boolean;
+  ellipsis?: boolean | { tooltip?: boolean };
 }
 
 export function singleFilterValue(filterState: DataTableFilterState, key: string) {
@@ -50,6 +51,7 @@ export function withResizableColumns<T>(
     }
     return {
       minWidth,
+      ellipsis: { tooltip: true },
       ...column,
       resizable: true
     };

@@ -49,7 +49,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
-import { singleFilterValue } from "../../../utils/table";
+import { singleFilterValue, withResizableColumns } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
@@ -91,7 +91,8 @@ const creatorOptions = computed(() => [
   { label: t("database.creatorMe"), value: "me" },
   { label: t("database.jobs.creatorOthers"), value: "others" }
 ]);
-const columns = computed<DataTableColumns<DataJob>>(() => [
+const columns = computed<DataTableColumns<DataJob>>(() =>
+  withResizableColumns([
   { title: t("database.jobs.id"), key: "job_id", width: 260, minWidth: 180, resizable: true, ellipsis: { tooltip: true } },
   {
     title: t("database.connection"),
@@ -173,7 +174,8 @@ const columns = computed<DataTableColumns<DataJob>>(() => [
         h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => h(NIcon, { component: Delete20Regular }))
       ])
   }
-]);
+  ])
+);
 let timer: number | undefined;
 
 onMounted(() => {

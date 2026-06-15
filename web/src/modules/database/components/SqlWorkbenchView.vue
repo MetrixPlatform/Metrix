@@ -221,6 +221,7 @@ import PermissionButton from "../../../components/PermissionButton.vue";
 import { t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { showError } from "../../../utils/message";
+import { withResizableColumns } from "../../../utils/table";
 import {
   createRow,
   createSchema,
@@ -357,46 +358,50 @@ const PREFIX_ICONS: Record<string, Component> = {
 };
 let tableDataRequestId = 0;
 
-const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() => [
-  ...tableColumns.value.map((column) => ({
-    title: column.name,
-    key: column.name,
-    width: 180,
-    minWidth: 80,
-    resizable: true,
-    sorter: true,
-    sortOrder: dataSort.columnKey === column.name ? dataSort.order : false,
-    ellipsis: { tooltip: true },
-    render: (row: Record<string, unknown>) => formatCell(row[column.name])
-  })),
-  {
-    title: t("common.actions"),
-    key: "actions",
-    fixed: "right",
-    width: 150,
-    resizable: false,
-    render: (row: Record<string, unknown>) =>
-      h("div", { class: "table-actions" }, [
-        h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row) }, () => t("common.edit")),
-        h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDeleteRow(row) }, () => t("common.delete"))
-      ])
-  }
-]);
+const dataColumns = computed<DataTableColumns<Record<string, unknown>>>(() =>
+  withResizableColumns([
+    ...tableColumns.value.map((column) => ({
+      title: column.name,
+      key: column.name,
+      width: 180,
+      minWidth: 80,
+      resizable: true,
+      sorter: true,
+      sortOrder: dataSort.columnKey === column.name ? dataSort.order : false,
+      ellipsis: { tooltip: true },
+      render: (row: Record<string, unknown>) => formatCell(row[column.name])
+    })),
+    {
+      title: t("common.actions"),
+      key: "actions",
+      fixed: "right",
+      width: 150,
+      resizable: false,
+      render: (row: Record<string, unknown>) =>
+        h("div", { class: "table-actions" }, [
+          h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row) }, () => t("common.edit")),
+          h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDeleteRow(row) }, () => t("common.delete"))
+        ])
+    }
+  ])
+);
 const queryColumns = computed<DataTableColumns<Record<string, unknown>>>(() => {
   const columns = queryResult.value?.columns || [];
   if (!columns.length && queryResult.value?.statement_type === "write") {
     return [{ title: t("database.sql.affectedRows"), key: "affected_rows", render: () => queryResult.value?.affected_rows ?? 0 }];
   }
-  return columns.map((column) => ({
-    title: column,
-    key: column,
-    width: 180,
-    minWidth: 80,
-    resizable: true,
-    sorter: "default" as const,
-    ellipsis: { tooltip: true },
-    render: (row) => formatCell(row[column])
-  }));
+  return withResizableColumns(
+    columns.map((column) => ({
+      title: column,
+      key: column,
+      width: 180,
+      minWidth: 80,
+      resizable: true,
+      sorter: "default" as const,
+      ellipsis: { tooltip: true },
+      render: (row) => formatCell(row[column])
+    }))
+  );
 });
 const queryRows = computed(() => queryResult.value?.rows || []);
 

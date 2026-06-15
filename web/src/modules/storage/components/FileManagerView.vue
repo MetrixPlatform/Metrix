@@ -92,6 +92,7 @@ import { authStore } from "../../../stores/auth";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { messageText, showError } from "../../../utils/message";
+import { withResizableColumns } from "../../../utils/table";
 import {
   deleteStorageEntry,
   downloadStorageArchive,
@@ -231,7 +232,7 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
       render: (row) => parentPath(row.path)
     });
   }
-  return list;
+  return withResizableColumns(list);
 });
 
 onMounted(load);

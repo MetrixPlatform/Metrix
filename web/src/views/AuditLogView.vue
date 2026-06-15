@@ -85,9 +85,9 @@
               </thead>
               <tbody>
                 <tr v-for="change in selectedChanges" :key="change.field">
-                  <td>{{ fieldLabel(change.field) }}</td>
-                  <td>{{ formatDetailValue(change.before) }}</td>
-                  <td>{{ formatDetailValue(change.after) }}</td>
+                  <td :title="fieldLabel(change.field)">{{ fieldLabel(change.field) }}</td>
+                  <td :title="formatDetailValue(change.before)">{{ formatDetailValue(change.before) }}</td>
+                  <td :title="formatDetailValue(change.after)">{{ formatDetailValue(change.after) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -99,8 +99,8 @@
           <h3>{{ t("auditLog.meta") }}</h3>
           <dl class="audit-log-meta-list">
             <template v-for="item in selectedMetaEntries" :key="item.key">
-              <dt>{{ fieldLabel(item.key) }}</dt>
-              <dd>{{ formatDetailValue(item.value) }}</dd>
+              <dt :title="fieldLabel(item.key)">{{ fieldLabel(item.key) }}</dt>
+              <dd :title="formatDetailValue(item.value)">{{ formatDetailValue(item.value) }}</dd>
             </template>
           </dl>
         </section>
@@ -206,7 +206,12 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
       filterMultiple: true,
       filterOptionValues: filters.source,
       filterOptions: sourceOptions.value,
-      render: (row) => h(NTag, { size: "small", round: true, type: row.source === "api" ? "info" : "default" }, { default: () => sourceLabel(row.source) })
+      render: (row) =>
+        h(
+          NTag,
+          { size: "small", round: true, type: row.source === "api" ? "info" : "default", title: sourceLabel(row.source) },
+          { default: () => sourceLabel(row.source) }
+        )
     },
     {
       title: t("field.operator"),
@@ -226,7 +231,7 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
       filterMultiple: true,
       filterOptionValues: filters.action,
       filterOptions: actionOptions.value,
-      render: (row) => h(NTag, { size: "small", round: true }, { default: () => actionLabel(row.action) })
+      render: (row) => h(NTag, { size: "small", round: true, title: actionLabel(row.action) }, { default: () => actionLabel(row.action) })
     },
     {
       title: t("field.auditTargetType"),
@@ -250,7 +255,7 @@ const columns = computed<DataTableColumns<AuditLogItem>>(() =>
             class: "audit-detail-button",
             text: true,
             type: "primary",
-            title: t("auditLog.viewDetail"),
+            title: detailSummary(row),
             onClick: () => openLogDetail(row)
           },
           { default: () => detailSummary(row) }

@@ -114,7 +114,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { copyText } from "../../../utils/clipboard";
 import { messageText, showError } from "../../../utils/message";
-import { singleFilterValue } from "../../../utils/table";
+import { singleFilterValue, withResizableColumns } from "../../../utils/table";
 import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from "../../../utils/validation";
 import {
   createDatabaseConnection,
@@ -212,7 +212,8 @@ const creatorOptions = computed(() => [
   { label: t("database.creatorAll"), value: "all" },
   { label: t("database.creatorMe"), value: "me" }
 ]);
-const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
+const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
+  withResizableColumns([
   {
     title: t("field.name"),
     key: "name",
@@ -337,7 +338,8 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() => [
           : null
       ])
   }
-]);
+  ])
+);
 
 onMounted(() => {
   void loadConnections();
