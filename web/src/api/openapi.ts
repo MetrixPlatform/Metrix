@@ -1,3 +1,4 @@
+import { request } from "./client";
 import { authStore } from "../stores/auth";
 import { t } from "../i18n";
 
@@ -84,4 +85,9 @@ export async function getOpenApiDocument() {
     throw new Error(t(response.status === 403 ? "error.forbidden" : "api.requestFailed"));
   }
   return (await response.json()) as OpenApiDocument;
+}
+
+export async function getBaseUrls() {
+  const result = await request<{ base_urls: string[] }>("/base-urls");
+  return result.base_urls;
 }

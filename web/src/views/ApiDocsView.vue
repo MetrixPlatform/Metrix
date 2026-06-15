@@ -16,6 +16,28 @@
         </n-button>
       </div>
       <div class="toolbar-group api-docs-actions">
+        <n-popover trigger="click" placement="bottom-end" :width="320" @update:show="onBaseUrlPopover">
+          <template #trigger>
+            <n-button>
+              <template #icon><n-icon :component="Link20Regular" /></template>
+              {{ t("apiDocs.baseUrl") }}
+            </n-button>
+          </template>
+          <div class="api-base-url-panel">
+            <p class="api-base-url-hint">{{ t("apiDocs.baseUrlHint") }}</p>
+            <n-spin :show="baseUrlLoading" size="small">
+              <n-empty v-if="!baseUrlLoading && baseUrls.length === 0" size="small" :description="t('apiDocs.baseUrlEmpty')" />
+              <ul v-else class="api-base-url-list">
+                <li v-for="url in baseUrls" :key="url">
+                  <code>{{ url }}</code>
+                  <n-button size="tiny" quaternary circle :title="t('common.copy')" @click="copyBaseUrl(url)">
+                    <template #icon><n-icon :component="Copy20Regular" /></template>
+                  </n-button>
+                </li>
+              </ul>
+            </n-spin>
+          </div>
+        </n-popover>
         <n-button :disabled="!documentText" @click="copyDocument">
           <template #icon><n-icon :component="Copy20Regular" /></template>
           {{ t("common.copy") }}
@@ -225,12 +247,13 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowClockwise20Regular, ArrowDownload20Regular, Copy20Regular, Play20Regular, Send20Regular } from "@vicons/fluent";
+import { ArrowClockwise20Regular, ArrowDownload20Regular, Copy20Regular, Link20Regular, Play20Regular, Send20Regular } from "@vicons/fluent";
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NButton, NDataTable, NEmpty, NForm, NFormItem, NIcon, NInput, NModal, NSpin, NTag, useMessage } from "naive-ui";
+import { NButton, NDataTable, NEmpty, NForm, NFormItem, NIcon, NInput, NModal, NPopover, NSpin, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 
 import {
+  getBaseUrls,
   getOpenApiDocument,
   type OpenApiDocument,
   type OpenApiMediaType,
@@ -281,6 +304,9 @@ const JSON_TYPE = "application/json";
 const message = useMessage();
 const loading = ref(false);
 const testing = ref(false);
+const baseUrls = ref<string[]>([]);
+const baseUrlLoading = ref(false);
+const baseUrlLoaded = ref(false);
 const openApiDocument = ref<OpenApiDocument | null>(null);
 const keyword = ref("");
 const apiToken = ref("");
@@ -394,6 +420,33 @@ async function copyDocument() {
 
 function downloadDocument() {
   saveBlob(new Blob([documentText.value], { type: "application/json;charset=utf-8" }), "openapi.json");
+}
+
+function onBaseUrlPopover(show: boolean) {
+  if (show && !baseUrlLoaded.value) {
+    void loadBaseUrls();
+  }
+}
+
+async function loadBaseUrls() {
+  baseUrlLoading.value = true;
+  try {
+    baseUrls.value = await getBaseUrls();
+    baseUrlLoaded.value = true;
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    baseUrlLoading.value = false;
+  }
+}
+
+async function copyBaseUrl(url: string) {
+  try {
+    await copyText(url);
+    message.success(t("common.copied"));
+  } catch {
+    message.error(t("message.operationFailed"));
+  }
 }
 
 function openDetail(operation: OperationEntry) {

@@ -1985,6 +1985,46 @@ a {
   margin-left: auto;
 }
 
+.api-base-url-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.api-base-url-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-color);
+  line-height: 1.5;
+}
+
+.api-base-url-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.api-base-url-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--panel-bg);
+}
+
+.api-base-url-list code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .api-docs-spin {
   min-height: 0;
   flex: 1;

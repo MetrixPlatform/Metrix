@@ -5,6 +5,7 @@ pydantic
 pymysql
 openpyxl
 paramiko
+psutil
 python-multipart
 zipstream-ng
 swagger-ui-bundle
