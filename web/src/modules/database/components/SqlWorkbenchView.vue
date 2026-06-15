@@ -436,6 +436,7 @@ interface TableColumnDraft {
   typeName: string;
   typeLength: number | null;
   customType: string;
+  typeSuffix: string;
   nullable: boolean;
   primary_key: boolean;
   autoincrement: boolean;
@@ -479,6 +480,7 @@ const exportOptions = [
 ];
 const CUSTOM_COLUMN_TYPE = "__custom";
 const LENGTH_COLUMN_TYPES = new Set(["VARCHAR", "CHAR", "DECIMAL", "NUMERIC"]);
+const COLLATION_COLUMN_TYPES = new Set(["VARCHAR", "CHAR", "TEXT", "LONGTEXT"]);
 const columnTypeOptions = [
   { label: "INT", value: "INT" },
   { label: "BIGINT", value: "BIGINT" },
@@ -1255,6 +1257,7 @@ function columnDraft(column: ColumnDefinition, existing: boolean): TableColumnDr
     typeName: parsedType.typeName,
     typeLength: parsedType.typeLength,
     customType: parsedType.customType,
+    typeSuffix: parsedType.typeSuffix,
     nullable: column.nullable,
     primary_key: column.primary_key,
     autoincrement: column.autoincrement,
@@ -1305,17 +1308,18 @@ function draftToColumnDefinition(column: TableColumnDraft): ColumnDefinition {
 }
 
 function parseColumnType(type: string) {
-  const normalized = type.trim().toUpperCase();
-  const match = /^([A-Z]+)(?:\((\d+)\))?$/.exec(normalized);
-  if (match && columnTypeOptions.some((option) => option.value === match[1])) {
-    const typeName = match[1];
+  const cleaned = type.trim();
+  const match = /^([A-Z]+)(?:\((\d+)\))?(\s+COLLATE\s+["`']?[A-Z0-9_-]+["`']?)?$/i.exec(cleaned);
+  if (match && columnTypeOptions.some((option) => option.value === match[1].toUpperCase())) {
+    const typeName = match[1].toUpperCase();
     return {
       typeName,
       typeLength: match[2] && typeAllowsLength(typeName) ? Number(match[2]) : defaultTypeLength(typeName),
-      customType: ""
+      customType: "",
+      typeSuffix: match[3] || ""
     };
   }
-  return { typeName: CUSTOM_COLUMN_TYPE, typeLength: null, customType: type.trim() || "VARCHAR(255)" };
+  return { typeName: CUSTOM_COLUMN_TYPE, typeLength: null, customType: cleaned || "VARCHAR(255)", typeSuffix: "" };
 }
 
 function syncColumnType(column: TableColumnDraft) {
@@ -1334,9 +1338,9 @@ function columnTypeValue(column: TableColumnDraft) {
   }
   const typeName = column.typeName || "VARCHAR";
   if (typeAllowsLength(typeName) && column.typeLength) {
-    return `${typeName}(${column.typeLength})`;
+    return `${typeName}(${column.typeLength})${typeAllowsCollation(typeName) ? column.typeSuffix : ""}`;
   }
-  return typeName;
+  return `${typeName}${typeAllowsCollation(typeName) ? column.typeSuffix : ""}`;
 }
 
 function typeAllowsLength(typeName: string) {
@@ -1348,6 +1352,10 @@ function defaultTypeLength(typeName: string) {
   if (typeName === "DECIMAL" || typeName === "NUMERIC") return 10;
   if (typeName === "VARCHAR") return 255;
   return null;
+}
+
+function typeAllowsCollation(typeName: string) {
+  return COLLATION_COLUMN_TYPES.has(typeName);
 }
 
 function draftToIndexDefinition(index: TableIndexDraft): IndexDefinition {
