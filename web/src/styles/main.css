@@ -1713,6 +1713,10 @@ a {
   overflow-y: auto;
 }
 
+.settings-tabs .navigation-settings-pane {
+  overflow: hidden;
+}
+
 .settings-section {
   width: min(760px, 100%);
   min-width: 0;
@@ -1797,6 +1801,7 @@ a {
 
 .navigation-settings-section {
   height: 100%;
+  max-height: calc(100vh - 156px);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -1810,10 +1815,12 @@ a {
 .navigation-order-list {
   flex: 1 1 auto;
   min-height: 0;
+  max-height: calc(100vh - 310px);
   display: grid;
   align-content: start;
   gap: 10px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding-right: 4px;
 }
 

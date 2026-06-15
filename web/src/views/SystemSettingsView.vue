@@ -19,7 +19,7 @@
           </section>
         </n-tab-pane>
 
-        <n-tab-pane name="navigation" :tab="t('settings.navigation')" display-directive="show">
+        <n-tab-pane name="navigation" :tab="t('settings.navigation')" display-directive="show" class="navigation-settings-pane">
           <section class="settings-section navigation-settings-section">
             <div class="settings-section-head">
               <h2 class="settings-section-title">{{ t("settings.navigation") }}</h2>
