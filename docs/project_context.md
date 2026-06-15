@@ -851,3 +851,4 @@
 - 前端 Playwright 回归测试同步当前数据库任务和多标签工作台：数据任务接口改为 `/api/database-transfer-jobs`，排序测试提供真实任务行后点击表头；数据库工作台默认不再打开 SQL 页，测试改为通过“新建标签 -> 临时 SQL”打开编辑器；侧边栏宽度断言按当前响应式最小宽度 `220px` 校验。
 - 本轮验证包含真实前后端运行和浏览器路由巡检：使用 `admin/123456` 登录后访问 `/`、`/users`、`/permissions`、`/announcements`、`/audit-logs`、`/settings`、`/tokens`、`/api-docs`、`/storage`、`/database`、`/containers`、`/demo-crud`、`/profile`，未捕获前端 error/unhandled rejection；容器页显示 Docker 已连接并能看到宿主机容器。
 - 第三轮清理补齐容器任务表 i18n：镜像无标签使用 `common.none`，任务 ID 使用 `container.field.jobId`，通用 `message.operationSuccess` 加入中英文语言包；删除未使用的 `defaultNavigationOrder` 导出。脚手架生成的表格操作列同步现有规范，使用 `table-action-group`、圆形 `NButton`、`NIcon` 和标题提示。README/开发指南同步 Node 版本、前后端模块依赖约束差异和 pytest 根目录运行命令。
+- 追加权限生命周期验证：通过真实后端 API 使用管理员创建临时普通用户，验证创建后可登录、禁用后登录被拒绝、重新启用后可登录、删除后登录被拒绝；验证完成后已关闭 `5173`/`8000` 端口。
