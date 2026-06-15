@@ -89,6 +89,9 @@
                 <n-button @click="searchTableData(tab)">{{ t("common.search") }}</n-button>
                 <permission-button :permission="DATABASE_OPERATE" @click="openAddRow(tab)">{{ t("database.row.add") }}</permission-button>
                 <permission-button :permission="DATABASE_OPERATE" @click="openImport(tab)">{{ t("database.import.title") }}</permission-button>
+                <n-dropdown :options="copyDataOptions" @select="(format) => copyTableData(format, tab)">
+                  <n-button>{{ t("common.copy") }}</n-button>
+                </n-dropdown>
                 <n-dropdown :options="exportOptions" @select="(format) => exportTable(format, tab)">
                   <n-button>{{ t("database.export.title") }}</n-button>
                 </n-dropdown>
@@ -388,6 +391,7 @@ import type { DataTableColumns, DataTableSortState, DropdownOption, TreeOption }
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
+import { copyText } from "../../../utils/clipboard";
 import { showError } from "../../../utils/message";
 import { withResizableColumns } from "../../../utils/table";
 import {
@@ -575,6 +579,7 @@ interface TableDesignerTab {
 }
 type WorkbenchTab = TableDataTab | SqlEditorTab | TableDesignerTab;
 type TableDataSort = TableDataTab["sort"];
+type CopyDataFormat = "tsv" | "csv" | "sql";
 interface TableDataLoadOptions {
   page?: number;
   pageSize?: number;
@@ -587,6 +592,11 @@ const exportOptions = [
   { label: "CSV", key: "csv" },
   { label: "XLSX", key: "xlsx" },
   { label: "SQLite", key: "sqlite" },
+  { label: "SQL", key: "sql" }
+];
+const copyDataOptions: DropdownOption[] = [
+  { label: "EXCEL", key: "tsv" },
+  { label: "CSV", key: "csv" },
   { label: "SQL", key: "sql" }
 ];
 const CUSTOM_COLUMN_TYPE = "__custom";
@@ -1366,6 +1376,62 @@ async function submitResultExport() {
   });
   exportModal.show = false;
   handleJobSubmitted(result.job_id);
+}
+
+async function copyTableData(format: string | number, tab: TableDataTab) {
+  const copyFormat = String(format) as CopyDataFormat;
+  const text = copyFormat === "sql" ? tableDataToSql(tab) : tableDataToDelimited(tab, copyFormat === "csv" ? "," : "\t");
+  await copyText(text);
+  message.success(t("common.copied"));
+}
+
+function tableDataToDelimited(tab: TableDataTab, delimiter: "," | "\t") {
+  const headers = tab.columns.map((column) => column.name);
+  const escapeCell = delimiter === "," ? csvCell : tsvCell;
+  const lines = [headers.map(escapeCell).join(delimiter)];
+  for (const row of tab.rows) {
+    lines.push(headers.map((column) => escapeCell(row[column])).join(delimiter));
+  }
+  return lines.join("\r\n");
+}
+
+function tableDataToSql(tab: TableDataTab) {
+  const columns = tab.columns.map((column) => column.name);
+  const tableName = tab.database ? `${quoteSqlIdentifier(tab.database)}.${quoteSqlIdentifier(tab.table)}` : quoteSqlIdentifier(tab.table);
+  const columnSql = columns.map(quoteSqlIdentifier).join(", ");
+  const lines = [`-- ${tab.table}`, `-- ${columns.join(", ")}`];
+  for (const row of tab.rows) {
+    const values = columns.map((column) => sqlLiteral(row[column])).join(", ");
+    lines.push(`INSERT INTO ${tableName} (${columnSql}) VALUES (${values});`);
+  }
+  return lines.join("\r\n");
+}
+
+function csvCell(value: unknown) {
+  const text = copyCellText(value);
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function tsvCell(value: unknown) {
+  return copyCellText(value).replaceAll("\t", " ").replace(/\r?\n/g, " ");
+}
+
+function copyCellText(value: unknown) {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function quoteSqlIdentifier(value: string) {
+  return `\`${value.replaceAll("`", "``")}\``;
+}
+
+function sqlLiteral(value: unknown) {
+  if (value === null || value === undefined) return "NULL";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "NULL";
+  if (typeof value === "boolean") return value ? "1" : "0";
+  return `'${copyCellText(value).replaceAll("'", "''")}'`;
 }
 
 function splitReadStatements(text: string): string[] {
