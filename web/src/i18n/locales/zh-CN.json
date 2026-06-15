@@ -467,7 +467,9 @@
     "navigationGroup": "分组",
     "moveUp": "上移",
     "moveDown": "下移",
-    "restoreDefaultNavigation": "恢复默认排序"
+    "restoreDefaultNavigation": "恢复默认排序",
+    "expandGroup": "展开分组",
+    "collapseGroup": "收缩分组"
   },
   "token": {
     "title": "API Token",

@@ -20,7 +20,7 @@
         </n-tab-pane>
 
         <n-tab-pane name="navigation" :tab="t('settings.navigation')" display-directive="show">
-          <section class="settings-section">
+          <section class="settings-section navigation-settings-section">
             <div class="settings-section-head">
               <h2 class="settings-section-title">{{ t("settings.navigation") }}</h2>
               <p>{{ t("settings.navigationDesc") }}</p>
@@ -29,6 +29,19 @@
               <div v-for="item in navigationLayout" :key="item.navigationKey" class="navigation-order-card">
                 <div class="navigation-order-row">
                   <div class="navigation-order-label">
+                    <n-button
+                      v-if="item.children?.length"
+                      size="tiny"
+                      quaternary
+                      circle
+                      :title="isNavigationGroupCollapsed(item.navigationKey) ? t('settings.expandGroup') : t('settings.collapseGroup')"
+                      @click="toggleNavigationGroup(item.navigationKey)"
+                    >
+                      <template #icon>
+                        <n-icon :component="isNavigationGroupCollapsed(item.navigationKey) ? ChevronRight20Regular : ChevronDown20Regular" />
+                      </template>
+                    </n-button>
+                    <span v-else class="navigation-order-spacer" />
                     <n-icon :component="item.icon" />
                     <span :title="item.label">{{ item.label }}</span>
                     <n-tag v-if="item.children?.length" size="small" :bordered="false">{{ t("settings.navigationGroup") }}</n-tag>
@@ -42,9 +55,10 @@
                     </n-button>
                   </div>
                 </div>
-                <div v-if="item.children?.length" class="navigation-order-children">
+                <div v-if="item.children?.length && !isNavigationGroupCollapsed(item.navigationKey)" class="navigation-order-children">
                   <div v-for="child in item.children" :key="child.navigationKey" class="navigation-order-row navigation-order-child">
                     <div class="navigation-order-label">
+                      <span class="navigation-order-spacer" />
                       <n-icon :component="child.icon" />
                       <span :title="child.label">{{ child.label }}</span>
                     </div>
@@ -167,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { Archive20Regular } from "@vicons/fluent";
+import { Archive20Regular, ChevronDown20Regular, ChevronRight20Regular } from "@vicons/fluent";
 import {
   NButton,
   NCheckbox,
@@ -204,6 +218,7 @@ const formRef = ref<FormInst | null>(null);
 const activeTab = ref<SettingsTab>("basic");
 const saving = ref(false);
 const backingUp = ref(false);
+const expandedNavigationGroups = ref<Set<string>>(new Set());
 const form = reactive<SystemSettings>({
   app_name: "",
   registration_enabled: true,
@@ -316,6 +331,20 @@ function moveNavigation(key: string, direction: NavigationMove) {
 
 function resetNavigationOrder() {
   form.navigation_order = [];
+}
+
+function isNavigationGroupCollapsed(key: string) {
+  return !expandedNavigationGroups.value.has(key);
+}
+
+function toggleNavigationGroup(key: string) {
+  const next = new Set(expandedNavigationGroups.value);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  expandedNavigationGroups.value = next;
 }
 
 function navigationSiblings(key: string) {

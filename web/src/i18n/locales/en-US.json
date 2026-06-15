@@ -467,7 +467,9 @@
     "navigationGroup": "Group",
     "moveUp": "Move up",
     "moveDown": "Move down",
-    "restoreDefaultNavigation": "Restore default order"
+    "restoreDefaultNavigation": "Restore default order",
+    "expandGroup": "Expand group",
+    "collapseGroup": "Collapse group"
   },
   "token": {
     "title": "API tokens",
