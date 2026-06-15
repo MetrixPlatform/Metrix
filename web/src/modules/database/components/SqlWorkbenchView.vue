@@ -117,6 +117,7 @@
                 </n-tag>
                 <n-button type="primary" :loading="tab.executing" @click="executeSql(tab)">{{ t("database.sql.execute") }}</n-button>
                 <n-button @click="openResultExport(tab)">{{ t("database.export.result") }}</n-button>
+                <permission-button v-if="tab.script" :permission="SQL_SCRIPT_UPDATE" @click="openRenameScript(tab.script)">{{ t("database.script.rename") }}</permission-button>
                 <permission-button :permission="scriptSavePermission(tab)" @click="openSaveScript(tab)">{{ scriptSaveText(tab) }}</permission-button>
               </div>
               <monaco-editor v-model="tab.sql" class="database-sql-editor" :suggestions="suggestions" />
@@ -282,6 +283,20 @@
         <div><span>{{ t("field.createdAt") }}</span><strong>{{ formatDateTime(scriptDetailModal.script.created_at) }}</strong></div>
         <div><span>{{ t("field.updatedAt") }}</span><strong>{{ formatDateTime(scriptDetailModal.script.updated_at) }}</strong></div>
       </div>
+    </n-modal>
+
+    <n-modal v-model:show="scriptRenameModal.show" preset="card" class="modal-card" :title="t('database.script.rename')">
+      <n-form class="form-stack inline-form" label-placement="left" label-width="auto" @keyup.enter="renameScript">
+        <n-form-item :label="t('field.name')">
+          <n-input v-model:value="scriptRenameModal.name" />
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
+          <n-button @click="scriptRenameModal.show = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :loading="scriptRenameModal.saving" @click="renameScript">{{ t("common.save") }}</n-button>
+        </div>
+      </template>
     </n-modal>
 
     <n-modal v-model:show="objectModal.show" preset="card" class="modal-card" :title="objectModalTitle">
@@ -472,6 +487,12 @@ const scriptModal = reactive({
 const scriptDetailModal = reactive({
   show: false,
   script: null as SqlScript | null
+});
+const scriptRenameModal = reactive({
+  show: false,
+  id: null as number | null,
+  name: "",
+  saving: false
 });
 const objectModal = reactive({
   show: false,
@@ -951,6 +972,7 @@ function renderTreeSuffix({ option }: { option: TreeOption }) {
     const script = option.script as SqlScript;
     const options: DropdownOption[] = [
       { label: t("database.script.edit"), key: "load" },
+      { label: t("database.script.rename"), key: "rename" },
       { label: t("database.script.detail"), key: "detail" },
       { label: t("database.script.run"), key: "run" }
     ];
@@ -1413,6 +1435,7 @@ function openImportForTable(database: string, table: string) {
 
 function handleScriptOp(key: string, script: SqlScript) {
   if (key === "load") void loadScriptIntoEditor(script);
+  else if (key === "rename") openRenameScript(script);
   else if (key === "detail") void showScriptDetail(script);
   else if (key === "run") void executeScript(script);
   else if (key === "delete") confirmDeleteScript(script);
@@ -1814,6 +1837,46 @@ function confirmDeleteScript(script: SqlScript) {
     closeWorkbenchTab(sqlTabKey(script.id));
     await reloadScripts();
   });
+}
+
+function openRenameScript(script: SqlScript) {
+  scriptRenameModal.id = script.id;
+  scriptRenameModal.name = script.name;
+  scriptRenameModal.saving = false;
+  scriptRenameModal.show = true;
+}
+
+async function renameScript() {
+  const scriptId = scriptRenameModal.id;
+  const name = scriptRenameModal.name.trim();
+  if (!scriptId || !name) return;
+  scriptRenameModal.saving = true;
+  try {
+    const detail = await getSqlScript(scriptId);
+    const saved = await updateSqlScript(scriptId, {
+      name,
+      content: detail.content,
+      connection_id: detail.connection_id,
+      database: detail.database,
+      description: detail.description,
+      is_shared: detail.is_shared
+    });
+    const tab = workbenchTabs.value.find((item): item is SqlEditorTab => item.key === sqlTabKey(scriptId) && item.type === "sql-script");
+    if (tab) {
+      tab.title = saved.name;
+      tab.database = saved.database;
+      tab.script = saved;
+    }
+    if (scriptDetailModal.script?.id === scriptId) {
+      scriptDetailModal.script = saved;
+    }
+    scriptRenameModal.show = false;
+    await reloadScripts();
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    scriptRenameModal.saving = false;
+  }
 }
 
 function openSaveScript(tab: SqlEditorTab) {
