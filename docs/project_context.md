@@ -883,3 +883,9 @@
 - 测试：`server/tests/test_scripts.py` 用假 Docker engine（`containers.run` 返回可控退出码/可阻塞的假容器、`images.list/get`，**不依赖真实 daemon**）覆盖项目 CRUD 与本人/他人范围、工作区文件操作与路径逃逸、配额、运行提交→成功→日志、运行取消、计划 CRUD（interval/cron/非法 cron）、可用镜像与 OpenAPI 隐藏 + API Token web-only。`test_auth_rbac.py` 的模块清单/权限映射/model 路径/OpenAPI 隐藏 tag 与 path 前缀/router 前缀/禁用模块过滤断言已纳入 scripts。
 - 部署约束：bind-mount 的是 **Docker daemon 宿主机**路径，后端需与 daemon 同主机（或工作区目录对 daemon 可见）；Windows/Mac Docker Desktop 需该盘已共享。网络 `none`=断网、`bridge`=接入网络（同一 bridge 在内网只通内网、迁移到有外网宿主机后自动可访问外网，是「现在离线、将来联网」的统一开关）。
 - 验证：`compileall -q server\app server\tests` 通过；`pytest` 58 passed（新增 7 个脚本用例）；前端 `npm run test:smoke`、`npx vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build` 通过（Monaco json/ts/css/html worker 正常打包）。本轮未做真实 Docker 端到端核验（采用假 Docker 单测）。
+
+## 2026-06-16：脚本预设镜像追加本地 Python
+
+- `server/app/modules/scripts/presets.py` 的 `PRESET_IMAGES` 增加 `python:3.13.11-slim`（language=python、run_command=`python main.py`、use_venv）作为首个 Python 预设，因为部署机本地已存在该镜像；预设是否“可用”由 `runtime.py` 按本地镜像集合标记，前端 `ScriptManageView` 直接消费 API 的 `presets`，无需改前端。
+- 经验坑：本机 Docker 守护进程配置了镜像代理 `127.0.0.1:7897`，该代理未运行时 `docker pull python:3.12-slim` 直接失败（`connectex: target machine actively refused`）。内网/离线环境拿不到 Docker Hub 时，应直接用本地已有镜像或走容器管理离线导入 tar，不要依赖在线 pull。
+- 验证：`pytest server/tests/test_scripts.py -q` 7 passed，ReadLints 无诊断。
