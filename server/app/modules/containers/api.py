@@ -192,7 +192,7 @@ async def container_exec_terminal(websocket: WebSocket, container_id: str) -> No
         def pump() -> None:
             try:
                 while not stop.is_set():
-                    data = raw.recv(4096)
+                    data = _sock_recv(raw, 4096)
                     if not data:
                         break
                     asyncio.run_coroutine_threadsafe(websocket.send_bytes(data), loop)
@@ -211,7 +211,7 @@ async def container_exec_terminal(websocket: WebSocket, container_id: str) -> No
                 continue
             kind = payload.get("type")
             if kind == "input":
-                raw.sendall(payload.get("data", "").encode("utf-8"))
+                _sock_send(raw, payload.get("data", "").encode("utf-8"))
             elif kind == "resize":
                 try:
                     api.exec_resize(exec_id, height=_ws_int(payload.get("rows"), rows), width=_ws_int(payload.get("cols"), cols))
@@ -249,6 +249,30 @@ async def _ws_close(websocket: WebSocket) -> None:
         await websocket.close()
     except Exception:
         pass
+
+
+def _sock_recv(raw: object, size: int) -> bytes:
+    # docker-py returns NpipeSocket (Windows), socket.socket (unix) or SocketIO (tcp);
+    # normalize reads so the exec bridge works across all Docker transports.
+    recv = getattr(raw, "recv", None)
+    if callable(recv):
+        return recv(size)
+    return raw.read(size)  # type: ignore[attr-defined]
+
+
+def _sock_send(raw: object, data: bytes) -> None:
+    sendall = getattr(raw, "sendall", None)
+    if callable(sendall):
+        sendall(data)
+        return
+    send = getattr(raw, "send", None)
+    if callable(send):
+        send(data)
+        return
+    raw.write(data)  # type: ignore[attr-defined]
+    flush = getattr(raw, "flush", None)
+    if callable(flush):
+        flush()
 
 
 def _ws_int(value: object, fallback: int) -> int:
