@@ -100,7 +100,22 @@ function buildMenuItems(hasPermission: HasPermission, isFeatureEnabled: IsFeatur
       children: group.children.sort((left, right) => sortMenuItems(left, right, customOrder))
     }));
 
-  return [...topLevel, ...visibleGroups].sort((left, right) => sortMenuItems(left, right, customOrder));
+  const ordered = [...topLevel, ...visibleGroups].sort((left, right) => sortMenuItems(left, right, customOrder));
+  return pinSystemGroupLast(ordered);
+}
+
+// 约定：导航栏「系统管理」分组永久置底。无论各模块的 menu.order 如何、也无论系统设置里的
+// 自定义导航顺序（navigation_order）如何排列，"系统管理" 始终排在导航栏最后，新增业务模块/菜单
+// 默认显示在它上方。如需调整此约定，请同时确认产品需求并更新这里的注释。
+const SYSTEM_MENU_GROUP_KEY = "system";
+
+function pinSystemGroupLast(items: AppMenuItem[]): AppMenuItem[] {
+  const systemKey = navigationGroupKey(SYSTEM_MENU_GROUP_KEY);
+  const index = items.findIndex((item) => item.navigationKey === systemKey);
+  if (index < 0) return items;
+  const [systemItem] = items.splice(index, 1);
+  items.push(systemItem);
+  return items;
 }
 
 export function hasMenuPath(items: AppMenuItem[], path: string): boolean {

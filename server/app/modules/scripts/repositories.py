@@ -48,7 +48,10 @@ class ScriptProjectRepository:
         if created_by_user_id is not None:
             query = query.filter(ScriptProject.created_by == created_by_user_id)
         if visible_to_user_id is not None:
-            query = query.filter(ScriptProject.created_by == visible_to_user_id)
+            # Non-managers see their own projects plus any shared project.
+            query = query.filter(
+                or_(ScriptProject.created_by == visible_to_user_id, ScriptProject.is_shared.is_(True))
+            )
         total = query.count()
         if created_at_order == "ascend":
             query = query.order_by(ScriptProject.created_at.asc(), ScriptProject.id.asc())

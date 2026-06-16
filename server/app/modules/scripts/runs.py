@@ -117,7 +117,8 @@ class ScriptRunService:
         project = self.projects.get(run.project_id)
         if project is None:
             raise not_found("error.scriptNotFound", "Script project not found")
-        if project.created_by == actor.id or has_permission(actor, SCRIPT_MANAGE_OTHERS):
+        # Shared projects let other users see and cancel runs too; editing stays creator/admin only.
+        if project.created_by == actor.id or project.is_shared or has_permission(actor, SCRIPT_MANAGE_OTHERS):
             return run, project
         raise forbidden("error.scriptManageOthersDenied", "You cannot access scripts created by others")
 

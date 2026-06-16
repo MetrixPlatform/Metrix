@@ -21,6 +21,9 @@
         <div class="script-sidebar-toolbar">
           <span class="script-sidebar-title">{{ t("script.files") }}</span>
           <div class="script-sidebar-tools">
+            <n-button size="tiny" quaternary circle :title="t('script.collapseAll')" @click="collapseAll">
+              <template #icon><n-icon :component="ChevronUp20Regular" /></template>
+            </n-button>
             <n-button size="tiny" quaternary circle :title="t('script.newFile')" @click="openNewEntry(false)">
               <template #icon><n-icon :component="DocumentAdd20Regular" /></template>
             </n-button>
@@ -82,6 +85,11 @@
 
         <div class="script-panel">
           <n-tabs v-model:value="activeTab" type="line" size="small" @update:value="handleTabChange">
+            <template #suffix>
+              <n-button quaternary circle size="tiny" :title="t('script.terminalAdd')" @click="addTerminal">
+                <template #icon><n-icon :component="Add20Regular" /></template>
+              </n-button>
+            </template>
             <n-tab-pane name="log" :tab="t('script.tab.log')">
               <div class="script-log-bar">
                 <n-tag v-if="currentRunId" size="small" :type="runStatusType(runStatus)">{{ runStatusLabel(runStatus) }}</n-tag>
@@ -92,7 +100,7 @@
                   quaternary
                   @click="cancelCurrentRun"
                 >
-                  {{ t("script.run.cancel") }}
+                  {{ t("script.runCancel") }}
                 </n-button>
               </div>
               <pre class="script-log-output">{{ runLog || t("script.emptyLog") }}</pre>
@@ -145,8 +153,14 @@
               <div v-else class="script-log-empty">{{ t("script.env.hint") }}</div>
             </n-tab-pane>
 
-            <n-tab-pane name="terminal" :tab="t('script.tab.terminal')" display-directive="show">
-              <script-terminal-panel :project="project" :active="activeTab === 'terminal'" />
+            <n-tab-pane
+              v-for="term in terminals"
+              :key="term.id"
+              :name="term.id"
+              :tab="() => renderTerminalTab(term)"
+              display-directive="show"
+            >
+              <script-terminal-panel :project="project" :active="activeTab === term.id" />
             </n-tab-pane>
           </n-tabs>
         </div>
@@ -201,12 +215,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, h, onBeforeUnmount, onMounted, reactive, ref, type VNodeChild } from "vue";
 import {
+  Add20Regular,
   ArrowLeft20Regular,
   ArrowSync20Regular,
   ArrowUpload20Regular,
+  ChevronUp20Regular,
   Delete20Regular,
+  Dismiss16Regular,
   DocumentAdd20Regular,
   Edit20Regular,
   FolderAdd20Regular,
@@ -277,7 +294,17 @@ const currentLanguage = ref("plaintext");
 const savingFile = ref(false);
 const uploadInputRef = ref<HTMLInputElement | null>(null);
 
-const activeTab = ref<"log" | "history" | "schedules" | "environment" | "terminal">("log");
+interface TerminalTab {
+  id: string;
+  index: number;
+  closable: boolean;
+}
+// The default first terminal (terminal-1) and the log/history/schedule/environment tabs are
+// not closable; only extra terminals added via the "+" button get a close button.
+const terminals = ref<TerminalTab[]>([{ id: "terminal-1", index: 1, closable: false }]);
+let terminalSeq = 1;
+
+const activeTab = ref<string>("log");
 const running = ref(false);
 const currentRunId = ref("");
 const runLog = ref("");
@@ -331,9 +358,9 @@ const runColumns = computed<DataTableColumns<ScriptRun>>(() => [
     width: 120,
     render: (row) =>
       h("div", { class: "table-action-group" }, [
-        h(NButton, { size: "tiny", quaternary: true, onClick: () => viewRun(row) }, () => t("script.run.viewLog")),
+        h(NButton, { size: "tiny", quaternary: true, onClick: () => viewRun(row) }, () => t("script.runViewLog")),
         row.status === "pending" || row.status === "running"
-          ? h(NButton, { size: "tiny", quaternary: true, type: "warning", onClick: () => cancelRun(row.run_id) }, () => t("script.run.cancel"))
+          ? h(NButton, { size: "tiny", quaternary: true, type: "warning", onClick: () => cancelRun(row.run_id) }, () => t("script.runCancel"))
           : null
       ].filter(Boolean))
   }
@@ -667,7 +694,46 @@ function runStatusType(status: string) {
 }
 
 function runStatusLabel(status: string) {
-  return status ? t(`script.run.status.${status}`) : "";
+  return status ? t(`script.runStatus.${status}`) : "";
+}
+
+function collapseAll() {
+  expandedKeys.value = [];
+}
+
+function addTerminal() {
+  terminalSeq += 1;
+  const id = `terminal-${terminalSeq}`;
+  terminals.value.push({ id, index: terminalSeq, closable: true });
+  activeTab.value = id;
+}
+
+function closeTerminal(id: string) {
+  const index = terminals.value.findIndex((term) => term.id === id);
+  if (index < 0) return;
+  terminals.value.splice(index, 1);
+  if (activeTab.value === id) {
+    const fallback = terminals.value[index - 1] || terminals.value[index] || null;
+    activeTab.value = fallback ? fallback.id : "log";
+  }
+}
+
+function renderTerminalTab(term: TerminalTab): VNodeChild {
+  const label = term.closable ? `${t("script.tab.terminal")} ${term.index}` : t("script.tab.terminal");
+  const children: VNodeChild[] = [h("span", null, label)];
+  if (term.closable) {
+    children.push(
+      h(NIcon, {
+        component: Dismiss16Regular,
+        class: "script-terminal-tab-close",
+        onClick: (event: MouseEvent) => {
+          event.stopPropagation();
+          closeTerminal(term.id);
+        }
+      })
+    );
+  }
+  return h("span", { class: "script-terminal-tab" }, children);
 }
 
 function findNode(nodes: TreeOption[], key: string): TreeOption | null {
@@ -914,5 +980,22 @@ function languageForPath(path: string): string {
   max-height: 140px;
   overflow: auto;
   white-space: pre-wrap;
+}
+
+.script-terminal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.script-terminal-tab-close {
+  font-size: 14px;
+  border-radius: 4px;
+  opacity: 0.55;
+}
+
+.script-terminal-tab-close:hover {
+  opacity: 1;
+  background: var(--hover-color, rgba(127, 127, 127, 0.16));
 }
 </style>

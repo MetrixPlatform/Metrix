@@ -297,7 +297,8 @@ async def script_terminal(websocket: WebSocket, project_id: int) -> None:
             await websocket.close(code=4403)
             return
         try:
-            project = ScriptProjectService(db).get_project(user, project_id)
+            # Terminal can mutate the workspace, so it is creator/admin only (sharing grants run, not edit).
+            project = ScriptProjectService(db).get_manageable_project(user, project_id)
         except HTTPException as exc:
             await websocket.send_text(json.dumps({"type": "error", "code": _ws_error_code(exc)}))
             await websocket.close()

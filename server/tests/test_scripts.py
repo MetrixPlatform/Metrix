@@ -1,6 +1,7 @@
 import io
 import threading
 import time
+import zipfile
 
 from test_auth_rbac import create_client, install_sqlite, login, page_items
 
@@ -449,3 +450,66 @@ def test_script_images_and_openapi_visibility(tmp_path, monkeypatch):
         for tag in operation.get("tags", [])
     }
     assert "scripts" not in visible_tags
+
+
+def test_script_archive_upload_extracts(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    install_fake_docker(monkeypatch)
+
+    project = client.post("/api/scripts", json=project_payload(), headers=admin_headers).json()
+    pid = project["id"]
+
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("main.py", "print('hi')\n")
+        zf.writestr("pkg/util.py", "x = 1\n")
+    archive.seek(0)
+
+    upload = client.post(
+        f"/api/scripts/{pid}/upload",
+        params={"path": "/"},
+        files={"file": ("code.zip", archive, "application/zip")},
+        headers=admin_headers,
+    )
+    assert upload.status_code == 200
+
+    names = {entry["name"] for entry in client.get(f"/api/scripts/{pid}/files", headers=admin_headers).json()["entries"]}
+    assert {"main.py", "pkg"}.issubset(names)
+    sub = client.get(f"/api/scripts/{pid}/files", params={"path": "/pkg"}, headers=admin_headers)
+    assert [entry["name"] for entry in sub.json()["entries"]] == ["util.py"]
+
+    logs = client.get("/api/audit-logs", params={"actor_scope": "all", "action": "script.archive_extract"}, headers=admin_headers)
+    assert any(item["action"] == "script.archive_extract" for item in page_items(logs))
+
+
+def test_script_sharing_visibility_and_edit_scope(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    install_fake_docker(monkeypatch)
+
+    role_id, _ = grant_script_role(client, admin_headers, "script_share_user", SCRIPT_BASE_CODES)
+    owner = create_script_user(client, admin_headers, "script_owner", role_id, "13800000061")
+    other = create_script_user(client, admin_headers, "script_other", role_id, "13800000062")
+
+    shared = client.post("/api/scripts", json=project_payload(name="共享脚本", is_shared=True), headers=owner)
+    assert shared.status_code == 200
+    assert shared.json()["is_shared"] is True
+    sid = shared.json()["id"]
+    private = client.post("/api/scripts", json=project_payload(name="私有脚本"), headers=owner).json()
+
+    visible_ids = {item["id"] for item in page_items(client.get("/api/scripts", headers=other))}
+    assert sid in visible_ids
+    assert private["id"] not in visible_ids
+
+    # Shared project: another user can run it.
+    assert client.post(f"/api/scripts/{sid}/runs", headers=other).status_code == 200
+
+    # But cannot edit config or files (creator/admin only).
+    denied_update = client.put(f"/api/scripts/{sid}", json=project_payload(name="改", is_shared=True), headers=other)
+    assert denied_update.status_code == 403
+    assert denied_update.json()["detail"]["code"] == "error.scriptManageOthersDenied"
+    denied_write = client.post(f"/api/scripts/{sid}/file", json={"path": "/x.py", "content": "x"}, headers=other)
+    assert denied_write.status_code == 403

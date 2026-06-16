@@ -4,6 +4,8 @@ import json
 import posixpath
 import secrets
 import shutil
+import tempfile
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO
@@ -31,6 +33,7 @@ from app.services.settings import SettingService
 SLUG_PREFIX = "scr_"
 MAX_READ_BYTES = 2 * 1024 * 1024
 ENTRY_NAME_INVALID_CHARS = ("/", "\\", "\0")
+ARCHIVE_SUFFIXES = (".zip", ".rar", ".7z")
 
 
 class ScriptProjectService:
@@ -78,6 +81,7 @@ class ScriptProjectService:
                 language=payload.language,
                 base_image=payload.base_image,
                 network_mode=payload.network_mode,
+                is_shared=payload.is_shared,
                 run_command=payload.run_command,
                 env=json.dumps(payload.env, ensure_ascii=False),
                 cpu_limit=payload.cpu_limit,
@@ -109,6 +113,7 @@ class ScriptProjectService:
         project.language = payload.language
         project.base_image = payload.base_image
         project.network_mode = payload.network_mode
+        project.is_shared = payload.is_shared
         project.run_command = payload.run_command
         project.env = json.dumps(payload.env, ensure_ascii=False)
         project.cpu_limit = payload.cpu_limit
@@ -154,10 +159,18 @@ class ScriptProjectService:
         shutil.rmtree(workspace, ignore_errors=True)
 
     def get_project(self, actor: User, project_id: int) -> ScriptProject:
+        # Read/run access: creator, any shared project, or managers of others' scripts.
         project = self._get(project_id)
-        if project.created_by == actor.id or has_permission(actor, SCRIPT_MANAGE_OTHERS):
+        if project.created_by == actor.id or project.is_shared or has_permission(actor, SCRIPT_MANAGE_OTHERS):
             return project
         raise forbidden("error.scriptManageOthersDenied", "You cannot access scripts created by others")
+
+    def get_manageable_project(self, actor: User, project_id: int) -> ScriptProject:
+        # Edit access (config, files, terminal, schedules): creator or admin only.
+        # Sharing only grants read + run, never edit, even for users who can see the project.
+        project = self._get(project_id)
+        self._ensure_can_manage(actor, project)
+        return project
 
     def project_item(self, project: ScriptProject) -> ScriptProjectItem:
         return self._with_creator_username(project, self._creator_username(project))
@@ -190,7 +203,7 @@ class ScriptProjectService:
         return ScriptFileContent(path=_virtual_path(path), content=content, truncated=truncated)
 
     def write_file(self, actor: User, project_id: int, path: str, content: str) -> ScriptFileEntry:
-        project = self.get_project(actor, project_id)
+        project = self.get_manageable_project(actor, project_id)
         root = _ensure_workspace(project)
         target = _safe_target(root, path)
         if target == root.resolve():
@@ -213,14 +226,20 @@ class ScriptProjectService:
         fileobj: BinaryIO,
         size: int | None,
     ) -> ScriptFileEntry:
-        project = self.get_project(actor, project_id)
+        project = self.get_manageable_project(actor, project_id)
         root = _ensure_workspace(project)
         directory = _safe_target(root, path)
         if not directory.is_dir():
             raise bad_request("error.scriptNotDirectory", "Target is not a directory")
         name = _validated_name(posixpath.basename(filename.replace("\\", "/")))
-        target = _safe_target(root, posixpath.join(_virtual_path(path), name))
         data = fileobj.read()
+        if _is_archive(name):
+            # ZIP/RAR/7Z uploads are auto-extracted into the target directory.
+            entry = self._extract_archive(root, _virtual_path(path), data, name)
+            record_audit(self.db, actor.id, "script.archive_extract", "script_project", project.slug, entry.path)
+            self.db.commit()
+            return entry
+        target = _safe_target(root, posixpath.join(_virtual_path(path), name))
         existing = target.stat().st_size if target.is_file() else 0
         self._ensure_quota(root, len(data) - existing)
         target.write_bytes(data)
@@ -230,7 +249,7 @@ class ScriptProjectService:
         return entry
 
     def mkdir(self, actor: User, project_id: int, path: str) -> ScriptFileEntry:
-        project = self.get_project(actor, project_id)
+        project = self.get_manageable_project(actor, project_id)
         root = _ensure_workspace(project)
         target = _safe_target(root, path)
         if target == root.resolve():
@@ -243,7 +262,7 @@ class ScriptProjectService:
         return _entry(root, target)
 
     def rename(self, actor: User, project_id: int, path: str, new_name: str) -> ScriptFileEntry:
-        project = self.get_project(actor, project_id)
+        project = self.get_manageable_project(actor, project_id)
         root = _ensure_workspace(project)
         target = _safe_target(root, path)
         if target == root.resolve() or not target.exists():
@@ -259,7 +278,7 @@ class ScriptProjectService:
         return entry
 
     def delete_entry(self, actor: User, project_id: int, path: str) -> None:
-        project = self.get_project(actor, project_id)
+        project = self.get_manageable_project(actor, project_id)
         root = _ensure_workspace(project)
         target = _safe_target(root, path)
         if target == root.resolve() or not target.exists():
@@ -280,6 +299,25 @@ class ScriptProjectService:
         limit = quota_mb * 1024 * 1024
         if _directory_size(root) + delta_bytes > limit:
             raise bad_request("error.scriptQuotaExceeded", "Workspace quota exceeded", quota_mb=quota_mb)
+
+    def _extract_archive(self, root: Path, virtual_dir: str, data: bytes, name: str) -> ScriptFileEntry:
+        # Extract into an isolated temp dir first, then copy each regular file into the
+        # workspace through _safe_target so archive members can never escape the root.
+        with tempfile.TemporaryDirectory() as tmp:
+            archive_path = Path(tmp) / "upload.archive"
+            archive_path.write_bytes(data)
+            staging = Path(tmp) / "out"
+            staging.mkdir()
+            _extract_to(name, archive_path, staging)
+            self._ensure_quota(root, _directory_size(staging))
+            for item in sorted(staging.rglob("*")):
+                if item.is_dir():
+                    continue
+                relative = item.relative_to(staging).as_posix()
+                dest = _safe_target(root, posixpath.join(virtual_dir, relative))
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(item, dest)
+        return _entry(root, _safe_target(root, virtual_dir))
 
     def _get(self, project_id: int) -> ScriptProject:
         project = self.projects.get(project_id)
@@ -312,6 +350,7 @@ class ScriptProjectService:
             language=project.language,
             base_image=project.base_image,
             network_mode=project.network_mode,
+            is_shared=project.is_shared,
             run_command=project.run_command,
             env=_parse_env(project.env),
             cpu_limit=project.cpu_limit,
@@ -376,6 +415,46 @@ def _safe_target(root: Path, path: str) -> Path:
     return target
 
 
+def _is_archive(name: str) -> bool:
+    return name.lower().endswith(ARCHIVE_SUFFIXES)
+
+
+def _extract_to(name: str, archive_path: Path, dest_dir: Path) -> None:
+    lower = name.lower()
+    if lower.endswith(".zip"):
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                archive.extractall(dest_dir)
+        except zipfile.BadZipFile:
+            raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="zip")
+        return
+    if lower.endswith(".7z"):
+        try:
+            import py7zr
+        except ImportError:
+            raise bad_request("error.scriptArchiveToolMissing", "7z support is not installed", fmt="7z")
+        try:
+            with py7zr.SevenZipFile(archive_path, mode="r") as archive:
+                archive.extractall(path=dest_dir)
+        except Exception:
+            raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="7z")
+        return
+    if lower.endswith(".rar"):
+        try:
+            import rarfile
+        except ImportError:
+            raise bad_request("error.scriptArchiveToolMissing", "rar support is not installed", fmt="rar")
+        try:
+            with rarfile.RarFile(archive_path) as archive:
+                archive.extractall(dest_dir)
+        except rarfile.RarCannotExec:
+            raise bad_request("error.scriptArchiveToolMissing", "An unrar/7z tool is required on the server", fmt="rar")
+        except Exception:
+            raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="rar")
+        return
+    raise bad_request("error.scriptArchiveInvalid", "Unsupported archive", fmt=name)
+
+
 def _validated_name(name: str) -> str:
     cleaned = name.strip()
     if not cleaned or cleaned in (".", "..") or any(char in cleaned for char in ENTRY_NAME_INVALID_CHARS) or len(cleaned) > 255:
@@ -430,6 +509,7 @@ def _project_snapshot(project: ScriptProject) -> dict[str, object]:
         "language": project.language,
         "base_image": project.base_image,
         "network_mode": project.network_mode,
+        "is_shared": project.is_shared,
         "run_command": project.run_command,
         "cpu_limit": project.cpu_limit,
         "memory_limit_mb": project.memory_limit_mb,

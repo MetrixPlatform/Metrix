@@ -14,11 +14,13 @@ class ScriptProjectPayload(BaseModel):
     language: str = Field(default="python", min_length=1, max_length=40)
     base_image: str = Field(min_length=1, max_length=500)
     network_mode: ScriptNetworkMode = "bridge"
+    is_shared: bool = False
     run_command: str = Field(default="", max_length=1000)
     env: dict[str, str] = Field(default_factory=dict)
     cpu_limit: float | None = Field(default=None, ge=0.1, le=256)
     memory_limit_mb: int | None = Field(default=None, ge=16, le=1048576)
-    timeout_seconds: int = Field(default=600, ge=1, le=86400)
+    # 0 means no timeout limit.
+    timeout_seconds: int = Field(default=0, ge=0, le=86400)
 
     @field_validator("name", "description", "language", "base_image", "run_command")
     @classmethod
@@ -34,6 +36,7 @@ class ScriptProjectItem(BaseModel):
     language: str
     base_image: str
     network_mode: str
+    is_shared: bool = False
     run_command: str
     env: dict[str, str] = Field(default_factory=dict)
     cpu_limit: float | None = None

@@ -29,7 +29,9 @@
     "scriptRunNotCancelable": "该运行无法取消",
     "scriptScheduleNotFound": "定时计划不存在",
     "scriptScheduleInvalid": "请填写有效的间隔秒数",
-    "scriptCronInvalid": "cron 表达式不合法"
+    "scriptCronInvalid": "cron 表达式不合法",
+    "scriptArchiveToolMissing": "服务器缺少解压工具：{fmt}",
+    "scriptArchiveInvalid": "压缩包无效或损坏：{fmt}"
   },
   "script": {
     "searchPlaceholder": "搜索名称、标识、创建人",
@@ -68,6 +70,15 @@
     "emptyLog": "暂无日志",
     "runStarted": "已提交运行",
     "runCanceled": "已取消运行",
+    "runCommandMissing": "未设置运行命令",
+    "sharedHint": "共享后其他人可见并可运行，但只有创建者与管理员能编辑",
+    "timeoutHint": "0 = 不限",
+    "uploadCode": "上传代码",
+    "chooseFile": "选择文件",
+    "uploadCodeHint": "可选：上传文件或 ZIP/RAR/7Z 压缩包（自动解压）",
+    "historyTitle": "运行历史 - {name}",
+    "collapseAll": "折叠全部",
+    "terminalAdd": "新建终端",
     "tab": {
       "log": "运行日志",
       "history": "运行历史",
@@ -81,6 +92,7 @@
       "language": "语言",
       "image": "镜像",
       "network": "网络",
+      "shared": "共享",
       "runCommand": "运行命令",
       "cpu": "CPU 限制",
       "memory": "内存(MB)",
@@ -91,8 +103,8 @@
       "exitCode": "退出码"
     },
     "network": {
-      "bridge": "接入网络",
-      "none": "断网"
+      "bridge": "接入",
+      "none": "断开"
     },
     "language": {
       "python": "Python",
@@ -105,18 +117,16 @@
       "manual": "手动",
       "schedule": "定时"
     },
-    "run": {
-      "cancel": "取消",
-      "viewLog": "查看日志",
-      "status": {
-        "pending": "排队中",
-        "running": "运行中",
-        "success": "成功",
-        "failed": "失败",
-        "timeout": "超时",
-        "canceled": "已取消"
-      }
+    "runStatus": {
+      "pending": "排队中",
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败",
+      "timeout": "超时",
+      "canceled": "已取消"
     },
+    "runCancel": "取消",
+    "runViewLog": "查看日志",
     "schedule": {
       "add": "新增计划",
       "edit": "编辑计划",
@@ -150,8 +160,7 @@
     "terminalCustom": "自定义",
     "terminalConnect": "连接",
     "terminalDisconnect": "断开",
-    "terminalIdle": "点击“连接”启动终端（按项目镜像和工作区起常驻容器，离开工作台自动清理）。",
-    "terminalHint": "默认优先 bash，支持上下键历史与 TAB 补全；自动激活 /workspace/.venv，可在此装库。"
+    "terminalIdle": "点击“连接”启动终端（按项目镜像和工作区起常驻容器，离开工作台自动清理）。"
   },
   "auditLog": {
     "action": {
@@ -161,6 +170,7 @@
         "delete": "删除脚本项目",
         "file_write": "保存脚本文件",
         "file_upload": "上传脚本文件",
+        "archive_extract": "解压代码压缩包",
         "file_mkdir": "新建脚本目录",
         "file_rename": "重命名脚本文件",
         "file_delete": "删除脚本文件",

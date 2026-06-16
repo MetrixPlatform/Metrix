@@ -903,3 +903,16 @@
 - 现象：`python dev.py` 启动时前端 vite 立即就绪、浏览器随即请求 `/api/install/status`、`/api/auth/me`、`/api/announcements/public`，而后端 uvicorn 仍在 “Waiting for application startup”（worker 未绑定 8000；脚本模块新增的 APScheduler 启动/模块加载/运行恢复让启动更慢），于是一串 `[vite] http proxy error ... connect ECONNREFUSED 127.0.0.1:8000`；待 “Application startup complete” 后自动恢复，属无害瞬时报错（前端对 install/status 本就有兜底）。
 - 修复：`dev.py` 改为先起后端，再用 `_wait_for_backend()` 轮询 `GET http://127.0.0.1:8000/api/health`（拿到任意 HTTP 响应即视为就绪，最长 60s，期间检测到后端进程已退出则直接结束），就绪后才启动前端 vite，避免浏览器打到冷后端。`/api/health` 无需鉴权，返回 `{ok, installed}`；等待地址用 `METRIX_HOST`/`METRIX_PORT` 覆盖，默认 127.0.0.1:8000。
 - 说明：uvicorn 热重载在改后端代码触发 worker 重启的短暂窗口仍可能有个别 proxy error，属热重载固有现象，不处理。
+
+## 2026-06-16：脚本管理增强（共享/运行入口/压缩包/多终端/导航置底）
+
+- 导航永久置底：`web/src/router/page-registry.ts` 的 `buildMenuItems` 末尾用 `pinSystemGroupLast()` 强制把 `group:system`（系统管理）排到最后，无论模块 `menu.order` 或系统设置 `navigation_order` 如何；已写注释说明这是永久约定，新增业务模块默认在其上方。
+- 脚本共享：`script_projects` 新增 `is_shared`（模块 `table_syncs` 给存量库补列）。可见性/权限拆分为「读+运行」与「编辑」两级：`ScriptProjectService.get_project` 允许 创建者/共享/`manage_others`（列表可见、运行、看运行历史/日志、取消）；新增 `get_manageable_project` 仅 创建者/管理员（改配置、改/传/删文件、终端、建计划）。`runs._get_visible_run` 同步允许共享；repository 列表对非管理员返回「本人 + 共享」。前端列表对共享他人项目隐藏「管理/编辑/删除」（名称不可点进工作台），仅显示运行/运行历史。
+- 列表操作列：运行（无 `run_command` 时禁用）、运行历史 为独立圆形图标；其余「管理/编辑/删除」收进 hover「更多」下拉（仅可管理者显示）。运行历史用新组件 `ScriptRunHistoryModal.vue`（运行清单→点查看日志，轮询、可取消）。新建脚本弹窗加共享开关与可选「上传代码」（创建后上传到工作区根，压缩包自动解压）。
+- 压缩包上传自动解压：`services.upload_file` 检测 `.zip/.rar/.7z`→`_extract_archive`：先解压到临时目录，再逐文件经 `_safe_target` 拷回工作区（防 zip-slip），按配额校验解压后大小。ZIP 用 stdlib，7Z 用 `py7zr`，RAR 用 `rarfile`（依赖服务器 unrar/7z，缺失报 `error.scriptArchiveToolMissing`，损坏报 `error.scriptArchiveInvalid`）；新增审计 `script.archive_extract`。新增依赖 `py7zr`、`rarfile`（写入 `server/requirements.txt`）。
+- 超时 0=不限：模型/schema 默认 `timeout_seconds=0`（schema `ge=0`），`runtime.run_script` 仅在 `>0` 时启动超时 kill 定时器。前端表单默认 0、min 0、提示「0=不限」。
+- 网络文案：`script.network.bridge`「接入网络」→「接入」、`none`「断网」→「断开」（en: Connected/Disconnected）。
+- 工作台：文件侧栏新增「折叠全部」按钮（清空 `expandedKeys`）；底部面板终端改为多终端——`+` 新建终端标签，新增终端标签右侧带关闭图标，默认第一个终端与 运行日志/运行历史/定时计划/环境信息 标签不可关闭（`display-directive="show"` 保持连接）。去掉终端面板的 bash/venv 提示文案；终端仍默认优先 bash + 自动激活 `/workspace/.venv`。
+- i18n 修复：`script.run` 原是对象（与状态对象重名导致运行按钮显示原始 key `script.run`），重构为 `script.run="运行"` 字符串 + `script.runStatus.*`（状态）+ `script.runCancel`/`script.runViewLog`；新增 shared/sharedHint/timeoutHint/uploadCode/chooseFile/uploadCodeHint/historyTitle/collapseAll/terminalAdd 与 archive 错误码、`archive_extract` 审计文案（中英）。
+- 测试：`test_scripts.py` 新增 ZIP 解压用例与共享「可见/可运行/不可编辑」用例；`pytest server/tests/test_scripts.py` 9 passed。
+- 验证：`compileall -q server\app` 通过；`pytest test_scripts.py test_auth_rbac.py` 44 passed；前端 `npm run test:smoke`、`vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build` 通过；ReadLints 无诊断。RAR 解压依赖服务器端 unrar/7z，本机未做真实 RAR/7Z 联调。

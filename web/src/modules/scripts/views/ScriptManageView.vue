@@ -61,6 +61,10 @@
             <n-radio-button value="none" :label="t('script.network.none')" />
           </n-radio-group>
         </n-form-item>
+        <n-form-item :label="t('script.field.shared')" path="is_shared">
+          <n-switch v-model:value="form.is_shared" />
+          <span class="script-shared-hint">{{ t("script.sharedHint") }}</span>
+        </n-form-item>
         <n-form-item :label="t('script.field.cpu')" path="cpu_limit">
           <n-input-number v-model:value="form.cpu_limit" :min="0.1" :max="256" :step="0.5" :show-button="false" clearable :placeholder="t('script.unlimited')" />
         </n-form-item>
@@ -68,13 +72,20 @@
           <n-input-number v-model:value="form.memory_limit_mb" :min="16" :max="1048576" :show-button="false" clearable :placeholder="t('script.unlimited')" />
         </n-form-item>
         <n-form-item :label="t('script.field.timeout')" path="timeout_seconds">
-          <n-input-number v-model:value="form.timeout_seconds" :min="1" :max="86400" :show-button="false" />
+          <n-input-number v-model:value="form.timeout_seconds" :min="0" :max="86400" :show-button="false" :placeholder="t('script.timeoutHint')" />
         </n-form-item>
         <n-form-item :label="t('script.field.env')" path="env">
           <n-input v-model:value="envText" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }" :placeholder="t('script.envHint')" />
         </n-form-item>
         <n-form-item :label="t('script.field.description')" path="description">
           <n-input v-model:value="form.description" type="textarea" :autosize="{ minRows: 1, maxRows: 3 }" placeholder="" />
+        </n-form-item>
+        <n-form-item v-if="!editingItem" :label="t('script.uploadCode')">
+          <div class="script-upload-field">
+            <n-button size="small" @click="pickCreateFile">{{ t("script.chooseFile") }}</n-button>
+            <span class="script-upload-name">{{ createFileName || t("script.uploadCodeHint") }}</span>
+            <input ref="createFileInput" type="file" class="script-upload-input" @change="onCreateFileChange" />
+          </div>
         </n-form-item>
       </n-form>
       <template #action>
@@ -84,15 +95,26 @@
         </div>
       </template>
     </n-modal>
+
+    <script-run-history-modal v-model:show="showHistory" :project="historyProject" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from "vue";
-import { Code20Regular, Copy20Regular, Delete20Regular, Edit20Regular } from "@vicons/fluent";
+import { computed, h, onMounted, reactive, ref, type Component } from "vue";
+import {
+  Code20Regular,
+  Copy20Regular,
+  Delete20Regular,
+  Edit20Regular,
+  History20Regular,
+  MoreHorizontal20Regular,
+  Play20Regular
+} from "@vicons/fluent";
 import {
   NButton,
   NDataTable,
+  NDropdown,
   NForm,
   NFormItem,
   NIcon,
@@ -102,11 +124,12 @@ import {
   NRadioButton,
   NRadioGroup,
   NSelect,
+  NSwitch,
   NTag,
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, DataTableFilterState, DataTableSortState, FormInst, FormRules, SelectOption } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableSortState, DropdownOption, FormInst, FormRules, SelectOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { formatDateTime, t } from "../../../i18n";
@@ -120,14 +143,17 @@ import {
   deleteScript,
   listScriptImages,
   listScripts,
+  submitScriptRun,
   updateScript,
+  uploadScriptFile,
   type AvailableImages,
   type ScriptNetworkMode,
   type ScriptProject,
   type ScriptProjectPayload
 } from "../api";
+import ScriptRunHistoryModal from "../components/ScriptRunHistoryModal.vue";
 import ScriptWorkbenchView from "./ScriptWorkbenchView.vue";
-import { SCRIPT_CREATE, SCRIPT_DELETE, SCRIPT_MANAGE_OTHERS, SCRIPT_UPDATE } from "../permissions";
+import { SCRIPT_CREATE, SCRIPT_DELETE, SCRIPT_MANAGE_OTHERS, SCRIPT_OPERATE, SCRIPT_UPDATE } from "../permissions";
 
 type CreatorFilter = "all" | "me";
 type NetworkFilter = ScriptNetworkMode;
@@ -144,6 +170,11 @@ const editingItem = ref<ScriptProject | null>(null);
 const workingItem = ref<ScriptProject | null>(null);
 const items = ref<ScriptProject[]>([]);
 const envText = ref("");
+const showHistory = ref(false);
+const historyProject = ref<ScriptProject | null>(null);
+const createFileInput = ref<HTMLInputElement | null>(null);
+const createFile = ref<File | null>(null);
+const createFileName = ref("");
 const images = reactive<AvailableImages>({ presets: [], local_images: [], docker_available: true, message: "" });
 const imagesAvailable = computed(() => images.docker_available);
 const filters = reactive<{
@@ -165,11 +196,12 @@ const form = reactive<ScriptProjectPayload>({
   language: "python",
   base_image: "",
   network_mode: "bridge",
+  is_shared: false,
   run_command: "",
   env: {},
   cpu_limit: null,
   memory_limit_mb: null,
-  timeout_seconds: 600
+  timeout_seconds: 0
 });
 const pagination = reactive({
   page: 1,
@@ -239,7 +271,10 @@ const columns = computed<DataTableColumns<ScriptProject>>(() =>
     key: "name",
     width: columnWidths.name,
     ellipsis: { tooltip: true },
-    render: (row) => h("span", { class: "storage-name-link", title: row.name, onClick: () => openWorkbench(row) }, row.name)
+    render: (row) =>
+      canManage(row)
+        ? h("span", { class: "storage-name-link", title: row.name, onClick: () => openWorkbench(row) }, row.name)
+        : h("span", { title: row.name }, row.name)
   },
   {
     title: t("script.field.slug"),
@@ -307,25 +342,27 @@ const columns = computed<DataTableColumns<ScriptProject>>(() =>
         "div",
         { class: "table-action-group" },
         [
-          h(
-            NButton,
-            { size: "small", quaternary: true, circle: true, type: "primary", title: t("script.manage"), onClick: () => openWorkbench(row) },
-            { icon: () => h(NIcon, { component: Code20Regular }) }
-          ),
-          canManage(row) && authStore.has(SCRIPT_UPDATE)
+          authStore.has(SCRIPT_OPERATE)
             ? h(
                 NButton,
-                { size: "small", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEdit(row) },
-                { icon: () => h(NIcon, { component: Edit20Regular }) }
+                {
+                  size: "small",
+                  quaternary: true,
+                  circle: true,
+                  type: "primary",
+                  disabled: !row.run_command,
+                  title: row.run_command ? t("script.run") : t("script.runCommandMissing"),
+                  onClick: () => void runFromList(row)
+                },
+                { icon: () => h(NIcon, { component: Play20Regular }) }
               )
             : null,
-          canManage(row) && authStore.has(SCRIPT_DELETE)
-            ? h(
-                NButton,
-                { size: "small", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
-                { icon: () => h(NIcon, { component: Delete20Regular }) }
-              )
-            : null
+          h(
+            NButton,
+            { size: "small", quaternary: true, circle: true, title: t("script.tab.history"), onClick: () => openHistory(row) },
+            { icon: () => h(NIcon, { component: History20Regular }) }
+          ),
+          renderMoreMenu(row)
         ].filter(Boolean)
       )
   }
@@ -414,13 +451,16 @@ function resetForm() {
     language: "python",
     base_image: "",
     network_mode: "bridge",
+    is_shared: false,
     run_command: "",
     env: {},
     cpu_limit: null,
     memory_limit_mb: null,
-    timeout_seconds: 600
+    timeout_seconds: 0
   });
   envText.value = "";
+  createFile.value = null;
+  createFileName.value = "";
 }
 
 function openCreate() {
@@ -438,6 +478,7 @@ function openEdit(item: ScriptProject) {
     language: item.language,
     base_image: item.base_image,
     network_mode: item.network_mode,
+    is_shared: item.is_shared,
     run_command: item.run_command,
     env: { ...item.env },
     cpu_limit: item.cpu_limit,
@@ -475,7 +516,10 @@ async function saveProject() {
     if (editingItem.value) {
       await updateScript(editingItem.value.id, { ...form });
     } else {
-      await createScript({ ...form });
+      const created = await createScript({ ...form });
+      if (createFile.value) {
+        await uploadScriptFile(created.id, "/", createFile.value);
+      }
     }
     showModal.value = false;
     await loadProjects();
@@ -520,6 +564,69 @@ function canManage(item: ScriptProject) {
   return item.created_by === authStore.user?.id || authStore.has(SCRIPT_MANAGE_OTHERS);
 }
 
+function renderIcon(component: Component) {
+  return () => h(NIcon, { component });
+}
+
+// Run and run-history stay as standalone icons; everything else (workbench/edit/delete)
+// is collapsed into this "more" dropdown, and only shown to users who can manage the script.
+function moreOptions(item: ScriptProject): DropdownOption[] {
+  if (!canManage(item)) return [];
+  const options: DropdownOption[] = [{ key: "manage", label: t("script.manage"), icon: renderIcon(Code20Regular) }];
+  if (authStore.has(SCRIPT_UPDATE)) options.push({ key: "edit", label: t("common.edit"), icon: renderIcon(Edit20Regular) });
+  if (authStore.has(SCRIPT_DELETE)) options.push({ key: "delete", label: t("common.delete"), icon: renderIcon(Delete20Regular) });
+  return options;
+}
+
+function renderMoreMenu(item: ScriptProject) {
+  const options = moreOptions(item);
+  if (!options.length) return null;
+  return h(
+    NDropdown,
+    { trigger: "hover", options, onSelect: (key: string) => handleMoreSelect(key, item) },
+    {
+      default: () =>
+        h(
+          NButton,
+          { size: "small", quaternary: true, circle: true, title: t("common.moreActions") },
+          { icon: () => h(NIcon, { component: MoreHorizontal20Regular }) }
+        )
+    }
+  );
+}
+
+function handleMoreSelect(key: string, item: ScriptProject) {
+  if (key === "manage") openWorkbench(item);
+  else if (key === "edit") openEdit(item);
+  else if (key === "delete") confirmDelete(item);
+}
+
+async function runFromList(item: ScriptProject) {
+  try {
+    await submitScriptRun(item.id);
+    message.success(t("script.runStarted"));
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+function openHistory(item: ScriptProject) {
+  historyProject.value = item;
+  showHistory.value = true;
+}
+
+function pickCreateFile() {
+  createFileInput.value?.click();
+}
+
+function onCreateFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+  input.value = "";
+  createFile.value = file;
+  createFileName.value = file?.name ?? "";
+}
+
 function envTextToDict(text: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const line of text.split("\n")) {
@@ -537,3 +644,30 @@ function dictToEnvText(env: Record<string, string>): string {
     .join("\n");
 }
 </script>
+
+<style scoped>
+.script-shared-hint {
+  margin-left: 10px;
+  color: var(--text-color-3);
+  font-size: 12px;
+}
+
+.script-upload-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.script-upload-name {
+  color: var(--text-color-3);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.script-upload-input {
+  display: none;
+}
+</style>

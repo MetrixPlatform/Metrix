@@ -13,3 +13,5 @@ apscheduler
 pytest
 httpx
 docker
+py7zr
+rarfile

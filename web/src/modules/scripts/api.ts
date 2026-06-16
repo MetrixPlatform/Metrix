@@ -13,6 +13,7 @@ export interface ScriptProject {
   language: string;
   base_image: string;
   network_mode: ScriptNetworkMode;
+  is_shared: boolean;
   run_command: string;
   env: Record<string, string>;
   cpu_limit: number | null;
@@ -31,6 +32,7 @@ export interface ScriptProjectPayload {
   language: string;
   base_image: string;
   network_mode: ScriptNetworkMode;
+  is_shared: boolean;
   run_command: string;
   env: Record<string, string>;
   cpu_limit: number | null;

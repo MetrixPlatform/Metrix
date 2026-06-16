@@ -29,7 +29,9 @@
     "scriptRunNotCancelable": "This run cannot be canceled",
     "scriptScheduleNotFound": "Schedule not found",
     "scriptScheduleInvalid": "Provide a valid interval in seconds",
-    "scriptCronInvalid": "Invalid cron expression"
+    "scriptCronInvalid": "Invalid cron expression",
+    "scriptArchiveToolMissing": "The server is missing the extraction tool: {fmt}",
+    "scriptArchiveInvalid": "Archive is invalid or corrupted: {fmt}"
   },
   "script": {
     "searchPlaceholder": "Search name, slug, creator",
@@ -68,6 +70,15 @@
     "emptyLog": "No logs yet",
     "runStarted": "Run submitted",
     "runCanceled": "Run canceled",
+    "runCommandMissing": "No run command set",
+    "sharedHint": "When shared, others can view and run it, but only the creator and admins can edit",
+    "timeoutHint": "0 = no limit",
+    "uploadCode": "Upload code",
+    "chooseFile": "Choose file",
+    "uploadCodeHint": "Optional: upload a file or ZIP/RAR/7Z archive (auto-extracted)",
+    "historyTitle": "Run history - {name}",
+    "collapseAll": "Collapse all",
+    "terminalAdd": "New terminal",
     "tab": {
       "log": "Run log",
       "history": "Run history",
@@ -81,6 +92,7 @@
       "language": "Language",
       "image": "Image",
       "network": "Network",
+      "shared": "Shared",
       "runCommand": "Run command",
       "cpu": "CPU limit",
       "memory": "Memory (MB)",
@@ -91,8 +103,8 @@
       "exitCode": "Exit code"
     },
     "network": {
-      "bridge": "Networked",
-      "none": "Offline"
+      "bridge": "Connected",
+      "none": "Disconnected"
     },
     "language": {
       "python": "Python",
@@ -105,18 +117,16 @@
       "manual": "Manual",
       "schedule": "Schedule"
     },
-    "run": {
-      "cancel": "Cancel",
-      "viewLog": "View log",
-      "status": {
-        "pending": "Pending",
-        "running": "Running",
-        "success": "Success",
-        "failed": "Failed",
-        "timeout": "Timeout",
-        "canceled": "Canceled"
-      }
+    "runStatus": {
+      "pending": "Pending",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "timeout": "Timeout",
+      "canceled": "Canceled"
     },
+    "runCancel": "Cancel",
+    "runViewLog": "View log",
     "schedule": {
       "add": "New schedule",
       "edit": "Edit schedule",
@@ -150,8 +160,7 @@
     "terminalCustom": "Custom",
     "terminalConnect": "Connect",
     "terminalDisconnect": "Disconnect",
-    "terminalIdle": "Click Connect to start the terminal (a keepalive container is started from the project image and workspace, cleaned up when you leave the workbench).",
-    "terminalHint": "Defaults to bash with arrow-key history and TAB completion; the project /workspace/.venv is auto-activated for installing packages."
+    "terminalIdle": "Click Connect to start the terminal (a keepalive container is started from the project image and workspace, cleaned up when you leave the workbench)."
   },
   "auditLog": {
     "action": {
@@ -161,6 +170,7 @@
         "delete": "Delete script project",
         "file_write": "Save script file",
         "file_upload": "Upload script file",
+        "archive_extract": "Extract code archive",
         "file_mkdir": "Create script directory",
         "file_rename": "Rename script file",
         "file_delete": "Delete script file",

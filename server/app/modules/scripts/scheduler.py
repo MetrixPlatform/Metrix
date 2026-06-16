@@ -40,7 +40,7 @@ class ScriptScheduleService:
         return [ScriptScheduleItem.model_validate(row) for row in self.schedules.list_for_project(project_id)]
 
     def create(self, actor: User, project_id: int, payload: ScriptSchedulePayload) -> ScriptScheduleItem:
-        project = ScriptProjectService(self.db).get_project(actor, project_id)
+        project = ScriptProjectService(self.db).get_manageable_project(actor, project_id)
         _validate_payload(payload)
         schedule = self.schedules.create(
             ScriptSchedule(

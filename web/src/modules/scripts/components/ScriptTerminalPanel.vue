@@ -13,7 +13,6 @@
         placeholder="/bin/bash"
         class="script-terminal-command-input"
       />
-      <span class="script-terminal-hint">{{ t("script.terminalHint") }}</span>
     </div>
     <div v-show="connected" ref="terminalRef" class="script-terminal-screen"></div>
     <div v-if="!connected" class="script-terminal-idle">{{ t("script.terminalIdle") }}</div>
@@ -184,11 +183,6 @@ function disconnect() {
 
 .script-terminal-command-input {
   max-width: 240px;
-}
-
-.script-terminal-hint {
-  color: var(--text-color-3);
-  font-size: 12px;
 }
 
 .script-terminal-screen {

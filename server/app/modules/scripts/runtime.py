@@ -136,13 +136,16 @@ def run_script(
     raw = adapter.client
     container = raw.containers.run(**_run_kwargs(project, host_workspace, env, detach=True, run_id=run_id))
     timed_out = threading.Event()
-    timer = threading.Timer(max(1, project.timeout_seconds), lambda: _kill(container, timed_out))
-    timer.start()
+    # timeout_seconds <= 0 means run with no timeout limit.
+    timer = threading.Timer(project.timeout_seconds, lambda: _kill(container, timed_out)) if project.timeout_seconds > 0 else None
+    if timer is not None:
+        timer.start()
     try:
         _stream_logs(container, log_path)
         exit_code = _wait_exit_code(container)
     finally:
-        timer.cancel()
+        if timer is not None:
+            timer.cancel()
         _remove(container)
     if timed_out.is_set():
         return "timeout", exit_code

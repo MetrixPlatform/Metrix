@@ -1,4 +1,12 @@
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import (
+    AppModule,
+    action_code,
+    define_module,
+    page_permission,
+    resource_action,
+    resource_permissions,
+    table_column_sync,
+)
 
 SCRIPT_CREATE = action_code("script", "create")
 SCRIPT_READ = action_code("script", "read")
@@ -15,6 +23,12 @@ APP_MODULE = define_module(
         dependencies=("core", "containers"),
         router_paths=("app.modules.scripts.api:router",),
         model_paths=("app.modules.scripts.models",),
+        table_syncs=(
+            table_column_sync(
+                "script_projects",
+                {"is_shared": "ALTER TABLE script_projects ADD COLUMN is_shared BOOLEAN NOT NULL DEFAULT 0"},
+            ),
+        ),
         page_permissions=(
             page_permission("scripts", "script", 877, SCRIPT_READ),
         ),
