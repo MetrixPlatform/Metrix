@@ -201,7 +201,7 @@ function disconnect() {
 }
 
 .container-terminal-screen {
-  height: 380px;
+  height: clamp(160px, calc(76vh - 340px), 300px);
   padding: 8px;
   border-radius: 6px;
   background: #000000;
