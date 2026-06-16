@@ -1,36 +1,28 @@
 <template>
-  <n-modal
-    :show="show"
-    preset="card"
-    class="modal-card script-terminal-modal"
-    :title="title"
-    @update:show="(value) => emit('update:show', value)"
-  >
-    <div class="script-terminal-body">
-      <div class="script-terminal-form">
-        <div class="script-terminal-field">
-          <span class="script-terminal-label">{{ t("script.terminalCommand") }}</span>
-          <div class="script-terminal-command">
-            <n-checkbox v-model:checked="customCommand" :disabled="connected">{{ t("script.terminalCustom") }}</n-checkbox>
-            <n-input v-if="customCommand" v-model:value="command" :disabled="connected" placeholder="/bin/sh" />
-            <n-select v-else v-model:value="command" :disabled="connected" :options="shellOptions" />
-          </div>
-        </div>
-        <div class="script-terminal-actions">
-          <n-button :type="connected ? 'default' : 'primary'" @click="toggle">
-            {{ connected ? t("script.terminalDisconnect") : t("script.terminalConnect") }}
-          </n-button>
-        </div>
-      </div>
-      <p class="script-terminal-hint">{{ t("script.terminalHint") }}</p>
-      <div v-show="connected" ref="terminalRef" class="script-terminal-screen"></div>
+  <div class="script-terminal">
+    <div class="script-terminal-toolbar">
+      <n-button size="small" :type="connected ? 'default' : 'primary'" :disabled="!project" @click="toggle">
+        {{ connected ? t("script.terminalDisconnect") : t("script.terminalConnect") }}
+      </n-button>
+      <n-checkbox v-model:checked="customCommand" :disabled="connected" size="small">{{ t("script.terminalCustom") }}</n-checkbox>
+      <n-input
+        v-if="customCommand"
+        v-model:value="command"
+        :disabled="connected"
+        size="small"
+        placeholder="/bin/bash"
+        class="script-terminal-command-input"
+      />
+      <span class="script-terminal-hint">{{ t("script.terminalHint") }}</span>
     </div>
-  </n-modal>
+    <div v-show="connected" ref="terminalRef" class="script-terminal-screen"></div>
+    <div v-if="!connected" class="script-terminal-idle">{{ t("script.terminalIdle") }}</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { NButton, NCheckbox, NInput, NModal, NSelect, useMessage } from "naive-ui";
+import { nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { NButton, NCheckbox, NInput, useMessage } from "naive-ui";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
@@ -39,30 +31,38 @@ import { t, translateMessage } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import type { ScriptProject } from "../api";
 
-const props = defineProps<{ show: boolean; project: ScriptProject | null }>();
-const emit = defineEmits<{ "update:show": [value: boolean] }>();
+const props = defineProps<{ project: ScriptProject | null; active: boolean }>();
 
 const message = useMessage();
 const customCommand = ref(false);
-const command = ref("/bin/sh");
+const command = ref("");
 const connected = ref(false);
 const terminalRef = ref<HTMLElement | null>(null);
-const shellOptions = [
-  { label: "/bin/sh", value: "/bin/sh" },
-  { label: "/bin/bash", value: "/bin/bash" },
-  { label: "/bin/ash", value: "/bin/ash" }
-];
-const title = computed(() => t("script.terminalTitle", { name: props.project?.name || "" }));
 
 let term: Terminal | null = null;
 let fit: FitAddon | null = null;
 let ws: WebSocket | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let autoConnected = false;
 
 watch(
-  () => props.show,
-  (show) => {
-    if (!show) disconnect();
+  () => props.active,
+  (active) => {
+    if (!active) return;
+    if (connected.value) {
+      nextTick(() => fit?.fit());
+    } else if (!autoConnected && props.project) {
+      autoConnected = true;
+      void connect();
+    }
+  }
+);
+
+watch(
+  () => props.project?.id,
+  () => {
+    autoConnected = false;
+    disconnect();
   }
 );
 
@@ -72,20 +72,25 @@ function toggle() {
   if (connected.value) {
     disconnect();
   } else {
+    autoConnected = true;
     void connect();
   }
 }
 
 async function connect() {
   const project = props.project;
-  if (!project) return;
+  if (!project || connected.value) return;
   connected.value = true;
   await nextTick();
-  if (!terminalRef.value) return;
+  if (!terminalRef.value) {
+    connected.value = false;
+    return;
+  }
   term = new Terminal({
     cursorBlink: true,
     fontSize: 13,
     fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+    scrollback: 2000,
     theme: { background: "#000000", foreground: "#d4d4d4" }
   });
   fit = new FitAddon();
@@ -94,7 +99,7 @@ async function connect() {
   fit.fit();
   const params = new URLSearchParams({
     token: authStore.token,
-    cmd: command.value || "/bin/sh",
+    cmd: customCommand.value ? command.value : "",
     cols: String(term.cols),
     rows: String(term.rows)
   });
@@ -125,6 +130,7 @@ async function connect() {
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input", data }));
   });
   resizeObserver = new ResizeObserver(() => {
+    if (!props.active) return;
     fit?.fit();
     sendResize();
   });
@@ -162,53 +168,40 @@ function disconnect() {
 </script>
 
 <style scoped>
-.script-terminal-body {
+.script-terminal {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  padding-bottom: 10px;
 }
 
-.script-terminal-form {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.script-terminal-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
-.script-terminal-label {
-  color: var(--text-color-2);
-  font-size: 13px;
-}
-
-.script-terminal-command {
+.script-terminal-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.script-terminal-command .n-input,
-.script-terminal-command .n-select {
-  flex: 1;
+.script-terminal-command-input {
+  max-width: 240px;
 }
 
 .script-terminal-hint {
-  margin: 0;
   color: var(--text-color-3);
   font-size: 12px;
 }
 
 .script-terminal-screen {
-  height: clamp(160px, calc(76vh - 320px), 320px);
+  height: clamp(160px, 28vh, 340px);
   padding: 8px;
   border-radius: 6px;
   background: #000000;
   overflow: hidden;
+}
+
+.script-terminal-idle {
+  color: var(--text-color-3);
+  font-size: 12px;
+  padding: 8px 0;
 }
 </style>

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import threading
 import uuid
@@ -248,18 +247,8 @@ def _finalize(db: Session, run_id: str, status: str, exit_code: int | None, erro
 def _build_env(db: Session, project: ScriptProject) -> dict[str, str]:
     settings = SettingService(db).get_settings()
     env = script_runtime.package_environment(settings)
-    env.update(_parse_project_env(project.env))
+    env.update(script_runtime.parse_project_env(project.env))
     return env
-
-
-def _parse_project_env(value: str) -> dict[str, str]:
-    try:
-        data = json.loads(value or "{}")
-    except ValueError:
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    return {str(key): str(item) for key, item in data.items()}
 
 
 def _pool(db: Session) -> ThreadPoolExecutor:

@@ -302,7 +302,7 @@ async def script_terminal(websocket: WebSocket, project_id: int) -> None:
             await websocket.send_text(json.dumps({"type": "error", "code": _ws_error_code(exc)}))
             await websocket.close()
             return
-        command = websocket.query_params.get("cmd") or "/bin/sh"
+        command = websocket.query_params.get("cmd") or ""
         cols = _ws_int(websocket.query_params.get("cols"), 80)
         rows = _ws_int(websocket.query_params.get("rows"), 24)
         workspace = project_workspace_dir(project)

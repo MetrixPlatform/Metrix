@@ -889,3 +889,11 @@
 - `server/app/modules/scripts/presets.py` 的 `PRESET_IMAGES` 增加 `python:3.13.11-slim`（language=python、run_command=`python main.py`、use_venv）作为首个 Python 预设，因为部署机本地已存在该镜像；预设是否“可用”由 `runtime.py` 按本地镜像集合标记，前端 `ScriptManageView` 直接消费 API 的 `presets`，无需改前端。
 - 经验坑：本机 Docker 守护进程配置了镜像代理 `127.0.0.1:7897`，该代理未运行时 `docker pull python:3.12-slim` 直接失败（`connectex: target machine actively refused`）。内网/离线环境拿不到 Docker Hub 时，应直接用本地已有镜像或走容器管理离线导入 tar，不要依赖在线 pull。
 - 验证：`pytest server/tests/test_scripts.py -q` 7 passed，ReadLints 无诊断。
+
+## 2026-06-16：脚本终端改造（嵌入式 Tab + VSCode 风格 + 环境变量）
+
+- 终端从弹窗 `ScriptTerminalModal.vue` 改为工作台底部「终端」Tab：新增 `web/src/modules/scripts/components/ScriptTerminalPanel.vue`（内联，连接/断开 + 可选自定义命令），`ScriptWorkbenchView.vue` 的 `n-tabs` 增加 `terminal` 页签并用 `display-directive="show"` 保持挂载，切到运行日志/历史等其它页时终端连接不断；首次切到该 Tab 自动连接，离开工作台（组件卸载）才清理常驻容器。删除旧 Modal 组件与头部「终端」按钮。
+- 终端像 VSCode 可用（修复上下键无历史、TAB 不补全）：根因是 exec 默认跑 `/bin/sh`（dash 无 readline）。后端 `runtime.py` 新增默认 shell 包装器 `sh -c 'cd /workspace; [ -f .venv/bin/activate ] && . .venv/bin/activate; if command -v bash; then exec bash; else exec sh; fi'`——优先 `bash`（readline 历史 + TAB 补全），无 bash（如 alpine）退回 busybox sh，并自动激活项目 venv。UI 勾选「自定义」仍可指定命令（走 shlex）。`api.py` 终端 WS 默认 `cmd` 改为空串，由后端决定默认 shell。
+- 终端环境变量：`open_terminal` 改用 `terminal_environment(settings, project)` = 包源变量（PIP_INDEX_URL 等）+ 项目 `env`（JSON 解析）+ `TERM=xterm-256color` + `LANG=C.UTF-8`，作为常驻容器 environment，exec 自动继承；`TERM` 是行编辑/补全显示正确的关键。`parse_project_env` 从 `runs.py` 上移到 `runtime.py` 复用，`runs.py` 删除重复实现与不再使用的 `json` 导入。
+- i18n：脚本语言包新增 `script.tab.terminal`、`script.terminalIdle`，删除随弹窗废弃的 `script.terminal`/`terminalTitle`/`terminalCommand`，`terminalHint` 更新为「默认 bash、上下键历史、TAB 补全、自动激活 venv」。
+- 验证：`compileall -q server\app` 通过、`pytest server/tests/test_scripts.py` 7 passed；前端 `npm run test:smoke`、`vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build` 通过；ReadLints 无诊断。Docker 守护进程代理未开，未做真实终端联调。

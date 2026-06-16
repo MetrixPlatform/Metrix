@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shlex
 import threading
 from pathlib import Path
@@ -64,6 +65,45 @@ def package_environment(settings: SystemSettings) -> dict[str, str]:
     return env
 
 
+def parse_project_env(value: str) -> dict[str, str]:
+    try:
+        data = json.loads(value or "{}")
+    except ValueError:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): str(item) for key, item in data.items()}
+
+
+def terminal_environment(settings: SystemSettings, project: ScriptProject) -> dict[str, str]:
+    # Terminal sessions get the package source vars, the project env vars, and a real
+    # terminal type so the interactive shell has line editing and completion.
+    env = package_environment(settings)
+    env.update(parse_project_env(project.env))
+    env.setdefault("TERM", "xterm-256color")
+    env.setdefault("LANG", "C.UTF-8")
+    return env
+
+
+# VSCode-like default shell: prefer bash (readline history + tab completion), activate
+# the project venv when present, fall back to sh for images without bash (e.g. alpine).
+_DEFAULT_TERMINAL_SCRIPT = (
+    "cd /workspace 2>/dev/null; "
+    "[ -f .venv/bin/activate ] && . .venv/bin/activate 2>/dev/null; "
+    "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi"
+)
+
+
+def _terminal_shell_command(custom: str) -> list[str]:
+    text = (custom or "").strip()
+    if text:
+        try:
+            return shlex.split(text)
+        except ValueError:
+            return text.split()
+    return ["/bin/sh", "-c", _DEFAULT_TERMINAL_SCRIPT]
+
+
 def list_available_images(db: Session) -> AvailableImagesResponse:
     try:
         adapter = create_adapter(db)
@@ -114,13 +154,12 @@ def open_terminal(db: Session, project: ScriptProject, host_workspace: Path, com
     adapter = create_adapter(db)
     ensure_image_available(adapter, project.base_image)
     raw = adapter.client
-    kwargs = _run_kwargs(project, host_workspace, package_environment(settings), detach=True)
+    kwargs = _run_kwargs(project, host_workspace, terminal_environment(settings, project), detach=True)
     kwargs["command"] = TERMINAL_KEEPALIVE
     kwargs["tty"] = True
     kwargs["stdin_open"] = True
     container = raw.containers.run(**kwargs)
-    args = shlex.split(command) if command.strip() else ["/bin/sh"]
-    exec_id, sock, api = adapter.create_exec(container, args, "", cols, rows)
+    exec_id, sock, api = adapter.create_exec(container, _terminal_shell_command(command), "", cols, rows)
     return container, exec_id, sock, api
 
 

@@ -13,10 +13,6 @@
           <template #icon><n-icon :component="Play20Regular" /></template>
           {{ t("script.run") }}
         </permission-button>
-        <permission-button :permission="SCRIPT_OPERATE" @click="openTerminal">
-          <template #icon><n-icon :component="Window20Regular" /></template>
-          {{ t("script.terminal") }}
-        </permission-button>
       </div>
     </div>
 
@@ -148,6 +144,10 @@
               </div>
               <div v-else class="script-log-empty">{{ t("script.env.hint") }}</div>
             </n-tab-pane>
+
+            <n-tab-pane name="terminal" :tab="t('script.tab.terminal')" display-directive="show">
+              <script-terminal-panel :project="project" :active="activeTab === 'terminal'" />
+            </n-tab-pane>
           </n-tabs>
         </div>
       </div>
@@ -197,7 +197,6 @@
       </template>
     </n-modal>
 
-    <script-terminal-modal v-model:show="showTerminal" :project="project" />
   </section>
 </template>
 
@@ -211,8 +210,7 @@ import {
   DocumentAdd20Regular,
   Edit20Regular,
   FolderAdd20Regular,
-  Play20Regular,
-  Window20Regular
+  Play20Regular
 } from "@vicons/fluent";
 import {
   NButton,
@@ -261,7 +259,7 @@ import {
   type ScriptScheduleTrigger
 } from "../api";
 import CodeEditor from "../components/CodeEditor.vue";
-import ScriptTerminalModal from "../components/ScriptTerminalModal.vue";
+import ScriptTerminalPanel from "../components/ScriptTerminalPanel.vue";
 import { SCRIPT_OPERATE } from "../permissions";
 
 const props = defineProps<{ project: ScriptProject }>();
@@ -279,7 +277,7 @@ const currentLanguage = ref("plaintext");
 const savingFile = ref(false);
 const uploadInputRef = ref<HTMLInputElement | null>(null);
 
-const activeTab = ref<"log" | "history" | "schedules" | "environment">("log");
+const activeTab = ref<"log" | "history" | "schedules" | "environment" | "terminal">("log");
 const running = ref(false);
 const currentRunId = ref("");
 const runLog = ref("");
@@ -290,7 +288,6 @@ const schedules = ref<ScriptSchedule[]>([]);
 const loadingSchedules = ref(false);
 const environment = ref<ScriptEnvironmentInfo | null>(null);
 const loadingEnv = ref(false);
-const showTerminal = ref(false);
 
 const showNewEntry = ref(false);
 const newEntryIsDir = ref(false);
@@ -511,10 +508,6 @@ async function runScript() {
   } finally {
     running.value = false;
   }
-}
-
-function openTerminal() {
-  showTerminal.value = true;
 }
 
 async function loadRuns() {

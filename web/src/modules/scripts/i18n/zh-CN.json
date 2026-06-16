@@ -53,7 +53,6 @@
     "newFolder": "新建目录",
     "upload": "上传",
     "run": "运行",
-    "terminal": "终端",
     "noFileSelected": "未选择文件",
     "editorEmpty": "从左侧选择文件进行编辑",
     "fileTruncated": "文件过大，仅显示前部分内容",
@@ -73,7 +72,8 @@
       "log": "运行日志",
       "history": "运行历史",
       "schedules": "定时计划",
-      "environment": "环境信息"
+      "environment": "环境信息",
+      "terminal": "终端"
     },
     "field": {
       "name": "名称",
@@ -147,12 +147,11 @@
       "packages": "已装库",
       "hint": "点击刷新加载镜像环境信息（会临时启动一次容器）"
     },
-    "terminalTitle": "终端 - {name}",
-    "terminalCommand": "命令",
     "terminalCustom": "自定义",
     "terminalConnect": "连接",
     "terminalDisconnect": "断开",
-    "terminalHint": "终端会按项目镜像和工作区启动常驻容器，关闭后自动清理；可在 /workspace/.venv 装库。"
+    "terminalIdle": "点击“连接”启动终端（按项目镜像和工作区起常驻容器，离开工作台自动清理）。",
+    "terminalHint": "默认优先 bash，支持上下键历史与 TAB 补全；自动激活 /workspace/.venv，可在此装库。"
   },
   "auditLog": {
     "action": {

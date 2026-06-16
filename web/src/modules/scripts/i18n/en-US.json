@@ -53,7 +53,6 @@
     "newFolder": "New folder",
     "upload": "Upload",
     "run": "Run",
-    "terminal": "Terminal",
     "noFileSelected": "No file selected",
     "editorEmpty": "Select a file on the left to edit",
     "fileTruncated": "File too large, showing the first part only",
@@ -73,7 +72,8 @@
       "log": "Run log",
       "history": "Run history",
       "schedules": "Schedules",
-      "environment": "Environment"
+      "environment": "Environment",
+      "terminal": "Terminal"
     },
     "field": {
       "name": "Name",
@@ -147,12 +147,11 @@
       "packages": "Installed packages",
       "hint": "Refresh to load image environment info (starts a one-off container)"
     },
-    "terminalTitle": "Terminal - {name}",
-    "terminalCommand": "Command",
     "terminalCustom": "Custom",
     "terminalConnect": "Connect",
     "terminalDisconnect": "Disconnect",
-    "terminalHint": "The terminal starts a keepalive container with the project image and workspace, cleaned up on close; install packages into /workspace/.venv."
+    "terminalIdle": "Click Connect to start the terminal (a keepalive container is started from the project image and workspace, cleaned up when you leave the workbench).",
+    "terminalHint": "Defaults to bash with arrow-key history and TAB completion; the project /workspace/.venv is auto-activated for installing packages."
   },
   "auditLog": {
     "action": {
