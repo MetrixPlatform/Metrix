@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import shutil
 import threading
 import uuid
@@ -190,6 +191,18 @@ class ContainerService:
         record_audit(self.db, actor.id, "container.clear_logs", "container", container.id, _container_name(container))
         self.db.commit()
         return ContainerLogClearResult(cleared=True, restarted=running, requires_restart=False)
+
+    def open_exec(self, actor: User, container_id: str, command: str, user: str, cols: int, rows: int):
+        container = self._get_visible_container(actor, container_id)
+        running = bool((getattr(container, "attrs", {}) or {}).get("State", {}).get("Running", False))
+        if not running:
+            raise bad_request("error.containerNotRunning", "Container is not running")
+        args = shlex.split(command) if command.strip() else ["/bin/sh"]
+        adapter = docker_clients.DockerAdapter(getattr(container, "client", None))
+        exec_id, raw, api = adapter.create_exec(container, args, user, cols, rows)
+        record_audit(self.db, actor.id, "container.exec", "container", container.id, _container_name(container))
+        self.db.commit()
+        return exec_id, raw, api
 
     def list_images(self, actor: User, keyword: str = "", page: int = 1, page_size: int = 20) -> ImageListResponse:
         images = [_image_item(item) for item in self._client().list_images()]

@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+import asyncio
+import json
+import threading
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_permission
-from app.db.session import get_db
+from app.core.security import decode_access_token
+from app.db.session import get_db, get_session_factory
 from app.models import User
 from app.modules.containers import CONTAINER_CREATE, CONTAINER_DELETE, CONTAINER_OPERATE, CONTAINER_READ, CONTAINER_UPDATE
+from app.repositories.users import UserRepository
+from app.services.permissions import has_permission
 from app.modules.containers.schemas import (
     ContainerCreatePayload,
     ContainerEngineStatus,
@@ -154,6 +161,108 @@ def clear_container_logs(
     actor: User = Depends(require_permission(CONTAINER_OPERATE)),
 ) -> ContainerLogClearResult:
     return ContainerService(db).clear_logs(actor, container_id, restart)
+
+
+@instances_router.websocket("/{container_id}/exec")
+async def container_exec_terminal(websocket: WebSocket, container_id: str) -> None:
+    await websocket.accept()
+    db = get_session_factory()()
+    raw = None
+    stop = threading.Event()
+    try:
+        user = _ws_authenticate(db, websocket)
+        if user is None:
+            await websocket.close(code=4401)
+            return
+        if not has_permission(user, CONTAINER_OPERATE):
+            await websocket.close(code=4403)
+            return
+        command = websocket.query_params.get("cmd") or "/bin/sh"
+        exec_user = websocket.query_params.get("user") or ""
+        cols = _ws_int(websocket.query_params.get("cols"), 80)
+        rows = _ws_int(websocket.query_params.get("rows"), 24)
+        try:
+            exec_id, raw, api = ContainerService(db).open_exec(user, container_id, command, exec_user, cols, rows)
+        except HTTPException as exc:
+            await websocket.send_text(json.dumps({"type": "error", "code": _ws_error_code(exc)}))
+            await websocket.close()
+            return
+        loop = asyncio.get_running_loop()
+
+        def pump() -> None:
+            try:
+                while not stop.is_set():
+                    data = raw.recv(4096)
+                    if not data:
+                        break
+                    asyncio.run_coroutine_threadsafe(websocket.send_bytes(data), loop)
+            except Exception:
+                pass
+            finally:
+                stop.set()
+                asyncio.run_coroutine_threadsafe(_ws_close(websocket), loop)
+
+        threading.Thread(target=pump, name="container-exec", daemon=True).start()
+        while True:
+            text = await websocket.receive_text()
+            try:
+                payload = json.loads(text)
+            except ValueError:
+                continue
+            kind = payload.get("type")
+            if kind == "input":
+                raw.sendall(payload.get("data", "").encode("utf-8"))
+            elif kind == "resize":
+                try:
+                    api.exec_resize(exec_id, height=_ws_int(payload.get("rows"), rows), width=_ws_int(payload.get("cols"), cols))
+                except Exception:
+                    pass
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        stop.set()
+        if raw is not None:
+            try:
+                raw.close()
+            except Exception:
+                pass
+        db.close()
+
+
+def _ws_authenticate(db: Session, websocket: WebSocket) -> User | None:
+    token = websocket.query_params.get("token")
+    if not token:
+        return None
+    subject = decode_access_token(token)
+    if subject is None:
+        return None
+    user = UserRepository(db).get(int(subject))
+    if not user or not user.is_active or user.approval_status != "approved":
+        return None
+    return user
+
+
+async def _ws_close(websocket: WebSocket) -> None:
+    try:
+        await websocket.close()
+    except Exception:
+        pass
+
+
+def _ws_int(value: object, fallback: int) -> int:
+    try:
+        return max(1, min(int(value), 1000))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _ws_error_code(exc: HTTPException) -> str:
+    detail = exc.detail
+    if isinstance(detail, dict):
+        return str(detail.get("code", "error.requestFailed"))
+    return "error.requestFailed"
 
 
 @instances_router.delete("/{container_id}", response_model=MessageResponse)

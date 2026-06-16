@@ -103,6 +103,26 @@ class DockerAdapter:
         except Exception:
             self.client.volumes.create(name=name, labels={"metrix.created_by": "metrix", "metrix.resource_type": "volume"})
 
+    def create_exec(self, container: Any, command: list[str], user: str, cols: int, rows: int) -> tuple[str, Any, Any]:
+        api = container.client.api
+        exec_id = api.exec_create(
+            container.id,
+            command,
+            tty=True,
+            stdin=True,
+            stdout=True,
+            stderr=True,
+            user=user or "",
+        )["Id"]
+        sock = api.exec_start(exec_id, tty=True, socket=True)
+        raw = getattr(sock, "_sock", None) or sock
+        if cols and rows:
+            try:
+                api.exec_resize(exec_id, height=rows, width=cols)
+            except Exception:
+                pass
+        return exec_id, raw, api
+
     def truncate_container_log(self, container: Any) -> None:
         attrs = getattr(container, "attrs", {}) or {}
         log_path = attrs.get("LogPath") or ""

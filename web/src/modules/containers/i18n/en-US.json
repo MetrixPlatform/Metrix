@@ -26,7 +26,8 @@
     "containerJobFailed": "Container job failed",
     "containerJobNotDownloadable": "Job is not downloadable",
     "containerJobFileMissing": "Job file is missing",
-    "containerLogClearFailed": "Failed to clear container logs. Ensure the container image is available or try again later"
+    "containerLogClearFailed": "Failed to clear container logs. Ensure the container image is available or try again later",
+    "containerNotRunning": "Container is not running; cannot open a terminal"
   },
   "container": {
     "engine": "Docker Engine",
@@ -92,6 +93,13 @@
     "stop": "Stop",
     "restart": "Restart",
     "logs": "Logs",
+    "terminal": "Terminal",
+    "terminalTitle": "Terminal - {name}",
+    "terminalUser": "User",
+    "terminalCommand": "Command",
+    "terminalCustom": "Custom",
+    "terminalConnect": "Connect",
+    "terminalDisconnect": "Disconnect",
     "deleteContainer": "Delete container",
     "deleteImage": "Delete image",
     "exportImage": "Export image",

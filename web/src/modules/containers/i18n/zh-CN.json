@@ -26,7 +26,8 @@
     "containerJobFailed": "容器任务执行失败",
     "containerJobNotDownloadable": "任务不可下载",
     "containerJobFileMissing": "任务文件不存在",
-    "containerLogClearFailed": "清空容器日志失败，请确认容器镜像可用或稍后重试"
+    "containerLogClearFailed": "清空容器日志失败，请确认容器镜像可用或稍后重试",
+    "containerNotRunning": "容器未运行，无法打开终端"
   },
   "container": {
     "engine": "Docker 引擎",
@@ -92,6 +93,13 @@
     "stop": "停止",
     "restart": "重启",
     "logs": "日志",
+    "terminal": "终端",
+    "terminalTitle": "终端 - {name}",
+    "terminalUser": "用户",
+    "terminalCommand": "命令",
+    "terminalCustom": "自定义",
+    "terminalConnect": "连接",
+    "terminalDisconnect": "断开",
     "deleteContainer": "删除容器",
     "deleteImage": "删除镜像",
     "exportImage": "导出镜像",

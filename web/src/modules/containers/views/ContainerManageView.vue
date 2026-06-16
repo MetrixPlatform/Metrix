@@ -120,6 +120,7 @@
 
     <container-create-modal v-model:show="showCreate" :images="images" @saved="handleContainerSaved" />
     <container-log-modal v-model:show="showLogs" :container="logContainer" />
+    <container-terminal-modal v-model:show="showTerminal" :container="terminalContainer" />
     <image-import-modal v-model:show="showImport" @submitted="handleJobSubmitted" />
   </section>
 </template>
@@ -157,6 +158,7 @@ import {
 } from "../api";
 import ContainerCreateModal from "../components/ContainerCreateModal.vue";
 import ContainerLogModal from "../components/ContainerLogModal.vue";
+import ContainerTerminalModal from "../components/ContainerTerminalModal.vue";
 import ImageImportModal from "../components/ImageImportModal.vue";
 import { CONTAINER_CREATE, CONTAINER_DELETE, CONTAINER_MANAGE_OTHERS, CONTAINER_OPERATE, CONTAINER_UPDATE } from "../permissions";
 
@@ -170,7 +172,9 @@ const jobsLoading = ref(false);
 const showCreate = ref(false);
 const showImport = ref(false);
 const showLogs = ref(false);
+const showTerminal = ref(false);
 const logContainer = ref<ContainerItem | null>(null);
+const terminalContainer = ref<ContainerItem | null>(null);
 const engineStatus = reactive<ContainerEngineStatus>({
   available: false,
   message: "",
@@ -330,6 +334,11 @@ async function handleContainerAction(key: string, row: ContainerItem) {
       showLogs.value = true;
       return;
     }
+    if (key === "terminal") {
+      terminalContainer.value = row;
+      showTerminal.value = true;
+      return;
+    }
     if (key === "start") await startContainer(row.id);
     else if (key === "stop") await stopContainer(row.id);
     else if (key === "restart") await restartContainer(row.id);
@@ -401,6 +410,7 @@ function actionDropdown(options: DropdownOption[], onSelect: (key: string | numb
 function containerActionOptions(row: ContainerItem): DropdownOption[] {
   const options: DropdownOption[] = [{ label: t("container.logs"), key: "logs" }];
   if (authStore.has(CONTAINER_OPERATE)) {
+    if (row.status === "running") options.push({ label: t("container.terminal"), key: "terminal" });
     if (row.status !== "running") options.push({ label: t("container.start"), key: "start" });
     if (row.status === "running") options.push({ label: t("container.stop"), key: "stop" });
     options.push({ label: t("container.restart"), key: "restart" });

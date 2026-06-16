@@ -600,6 +600,10 @@ a {
   width: min(720px, calc(100vw - 32px));
 }
 
+.container-terminal-modal.modal-card {
+  width: min(900px, calc(100vw - 32px));
+}
+
 .container-log-modal.modal-card > .n-card__content,
 .container-log-modal.modal-card > .n-card-content {
   max-height: none;
