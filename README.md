@@ -45,24 +45,24 @@ runtime/                     本地运行时目录，默认不提交
 
 ## 快速启动
 
-后端：
+首次准备依赖：
 
 ```bash
 python -m venv .venv
 python -m pip install -r server/requirements.txt
-cd server
-python main.py
-```
-
-前端（开发模式，双端口）：
-
-```bash
 cd web
 npm install
-npm run dev
 ```
 
-开发时访问 `http://127.0.0.1:5173/install` 初始化系统。
+开发模式（推荐，单窗口同时启动前后端，`Ctrl+C` 一次性停止）：
+
+```bash
+python dev.py
+```
+
+`dev.py` 会在同一个终端窗口启动后端（uvicorn 自动重载，`http://127.0.0.1:8000`）和前端（Vite HMR，`http://127.0.0.1:5173`），并把两边日志以 `[backend]` / `[web]` 前缀合并输出；按一次 `Ctrl+C` 即可关闭两个服务及其子进程。Windows 也可双击 `dev.bat`（同样是单窗口）。
+
+如需分开手动启动，后端 `cd server && python main.py`，前端 `cd web && npm run dev`。开发时访问 `http://127.0.0.1:5173/install` 初始化系统。
 
 单端口部署（前后端同一端口）：
 
