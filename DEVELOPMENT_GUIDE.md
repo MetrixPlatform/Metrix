@@ -213,7 +213,7 @@ npm run test:regression:install
 - 绝不 `pull` 镜像：镜像缺失直接报 `error.scriptImageMissing`，提示去容器管理导入 tar。创建项目时前端只列「本地已存在」的预设镜像与任意本地镜像（也允许手填），运行时再次校验。
 - 安全边界沿用容器模块：非 `privileged`、不挂 docker socket、不开 host 网络，只 bind-mount 该项目自己的工作区。网络仅 `none`（断网）/`bridge`（接入网络）；同一 `bridge` 在内网只通内网、迁移到有外网宿主机后自动可访问外网，是「现在离线、将来联网」的统一开关，无需为联网单独写逻辑。
 - 包管理兼容离线与迁移联网：系统设置 `script_pip_index_url`/`script_pip_trusted_host`/`script_npm_registry`/`script_go_proxy` 默认全空，运行/终端容器按需注入对应环境变量。留空 + `bridge`：联网走公共源、离线则用 wheel/预装库镜像；配置后走内网源。支持上传 wheel 到工作区 `wheels/`、venv 建在 `/workspace/.venv`。
-- 定时调度用 APScheduler（`BackgroundScheduler` + 内存 jobstore，`max_instances=1`），在 `server/app/main.py` 的 `lifespan` 启动/停止，启动时从 `script_schedules` 重新注册 enabled 计划并回写 `next_run_at`；运行执行器（`ThreadPoolExecutor`）并发取系统设置 `script_run_max_workers`，启动恢复残留运行、周期按 `script_run_retention_hours` 清理。`apscheduler` 是该模块唯一新增后端依赖。
+- 定时调度用 APScheduler（`BackgroundScheduler` + 内存 jobstore，`max_instances=1`），在 `server/app/main.py` 的 `lifespan` 启动/停止，启动时从 `script_schedules` 重新注册 enabled 计划并回写 `next_run_at`；运行执行器并发取系统设置 `script_run_max_workers`，值为 `0` 时不限制平台并发（每次运行独立线程），大于 `0` 时使用固定 `ThreadPoolExecutor`；启动恢复残留运行、周期按 `script_run_retention_hours` 清理，`0` 表示永久保留。`script_workspace_quota_mb=0` 表示不限制工作区大小。`apscheduler` 是该模块唯一新增后端依赖。
 - 代码编辑器仅用 Monaco 内置能力（JSON/TS/JS/CSS/HTML 走自带 `?worker`，其余 basic-languages 高亮），**不要引入 `monaco-languageclient` 或外部语言服务器**，也不要修改数据库模块的 `MonacoEditor.vue`；新编辑器在挂载时重写全局 `MonacoEnvironment.getWorker` 以兼容两个编辑器并存。
 - 脚本相关接口全部 `require_web_session` 且从 OpenAPI 隐藏（tag `scripts`、path 前缀 `/api/scripts`），v1 不开放 API Token；列表表格不要用 `flex-height`（短视口 tbody 不挂载会空列表）。
 

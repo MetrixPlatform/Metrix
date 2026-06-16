@@ -66,7 +66,7 @@ class ScriptRunService:
             audit_detail(project.name, meta={"trigger": "manual", "project": project.slug}),
         )
         self.db.commit()
-        _pool(self.db).submit(_run_job, run_id)
+        _submit_run(self.db, run_id)
         return RunSubmitResponse(run_id=run_id, status="pending")
 
     def list_runs(
@@ -144,7 +144,7 @@ def submit_scheduled_run(project_id: int, schedule_id: int) -> None:
         if schedule is not None:
             schedule.last_run_at = utc_now()
         db.commit()
-        _pool(db).submit(_run_job, run_id)
+        _submit_run(db, run_id)
 
 
 def reset_interrupted_runs() -> None:
@@ -174,6 +174,8 @@ def cleanup_runs_once() -> None:
     try:
         with get_session_factory()() as db:
             hours = SettingService(db).get_settings().script_run_retention_hours
+            if hours <= 0:
+                return
             threshold = utc_now() - timedelta(hours=hours)
             rows = db.query(ScriptRun).filter(ScriptRun.created_at < threshold).all()
             for run in rows:
@@ -252,9 +254,19 @@ def _build_env(db: Session, project: ScriptProject) -> dict[str, str]:
     return env
 
 
-def _pool(db: Session) -> ThreadPoolExecutor:
-    global _executor, _executor_workers
+def _submit_run(db: Session, run_id: str) -> None:
     workers = SettingService(db).get_settings().script_run_max_workers
+    if workers <= 0:
+        threading.Thread(target=_run_job, args=(run_id,), name=f"script-run-{run_id[:8]}", daemon=True).start()
+        return
+    _pool(db, workers).submit(_run_job, run_id)
+
+
+def _pool(db: Session, workers: int | None = None) -> ThreadPoolExecutor:
+    global _executor, _executor_workers
+    if workers is None:
+        workers = SettingService(db).get_settings().script_run_max_workers
+    workers = max(1, workers)
     with _executor_lock:
         if _executor is None or _executor_workers != workers:
             old = _executor

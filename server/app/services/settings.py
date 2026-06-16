@@ -172,19 +172,19 @@ class SettingService:
             script_run_max_workers=_parse_int(
                 raw.get(SETTING_SCRIPT_RUN_MAX_WORKERS),
                 defaults.script_run_max_workers,
-                minimum=1,
+                minimum=0,
                 maximum=16,
             ),
             script_run_retention_hours=_parse_int(
                 raw.get(SETTING_SCRIPT_RUN_RETENTION_HOURS),
                 defaults.script_run_retention_hours,
-                minimum=1,
+                minimum=0,
                 maximum=8760,
             ),
             script_workspace_quota_mb=_parse_int(
                 raw.get(SETTING_SCRIPT_WORKSPACE_QUOTA_MB),
                 defaults.script_workspace_quota_mb,
-                minimum=1,
+                minimum=0,
                 maximum=1048576,
             ),
         )

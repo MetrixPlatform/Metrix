@@ -296,6 +296,8 @@ class ScriptProjectService:
         if delta_bytes <= 0:
             return
         quota_mb = SettingService(self.db).get_settings().script_workspace_quota_mb
+        if quota_mb <= 0:
+            return
         limit = quota_mb * 1024 * 1024
         if _directory_size(root) + delta_bytes > limit:
             raise bad_request("error.scriptQuotaExceeded", "Workspace quota exceeded", quota_mb=quota_mb)

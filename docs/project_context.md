@@ -935,3 +935,11 @@
 - 现象：系统设置「脚本」tab 中 `field.scriptRunMaxWorkers`、`field.scriptPipIndexUrl` 等显示为原始 key，硬刷新无效。
 - 根因：这些脚本设置字段翻译之前被加到了后面的嵌套 `auditLog.detail.field` 对象里，而设置页使用的是顶层 `field.*` 路径；因此 `t("field.scriptRunMaxWorkers")` 命不中。
 - 修复：在 `web/src/i18n/locales/zh-CN.json` 与 `en-US.json` 的顶层 `field` 对象补齐 `scriptRunMaxWorkers`、`scriptRunRetentionHours`、`scriptWorkspaceQuotaMb`、`scriptPipIndexUrl`、`scriptPipTrustedHost`、`scriptNpmRegistry`、`scriptGoProxy`。本轮按用户要求只修改并提交，不运行测试。
+
+## 2026-06-17：脚本运行限制支持 0 表示不限制
+
+- 系统设置中的 `script_run_max_workers`、`script_run_retention_hours`、`script_workspace_quota_mb` 均支持 `0` 作为“不限制”。后端 schema 从 `ge=1` 改为 `ge=0`，设置读取 `_parse_int` 最小值也改为 0；前端 `SystemSettingsView` 对应 `NInputNumber` 最小值改为 0，并新增中英文提示 `settings.scriptZeroUnlimited`。
+- 并发数：`script_run_max_workers=0` 时不再使用固定大小线程池，而是每次运行直接起独立 daemon 线程执行 `_run_job`，表示平台不限制同时运行数量；大于 0 时继续复用固定 `ThreadPoolExecutor`。
+- 运行记录保留：`script_run_retention_hours=0` 时 `cleanup_runs_once()` 直接返回，不删除运行记录、日志文件或孤儿日志。
+- 工作区配额：`script_workspace_quota_mb=0` 时 `_ensure_quota()` 直接返回，不限制工作区大小。
+- 开发指南同步更新脚本调度与限制说明。本轮按用户要求只修改并提交，不运行测试。

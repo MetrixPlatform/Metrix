@@ -190,13 +190,13 @@
               <p>{{ t("settings.scriptsDesc") }}</p>
             </div>
             <n-form-item :label="t('field.scriptRunMaxWorkers')" path="script_run_max_workers">
-              <n-input-number v-model:value="form.script_run_max_workers" :min="1" :max="16" :show-button="false" />
+              <n-input-number v-model:value="form.script_run_max_workers" :min="0" :max="16" :show-button="false" />
             </n-form-item>
             <n-form-item :label="t('field.scriptRunRetentionHours')" path="script_run_retention_hours">
-              <n-input-number v-model:value="form.script_run_retention_hours" :min="1" :max="8760" :show-button="false" />
+              <n-input-number v-model:value="form.script_run_retention_hours" :min="0" :max="8760" :show-button="false" />
             </n-form-item>
             <n-form-item :label="t('field.scriptWorkspaceQuotaMb')" path="script_workspace_quota_mb">
-              <n-input-number v-model:value="form.script_workspace_quota_mb" :min="1" :max="1048576" :show-button="false" />
+              <n-input-number v-model:value="form.script_workspace_quota_mb" :min="0" :max="1048576" :show-button="false" />
             </n-form-item>
             <n-form-item :label="t('field.scriptPipIndexUrl')" path="script_pip_index_url">
               <n-input v-model:value="form.script_pip_index_url" :placeholder="t('settings.scriptSourcePlaceholder')" />
@@ -210,6 +210,7 @@
             <n-form-item :label="t('field.scriptGoProxy')" path="script_go_proxy">
               <n-input v-model:value="form.script_go_proxy" :placeholder="t('settings.scriptSourcePlaceholder')" />
             </n-form-item>
+            <p class="settings-field-hint">{{ t("settings.scriptZeroUnlimited") }}</p>
             <p class="settings-field-hint">{{ t("settings.scriptSourceHelp") }}</p>
           </section>
         </n-tab-pane>

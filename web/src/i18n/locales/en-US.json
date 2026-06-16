@@ -503,6 +503,7 @@
     "scripts": "Scripts",
     "scriptsDesc": "Configure script run concurrency, run history retention, workspace quota and offline/internal package sources.",
     "scriptSourcePlaceholder": "Leave empty to use the public source when online",
+    "scriptZeroUnlimited": "Script run concurrency, run history retention hours, and workspace quota can be set to 0 for no limit.",
     "scriptSourceHelp": "Empty + bridge network: use the public source when online, or wheels/prebuilt images when offline; once set, the internal source is used."
   },
   "token": {

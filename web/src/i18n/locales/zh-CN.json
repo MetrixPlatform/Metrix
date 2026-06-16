@@ -503,6 +503,7 @@
     "scripts": "脚本",
     "scriptsDesc": "配置脚本运行并发数、运行记录保留时长、工作区配额和离线/内网包管理源。",
     "scriptSourcePlaceholder": "留空则联网时自动走公共源",
+    "scriptZeroUnlimited": "脚本运行并发数、运行记录保留小时、工作区配额均可填 0，表示不限制。",
     "scriptSourceHelp": "留空 + bridge 网络：联网自动走公共源，离线则用 wheel 或预装镜像；配置后走内网源。"
   },
   "token": {

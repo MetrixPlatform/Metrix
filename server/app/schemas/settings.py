@@ -37,9 +37,9 @@ class SystemSettings(PublicSettings):
     script_pip_trusted_host: str = Field(default="", max_length=300)
     script_npm_registry: str = Field(default="", max_length=300)
     script_go_proxy: str = Field(default="", max_length=300)
-    script_run_max_workers: int = Field(default=2, ge=1, le=16)
-    script_run_retention_hours: int = Field(default=168, ge=1, le=8760)
-    script_workspace_quota_mb: int = Field(default=1024, ge=1, le=1048576)
+    script_run_max_workers: int = Field(default=2, ge=0, le=16)
+    script_run_retention_hours: int = Field(default=168, ge=0, le=8760)
+    script_workspace_quota_mb: int = Field(default=1024, ge=0, le=1048576)
 
 
 class SystemSettingsUpdate(BaseModel):
@@ -61,6 +61,6 @@ class SystemSettingsUpdate(BaseModel):
     script_pip_trusted_host: str = Field(default="", max_length=300)
     script_npm_registry: str = Field(default="", max_length=300)
     script_go_proxy: str = Field(default="", max_length=300)
-    script_run_max_workers: int = Field(default=2, ge=1, le=16)
-    script_run_retention_hours: int = Field(default=168, ge=1, le=8760)
-    script_workspace_quota_mb: int = Field(default=1024, ge=1, le=1048576)
+    script_run_max_workers: int = Field(default=2, ge=0, le=16)
+    script_run_retention_hours: int = Field(default=168, ge=0, le=8760)
+    script_workspace_quota_mb: int = Field(default=1024, ge=0, le=1048576)
