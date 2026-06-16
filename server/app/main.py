@@ -18,6 +18,8 @@ from app.core.permissions import API_DOCS_READ
 from app.models import User
 from app.modules.registry import get_openapi_hidden_path_prefixes, get_openapi_hidden_tags, load_module_routers
 from app.modules.database.jobs import data_job_cleanup_loop, reset_interrupted_jobs, shutdown_data_job_executor
+from app.modules.scripts.runs import reset_interrupted_runs, script_run_cleanup_loop, shutdown_script_run_executor
+from app.modules.scripts.scheduler import shutdown_scheduler, start_scheduler
 from app.services.maintenance import audit_log_prune_loop
 
 OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head"}
@@ -27,22 +29,25 @@ OPENAPI_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "hea
 async def lifespan(app: FastAPI):
     await asyncio.to_thread(normalize_legacy_operation_ids, app.routes)
     await asyncio.to_thread(reset_interrupted_jobs)
+    await asyncio.to_thread(reset_interrupted_runs)
+    await asyncio.to_thread(start_scheduler)
     audit_log_prune_task = asyncio.create_task(audit_log_prune_loop())
     data_job_cleanup_task = asyncio.create_task(data_job_cleanup_loop())
+    script_run_cleanup_task = asyncio.create_task(script_run_cleanup_loop())
     try:
         yield
     finally:
         audit_log_prune_task.cancel()
         data_job_cleanup_task.cancel()
-        try:
-            await audit_log_prune_task
-        except asyncio.CancelledError:
-            pass
-        try:
-            await data_job_cleanup_task
-        except asyncio.CancelledError:
-            pass
+        script_run_cleanup_task.cancel()
+        for task in (audit_log_prune_task, data_job_cleanup_task, script_run_cleanup_task):
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        shutdown_scheduler()
         shutdown_data_job_executor()
+        shutdown_script_run_executor()
 
 
 def create_app() -> FastAPI:

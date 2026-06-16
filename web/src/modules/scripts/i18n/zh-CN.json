@@ -1,0 +1,181 @@
+{
+  "route": {
+    "scripts": "脚本管理"
+  },
+  "permission": {
+    "group": {
+      "script": "脚本管理"
+    },
+    "route:scripts": "脚本管理",
+    "action:script:create": "新增脚本项目",
+    "action:script:read": "查询脚本与运行",
+    "action:script:update": "修改脚本项目",
+    "action:script:delete": "删除脚本项目",
+    "action:script:operate": "运行脚本与终端",
+    "action:script:manage_others": "管理他人脚本项目"
+  },
+  "error": {
+    "scriptNotFound": "脚本项目不存在",
+    "scriptManageOthersDenied": "无权限操作他人脚本",
+    "scriptPathInvalid": "路径不合法",
+    "scriptPathNotFound": "文件或目录不存在",
+    "scriptNotDirectory": "目标不是目录",
+    "scriptNameInvalid": "名称不合法",
+    "scriptEntryExists": "目标已存在",
+    "scriptQuotaExceeded": "工作区超出配额（{quota_mb} MB）",
+    "scriptImageMissing": "本地镜像不存在：{image}，请到容器管理导入",
+    "scriptDockerUnavailable": "Docker 不可用：{reason}",
+    "scriptRunNotFound": "运行记录不存在",
+    "scriptRunNotCancelable": "该运行无法取消",
+    "scriptScheduleNotFound": "定时计划不存在",
+    "scriptScheduleInvalid": "请填写有效的间隔秒数",
+    "scriptCronInvalid": "cron 表达式不合法"
+  },
+  "script": {
+    "searchPlaceholder": "搜索名称、标识、创建人",
+    "add": "新增脚本",
+    "edit": "编辑脚本",
+    "manage": "工作台",
+    "saved": "脚本已保存",
+    "deleted": "脚本已删除",
+    "deleteTitle": "删除脚本",
+    "deleteConfirm": "确认删除脚本 {name}？将停止容器、清空工作区并撤销定时计划。",
+    "creatorAll": "全部人",
+    "creatorMe": "仅自己",
+    "imagePlaceholder": "选择本地镜像，或输入已导入的镜像",
+    "imageMissing": "需导入",
+    "dockerUnavailable": "Docker 当前不可用，可手动输入已存在的镜像，运行时会校验。",
+    "runCommandPlaceholder": "例如 python main.py",
+    "unlimited": "不限",
+    "envHint": "每行一个 KEY=VALUE",
+    "files": "工作区文件",
+    "newFile": "新建文件",
+    "newFolder": "新建目录",
+    "upload": "上传",
+    "run": "运行",
+    "terminal": "终端",
+    "noFileSelected": "未选择文件",
+    "editorEmpty": "从左侧选择文件进行编辑",
+    "fileTruncated": "文件过大，仅显示前部分内容",
+    "fileSaved": "文件已保存",
+    "fileDeleted": "已删除",
+    "created": "已创建",
+    "uploaded": "已上传",
+    "deleteEntryConfirm": "确认删除 {name}？目录会递归删除全部内容。",
+    "entryName": "名称",
+    "entryNamePlaceholder": "文件名或目录名",
+    "entryLocation": "创建位置：{dir}",
+    "selectRunHint": "提交运行或在历史中选择一次运行查看日志",
+    "emptyLog": "暂无日志",
+    "runStarted": "已提交运行",
+    "runCanceled": "已取消运行",
+    "tab": {
+      "log": "运行日志",
+      "history": "运行历史",
+      "schedules": "定时计划",
+      "environment": "环境信息"
+    },
+    "field": {
+      "name": "名称",
+      "slug": "标识",
+      "language": "语言",
+      "image": "镜像",
+      "network": "网络",
+      "runCommand": "运行命令",
+      "cpu": "CPU 限制",
+      "memory": "内存(MB)",
+      "timeout": "超时(秒)",
+      "env": "环境变量",
+      "description": "描述",
+      "trigger": "触发",
+      "exitCode": "退出码"
+    },
+    "network": {
+      "bridge": "接入网络",
+      "none": "断网"
+    },
+    "language": {
+      "python": "Python",
+      "node": "Node.js",
+      "go": "Go",
+      "shell": "Shell",
+      "custom": "自定义"
+    },
+    "trigger": {
+      "manual": "手动",
+      "schedule": "定时"
+    },
+    "run": {
+      "cancel": "取消",
+      "viewLog": "查看日志",
+      "status": {
+        "pending": "排队中",
+        "running": "运行中",
+        "success": "成功",
+        "failed": "失败",
+        "timeout": "超时",
+        "canceled": "已取消"
+      }
+    },
+    "schedule": {
+      "add": "新增计划",
+      "edit": "编辑计划",
+      "name": "名称",
+      "type": "类型",
+      "interval": "间隔(秒)",
+      "cron": "Cron 表达式",
+      "enabled": "启用",
+      "nextRun": "下次运行",
+      "saved": "计划已保存",
+      "deleted": "计划已删除",
+      "deleteTitle": "删除计划",
+      "deleteConfirm": "确认删除计划 {name}？",
+      "triggerInterval": "固定间隔",
+      "triggerCron": "Cron",
+      "cronPlaceholder": "例如 0 2 * * *",
+      "intervalValue": "每 {seconds} 秒"
+    },
+    "env": {
+      "refresh": "刷新环境信息",
+      "unavailable": "环境信息不可用",
+      "image": "镜像",
+      "os": "系统/架构",
+      "version": "语言版本",
+      "source": "包管理源",
+      "sourceConfigured": "已配置内网源",
+      "sourcePublic": "公共源/未配置",
+      "packages": "已装库",
+      "hint": "点击刷新加载镜像环境信息（会临时启动一次容器）"
+    },
+    "terminalTitle": "终端 - {name}",
+    "terminalCommand": "命令",
+    "terminalCustom": "自定义",
+    "terminalConnect": "连接",
+    "terminalDisconnect": "断开",
+    "terminalHint": "终端会按项目镜像和工作区启动常驻容器，关闭后自动清理；可在 /workspace/.venv 装库。"
+  },
+  "auditLog": {
+    "action": {
+      "script": {
+        "create": "新增脚本项目",
+        "update": "修改脚本项目",
+        "delete": "删除脚本项目",
+        "file_write": "保存脚本文件",
+        "file_upload": "上传脚本文件",
+        "file_mkdir": "新建脚本目录",
+        "file_rename": "重命名脚本文件",
+        "file_delete": "删除脚本文件",
+        "run": "运行脚本",
+        "run_cancel": "取消脚本运行",
+        "schedule_create": "新增定时计划",
+        "schedule_update": "修改定时计划",
+        "schedule_delete": "删除定时计划"
+      }
+    },
+    "target": {
+      "script_project": "脚本项目",
+      "script_run": "脚本运行",
+      "script_schedule": "定时计划"
+    }
+  }
+}

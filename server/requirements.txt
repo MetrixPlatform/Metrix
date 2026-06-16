@@ -9,6 +9,7 @@ psutil
 python-multipart
 zipstream-ng
 swagger-ui-bundle
+apscheduler
 pytest
 httpx
 docker

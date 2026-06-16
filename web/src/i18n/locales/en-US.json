@@ -447,7 +447,14 @@
       "reason": "Reason",
       "tables": "Backup tables",
       "database_type": "Database type",
-      "navigation_order": "Navigation order"
+      "navigation_order": "Navigation order",
+      "scriptRunMaxWorkers": "Script run concurrency",
+      "scriptRunRetentionHours": "Run history retention (hours)",
+      "scriptWorkspaceQuotaMb": "Workspace quota (MB)",
+      "scriptPipIndexUrl": "pip index URL",
+      "scriptPipTrustedHost": "pip trusted host",
+      "scriptNpmRegistry": "npm registry",
+      "scriptGoProxy": "Go proxy"
     }
   },
   "settings": {
@@ -483,7 +490,13 @@
     "moveDown": "Move down",
     "restoreDefaultNavigation": "Restore default order",
     "expandGroup": "Expand group",
-    "collapseGroup": "Collapse group"
+    "collapseGroup": "Collapse group",
+    "dataJobs": "Database jobs",
+    "dataJobsDesc": "Configure the concurrency and file retention of database import/export jobs.",
+    "scripts": "Scripts",
+    "scriptsDesc": "Configure script run concurrency, run history retention, workspace quota and offline/internal package sources.",
+    "scriptSourcePlaceholder": "Leave empty to use the public source when online",
+    "scriptSourceHelp": "Empty + bridge network: use the public source when online, or wheels/prebuilt images when offline; once set, the internal source is used."
   },
   "token": {
     "title": "API tokens",

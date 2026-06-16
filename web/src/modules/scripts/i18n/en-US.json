@@ -1,0 +1,181 @@
+{
+  "route": {
+    "scripts": "Scripts"
+  },
+  "permission": {
+    "group": {
+      "script": "Scripts"
+    },
+    "route:scripts": "Scripts",
+    "action:script:create": "Create script project",
+    "action:script:read": "View scripts and runs",
+    "action:script:update": "Update script project",
+    "action:script:delete": "Delete script project",
+    "action:script:operate": "Run scripts and terminal",
+    "action:script:manage_others": "Manage others' script projects"
+  },
+  "error": {
+    "scriptNotFound": "Script project not found",
+    "scriptManageOthersDenied": "You cannot manage scripts created by others",
+    "scriptPathInvalid": "Invalid path",
+    "scriptPathNotFound": "File or directory not found",
+    "scriptNotDirectory": "Target is not a directory",
+    "scriptNameInvalid": "Invalid name",
+    "scriptEntryExists": "Target already exists",
+    "scriptQuotaExceeded": "Workspace quota exceeded ({quota_mb} MB)",
+    "scriptImageMissing": "Image not found locally: {image}. Import it from container management.",
+    "scriptDockerUnavailable": "Docker unavailable: {reason}",
+    "scriptRunNotFound": "Run not found",
+    "scriptRunNotCancelable": "This run cannot be canceled",
+    "scriptScheduleNotFound": "Schedule not found",
+    "scriptScheduleInvalid": "Provide a valid interval in seconds",
+    "scriptCronInvalid": "Invalid cron expression"
+  },
+  "script": {
+    "searchPlaceholder": "Search name, slug, creator",
+    "add": "New script",
+    "edit": "Edit script",
+    "manage": "Workbench",
+    "saved": "Script saved",
+    "deleted": "Script deleted",
+    "deleteTitle": "Delete script",
+    "deleteConfirm": "Delete script {name}? Containers stop, the workspace is cleared and schedules are removed.",
+    "creatorAll": "Everyone",
+    "creatorMe": "Mine",
+    "imagePlaceholder": "Pick a local image or enter an imported one",
+    "imageMissing": "import needed",
+    "dockerUnavailable": "Docker is unavailable; you can enter an existing image and it is validated at run time.",
+    "runCommandPlaceholder": "e.g. python main.py",
+    "unlimited": "Unlimited",
+    "envHint": "One KEY=VALUE per line",
+    "files": "Workspace files",
+    "newFile": "New file",
+    "newFolder": "New folder",
+    "upload": "Upload",
+    "run": "Run",
+    "terminal": "Terminal",
+    "noFileSelected": "No file selected",
+    "editorEmpty": "Select a file on the left to edit",
+    "fileTruncated": "File too large, showing the first part only",
+    "fileSaved": "File saved",
+    "fileDeleted": "Deleted",
+    "created": "Created",
+    "uploaded": "Uploaded",
+    "deleteEntryConfirm": "Delete {name}? Directories are removed recursively.",
+    "entryName": "Name",
+    "entryNamePlaceholder": "File or directory name",
+    "entryLocation": "Create under: {dir}",
+    "selectRunHint": "Submit a run or pick a run from history to view logs",
+    "emptyLog": "No logs yet",
+    "runStarted": "Run submitted",
+    "runCanceled": "Run canceled",
+    "tab": {
+      "log": "Run log",
+      "history": "Run history",
+      "schedules": "Schedules",
+      "environment": "Environment"
+    },
+    "field": {
+      "name": "Name",
+      "slug": "Slug",
+      "language": "Language",
+      "image": "Image",
+      "network": "Network",
+      "runCommand": "Run command",
+      "cpu": "CPU limit",
+      "memory": "Memory (MB)",
+      "timeout": "Timeout (s)",
+      "env": "Env vars",
+      "description": "Description",
+      "trigger": "Trigger",
+      "exitCode": "Exit code"
+    },
+    "network": {
+      "bridge": "Networked",
+      "none": "Offline"
+    },
+    "language": {
+      "python": "Python",
+      "node": "Node.js",
+      "go": "Go",
+      "shell": "Shell",
+      "custom": "Custom"
+    },
+    "trigger": {
+      "manual": "Manual",
+      "schedule": "Schedule"
+    },
+    "run": {
+      "cancel": "Cancel",
+      "viewLog": "View log",
+      "status": {
+        "pending": "Pending",
+        "running": "Running",
+        "success": "Success",
+        "failed": "Failed",
+        "timeout": "Timeout",
+        "canceled": "Canceled"
+      }
+    },
+    "schedule": {
+      "add": "New schedule",
+      "edit": "Edit schedule",
+      "name": "Name",
+      "type": "Type",
+      "interval": "Interval (s)",
+      "cron": "Cron expression",
+      "enabled": "Enabled",
+      "nextRun": "Next run",
+      "saved": "Schedule saved",
+      "deleted": "Schedule deleted",
+      "deleteTitle": "Delete schedule",
+      "deleteConfirm": "Delete schedule {name}?",
+      "triggerInterval": "Fixed interval",
+      "triggerCron": "Cron",
+      "cronPlaceholder": "e.g. 0 2 * * *",
+      "intervalValue": "Every {seconds}s"
+    },
+    "env": {
+      "refresh": "Refresh environment",
+      "unavailable": "Environment unavailable",
+      "image": "Image",
+      "os": "OS / Arch",
+      "version": "Language version",
+      "source": "Package source",
+      "sourceConfigured": "Internal source configured",
+      "sourcePublic": "Public source / not set",
+      "packages": "Installed packages",
+      "hint": "Refresh to load image environment info (starts a one-off container)"
+    },
+    "terminalTitle": "Terminal - {name}",
+    "terminalCommand": "Command",
+    "terminalCustom": "Custom",
+    "terminalConnect": "Connect",
+    "terminalDisconnect": "Disconnect",
+    "terminalHint": "The terminal starts a keepalive container with the project image and workspace, cleaned up on close; install packages into /workspace/.venv."
+  },
+  "auditLog": {
+    "action": {
+      "script": {
+        "create": "Create script project",
+        "update": "Update script project",
+        "delete": "Delete script project",
+        "file_write": "Save script file",
+        "file_upload": "Upload script file",
+        "file_mkdir": "Create script directory",
+        "file_rename": "Rename script file",
+        "file_delete": "Delete script file",
+        "run": "Run script",
+        "run_cancel": "Cancel script run",
+        "schedule_create": "Create schedule",
+        "schedule_update": "Update schedule",
+        "schedule_delete": "Delete schedule"
+      }
+    },
+    "target": {
+      "script_project": "Script project",
+      "script_run": "Script run",
+      "script_schedule": "Schedule"
+    }
+  }
+}

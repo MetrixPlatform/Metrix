@@ -33,6 +33,13 @@ class SystemSettings(PublicSettings):
     data_job_retention_days: int = Field(default=7, ge=1, le=365)
     docker_connection_mode: DockerConnectionMode = "auto"
     docker_host: str = Field(default="", max_length=300)
+    script_pip_index_url: str = Field(default="", max_length=300)
+    script_pip_trusted_host: str = Field(default="", max_length=300)
+    script_npm_registry: str = Field(default="", max_length=300)
+    script_go_proxy: str = Field(default="", max_length=300)
+    script_run_max_workers: int = Field(default=2, ge=1, le=16)
+    script_run_retention_hours: int = Field(default=168, ge=1, le=8760)
+    script_workspace_quota_mb: int = Field(default=1024, ge=1, le=1048576)
 
 
 class SystemSettingsUpdate(BaseModel):
@@ -50,3 +57,10 @@ class SystemSettingsUpdate(BaseModel):
     navigation_order: list[str] = Field(default_factory=list, max_length=200)
     docker_connection_mode: DockerConnectionMode = "auto"
     docker_host: str = Field(default="", max_length=300)
+    script_pip_index_url: str = Field(default="", max_length=300)
+    script_pip_trusted_host: str = Field(default="", max_length=300)
+    script_npm_registry: str = Field(default="", max_length=300)
+    script_go_proxy: str = Field(default="", max_length=300)
+    script_run_max_workers: int = Field(default=2, ge=1, le=16)
+    script_run_retention_hours: int = Field(default=168, ge=1, le=8760)
+    script_workspace_quota_mb: int = Field(default=1024, ge=1, le=1048576)

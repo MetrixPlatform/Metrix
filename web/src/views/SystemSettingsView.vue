@@ -183,6 +183,37 @@
           </section>
         </n-tab-pane>
 
+        <n-tab-pane name="scripts" :tab="t('settings.scripts')" display-directive="show">
+          <section class="settings-section settings-section-compact">
+            <div class="settings-section-head">
+              <h2 class="settings-section-title">{{ t("settings.scripts") }}</h2>
+              <p>{{ t("settings.scriptsDesc") }}</p>
+            </div>
+            <n-form-item :label="t('field.scriptRunMaxWorkers')" path="script_run_max_workers">
+              <n-input-number v-model:value="form.script_run_max_workers" :min="1" :max="16" :show-button="false" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptRunRetentionHours')" path="script_run_retention_hours">
+              <n-input-number v-model:value="form.script_run_retention_hours" :min="1" :max="8760" :show-button="false" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptWorkspaceQuotaMb')" path="script_workspace_quota_mb">
+              <n-input-number v-model:value="form.script_workspace_quota_mb" :min="1" :max="1048576" :show-button="false" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptPipIndexUrl')" path="script_pip_index_url">
+              <n-input v-model:value="form.script_pip_index_url" :placeholder="t('settings.scriptSourcePlaceholder')" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptPipTrustedHost')" path="script_pip_trusted_host">
+              <n-input v-model:value="form.script_pip_trusted_host" placeholder="" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptNpmRegistry')" path="script_npm_registry">
+              <n-input v-model:value="form.script_npm_registry" :placeholder="t('settings.scriptSourcePlaceholder')" />
+            </n-form-item>
+            <n-form-item :label="t('field.scriptGoProxy')" path="script_go_proxy">
+              <n-input v-model:value="form.script_go_proxy" :placeholder="t('settings.scriptSourcePlaceholder')" />
+            </n-form-item>
+            <p class="settings-field-hint">{{ t("settings.scriptSourceHelp") }}</p>
+          </section>
+        </n-tab-pane>
+
         <n-tab-pane name="backup" :tab="t('settings.backup')" display-directive="show">
           <section class="settings-section settings-section-compact">
             <div class="settings-section-head">
@@ -241,7 +272,7 @@ import { saveBlob } from "../utils/download";
 import { showError } from "../utils/message";
 import { maxLengthRule, requiredRule, validateForm } from "../utils/validation";
 
-type SettingsTab = "basic" | "navigation" | "registration" | "api" | "docker" | "audit" | "dataJobs" | "backup";
+type SettingsTab = "basic" | "navigation" | "registration" | "api" | "docker" | "audit" | "dataJobs" | "scripts" | "backup";
 type NavigationMove = "up" | "down";
 type DataJobRetentionUnit = "hours" | "days";
 type DockerConnectionMode = "auto" | "manual";
@@ -275,7 +306,14 @@ const form = reactive<SystemSettings>({
   data_job_retention_days: 7,
   navigation_order: [],
   docker_connection_mode: "auto",
-  docker_host: ""
+  docker_host: "",
+  script_pip_index_url: "",
+  script_pip_trusted_host: "",
+  script_npm_registry: "",
+  script_go_proxy: "",
+  script_run_max_workers: 2,
+  script_run_retention_hours: 168,
+  script_workspace_quota_mb: 1024
 });
 
 const rules = computed<FormRules>(() => ({
@@ -331,7 +369,14 @@ async function saveSettings() {
       data_job_retention_hours: form.data_job_retention_hours,
       navigation_order: form.navigation_order,
       docker_connection_mode: form.docker_connection_mode,
-      docker_host: form.docker_host
+      docker_host: form.docker_host,
+      script_pip_index_url: form.script_pip_index_url,
+      script_pip_trusted_host: form.script_pip_trusted_host,
+      script_npm_registry: form.script_npm_registry,
+      script_go_proxy: form.script_go_proxy,
+      script_run_max_workers: form.script_run_max_workers,
+      script_run_retention_hours: form.script_run_retention_hours,
+      script_workspace_quota_mb: form.script_workspace_quota_mb
     });
     assignSettings(updated);
     settingsStore.setPublic(updated);
@@ -373,6 +418,13 @@ function assignSettings(settings: SystemSettings) {
   form.navigation_order = [...settings.navigation_order];
   form.docker_connection_mode = normalizeDockerConnectionMode(settings.docker_connection_mode);
   form.docker_host = settings.docker_host || "";
+  form.script_pip_index_url = settings.script_pip_index_url || "";
+  form.script_pip_trusted_host = settings.script_pip_trusted_host || "";
+  form.script_npm_registry = settings.script_npm_registry || "";
+  form.script_go_proxy = settings.script_go_proxy || "";
+  form.script_run_max_workers = settings.script_run_max_workers ?? 2;
+  form.script_run_retention_hours = settings.script_run_retention_hours ?? 168;
+  form.script_workspace_quota_mb = settings.script_workspace_quota_mb ?? 1024;
 }
 
 function assignDataJobRetention(hours: number) {

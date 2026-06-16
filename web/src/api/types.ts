@@ -151,6 +151,13 @@ export interface SystemSettings extends PublicSettings {
   data_job_retention_days: number;
   docker_connection_mode: "auto" | "manual";
   docker_host: string;
+  script_pip_index_url: string;
+  script_pip_trusted_host: string;
+  script_npm_registry: string;
+  script_go_proxy: string;
+  script_run_max_workers: number;
+  script_run_retention_hours: number;
+  script_workspace_quota_mb: number;
 }
 
 export interface ApiTokenItem {

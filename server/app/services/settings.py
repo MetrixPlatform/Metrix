@@ -28,9 +28,19 @@ SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
 SETTING_NAVIGATION_ORDER = "navigation_order"
 SETTING_DOCKER_CONNECTION_MODE = "docker_connection_mode"
 SETTING_DOCKER_HOST = "docker_host"
+SETTING_SCRIPT_PIP_INDEX_URL = "script_pip_index_url"
+SETTING_SCRIPT_PIP_TRUSTED_HOST = "script_pip_trusted_host"
+SETTING_SCRIPT_NPM_REGISTRY = "script_npm_registry"
+SETTING_SCRIPT_GO_PROXY = "script_go_proxy"
+SETTING_SCRIPT_RUN_MAX_WORKERS = "script_run_max_workers"
+SETTING_SCRIPT_RUN_RETENTION_HOURS = "script_run_retention_hours"
+SETTING_SCRIPT_WORKSPACE_QUOTA_MB = "script_workspace_quota_mb"
 DEFAULT_LOG_RETENTION_DAYS = 90
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
 DEFAULT_DATA_JOB_RETENTION_HOURS = 168
+DEFAULT_SCRIPT_RUN_MAX_WORKERS = 2
+DEFAULT_SCRIPT_RUN_RETENTION_HOURS = 168
+DEFAULT_SCRIPT_WORKSPACE_QUOTA_MB = 1024
 NAVIGATION_KEY_RE = re.compile(r"^(path:/[a-zA-Z0-9_./-]*|group:[a-zA-Z0-9_-]+)$")
 
 
@@ -74,6 +84,13 @@ class SettingService:
                 SETTING_NAVIGATION_ORDER: json.dumps(_clean_navigation_order(payload.navigation_order)),
                 SETTING_DOCKER_CONNECTION_MODE: payload.docker_connection_mode,
                 SETTING_DOCKER_HOST: payload.docker_host.strip(),
+                SETTING_SCRIPT_PIP_INDEX_URL: payload.script_pip_index_url.strip(),
+                SETTING_SCRIPT_PIP_TRUSTED_HOST: payload.script_pip_trusted_host.strip(),
+                SETTING_SCRIPT_NPM_REGISTRY: payload.script_npm_registry.strip(),
+                SETTING_SCRIPT_GO_PROXY: payload.script_go_proxy.strip(),
+                SETTING_SCRIPT_RUN_MAX_WORKERS: str(payload.script_run_max_workers),
+                SETTING_SCRIPT_RUN_RETENTION_HOURS: str(payload.script_run_retention_hours),
+                SETTING_SCRIPT_WORKSPACE_QUOTA_MB: str(payload.script_workspace_quota_mb),
             }
         )
         after = _settings_snapshot(self.get_settings())
@@ -148,6 +165,28 @@ class SettingService:
                 defaults.docker_connection_mode,
             ),
             docker_host=_parse_docker_host(raw.get(SETTING_DOCKER_HOST), defaults.docker_host),
+            script_pip_index_url=_parse_source_url(raw.get(SETTING_SCRIPT_PIP_INDEX_URL), defaults.script_pip_index_url),
+            script_pip_trusted_host=_parse_source_url(raw.get(SETTING_SCRIPT_PIP_TRUSTED_HOST), defaults.script_pip_trusted_host),
+            script_npm_registry=_parse_source_url(raw.get(SETTING_SCRIPT_NPM_REGISTRY), defaults.script_npm_registry),
+            script_go_proxy=_parse_source_url(raw.get(SETTING_SCRIPT_GO_PROXY), defaults.script_go_proxy),
+            script_run_max_workers=_parse_int(
+                raw.get(SETTING_SCRIPT_RUN_MAX_WORKERS),
+                defaults.script_run_max_workers,
+                minimum=1,
+                maximum=16,
+            ),
+            script_run_retention_hours=_parse_int(
+                raw.get(SETTING_SCRIPT_RUN_RETENTION_HOURS),
+                defaults.script_run_retention_hours,
+                minimum=1,
+                maximum=8760,
+            ),
+            script_workspace_quota_mb=_parse_int(
+                raw.get(SETTING_SCRIPT_WORKSPACE_QUOTA_MB),
+                defaults.script_workspace_quota_mb,
+                minimum=1,
+                maximum=1048576,
+            ),
         )
 
     def _audit_actor_ids(self) -> list[int | None]:
@@ -180,6 +219,13 @@ def _default_settings() -> SystemSettings:
         navigation_order=[],
         docker_connection_mode="auto",
         docker_host="",
+        script_pip_index_url="",
+        script_pip_trusted_host="",
+        script_npm_registry="",
+        script_go_proxy="",
+        script_run_max_workers=DEFAULT_SCRIPT_RUN_MAX_WORKERS,
+        script_run_retention_hours=DEFAULT_SCRIPT_RUN_RETENTION_HOURS,
+        script_workspace_quota_mb=DEFAULT_SCRIPT_WORKSPACE_QUOTA_MB,
     )
 
 
@@ -199,6 +245,13 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "navigation_order": settings.navigation_order,
         "docker_connection_mode": settings.docker_connection_mode,
         "docker_host": settings.docker_host,
+        "script_pip_index_url": settings.script_pip_index_url,
+        "script_pip_trusted_host": settings.script_pip_trusted_host,
+        "script_npm_registry": settings.script_npm_registry,
+        "script_go_proxy": settings.script_go_proxy,
+        "script_run_max_workers": settings.script_run_max_workers,
+        "script_run_retention_hours": settings.script_run_retention_hours,
+        "script_workspace_quota_mb": settings.script_workspace_quota_mb,
     }
 
 
@@ -288,6 +341,12 @@ def _parse_docker_connection_mode(value: str | None, fallback: str) -> str:
 def _parse_docker_host(value: str | None, fallback: str) -> str:
     cleaned = value.strip() if value else ""
     return cleaned[:300] if cleaned else fallback
+
+
+def _parse_source_url(value: str | None, fallback: str) -> str:
+    if value is None:
+        return fallback
+    return value.strip()[:300]
 
 
 def _parse_int(value: str | None, fallback: int, minimum: int, maximum: int) -> int:

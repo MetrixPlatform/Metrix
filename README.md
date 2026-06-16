@@ -1,6 +1,6 @@
 # Metrix
 
-Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理、数据库管理、容器管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
+Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权限、用户管理、公告、操作日志、系统设置、API Token、API 文档、FTP/SFTP 储存管理、数据库管理、容器管理、脚本管理和标准 CRUD 示例模块。项目默认面向内网部署，所有 UI、图标、API 文档资源和运行依赖都需要本地安装或随构建产物提供，不依赖运行时外网资源。
 
 新增页面、业务模块、权限、API 或数据库变更时，先阅读 [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md)。
 
@@ -106,6 +106,8 @@ SQLite 路径留空时使用 `runtime/metrix.db`。如果从 `server/` 执行 `p
 ```
 
 Windows/macOS Docker Desktop 部署建议使用 Linux containers 模式；Windows 原生后端开发可在系统设置中手动填写 `npipe:////./pipe/docker_engine`。挂载 Docker socket 等同授予应用宿主机 Docker 高权限能力，只适合可信内网部署，不要把 Docker API 或容器管理接口暴露给不可信网络。
+
+脚本管理模块以 Docker 容器隔离执行用户脚本：每个项目一个工作区目录 `runtime/script_workspaces/u<owner>/p<id>/` bind-mount 到容器 `/workspace`，提供 Monaco 在线编辑、xterm 交互终端、手动运行与 APScheduler 定时调度（interval/cron）。复用容器模块解析的 Docker Host，**绝不 pull 镜像**（缺失提示去容器管理导入 tar）；网络仅 `none`（断网）/`bridge`（接入网络）。包管理同时兼容内网离线与迁移联网：系统设置 `script_pip_index_url`/`script_pip_trusted_host`/`script_npm_registry`/`script_go_proxy` 默认空（留空联网走公共源、离线用 wheel/预装镜像，配置后走内网源），并可调整脚本运行并发数、运行记录保留时长和工作区配额。bind-mount 的是 Docker daemon 宿主机路径，后端需与 daemon 同主机且该盘对 daemon 可见；新增后端依赖 `apscheduler`。
 
 ## 初始化与数据库
 

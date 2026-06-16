@@ -447,7 +447,14 @@
       "reason": "原因",
       "tables": "备份表",
       "database_type": "数据库类型",
-      "navigation_order": "导航栏排序"
+      "navigation_order": "导航栏排序",
+      "scriptRunMaxWorkers": "脚本运行并发数",
+      "scriptRunRetentionHours": "运行记录保留小时",
+      "scriptWorkspaceQuotaMb": "工作区配额(MB)",
+      "scriptPipIndexUrl": "pip 源地址",
+      "scriptPipTrustedHost": "pip 受信主机",
+      "scriptNpmRegistry": "npm 源地址",
+      "scriptGoProxy": "Go 代理"
     }
   },
   "settings": {
@@ -483,7 +490,13 @@
     "moveDown": "下移",
     "restoreDefaultNavigation": "恢复默认排序",
     "expandGroup": "展开分组",
-    "collapseGroup": "收缩分组"
+    "collapseGroup": "收缩分组",
+    "dataJobs": "数据库任务",
+    "dataJobsDesc": "配置数据库导入导出任务的并发数和文件保留时长。",
+    "scripts": "脚本",
+    "scriptsDesc": "配置脚本运行并发数、运行记录保留时长、工作区配额和离线/内网包管理源。",
+    "scriptSourcePlaceholder": "留空则联网时自动走公共源",
+    "scriptSourceHelp": "留空 + bridge 网络：联网自动走公共源，离线则用 wheel 或预装镜像；配置后走内网源。"
   },
   "token": {
     "title": "API Token",
