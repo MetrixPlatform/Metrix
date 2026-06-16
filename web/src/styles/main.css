@@ -564,6 +564,16 @@ a {
   margin-top: 0;
 }
 
+.container-log-modal.modal-card {
+  width: min(900px, calc(100vw - 32px));
+}
+
+.container-log-modal.modal-card > .n-card__content,
+.container-log-modal.modal-card > .n-card-content {
+  max-height: none;
+  overflow: hidden;
+}
+
 .muted-link {
   color: var(--primary-color);
   cursor: pointer;

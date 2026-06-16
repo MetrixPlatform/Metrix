@@ -103,6 +103,8 @@
     "submitted": "任务已提交",
     "visibilityUpdated": "可见性已更新",
     "logTitle": "容器日志 - {name}",
+    "autoRefresh": "自动刷新",
+    "logEmpty": "暂无日志",
     "emptyHint": "Docker 未连接时无法加载容器和镜像，请检查部署配置。",
     "socketHint": "请在系统设置的 Docker 连接中选择自动检测或手动配置 Docker Host；容器部署通常需要挂载 /var/run/docker.sock。",
     "envPlaceholder": "每行一个 KEY=VALUE，敏感键名会被后端过滤",

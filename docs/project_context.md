@@ -854,3 +854,4 @@
 - 追加权限生命周期验证：通过真实后端 API 使用管理员创建临时普通用户，验证创建后可登录、禁用后登录被拒绝、重新启用后可登录、删除后登录被拒绝；验证完成后已关闭 `5173`/`8000` 端口。
 - 容器管理页的容器/镜像/任务表格不要使用 Naive UI `flex-height`：在短视口或 DevTools 占用高度时，`flex-height` 可能计算出过小高度导致 tbody 不挂载，出现接口已返回但列表空白。改为普通表格渲染，并用 Playwright 覆盖 1024x520 短视口镜像列表可见性。
 - 侧边栏默认排序约定：`首页`、`储存管理`、`数据库管理`、`容器管理`、业务/模板新建菜单、`系统管理`。`系统管理` 分组固定放到底部、位于 `容器管理` 下方；导航菜单/脚手架生成的新模块默认放在 `系统管理` 上方。若系统设置中已有 `navigation_order`，它会覆盖默认排序，需要同步保存为包含 `path:/containers` 且 `group:system` 最后的顺序。
+- 容器日志弹窗 `ContainerLogModal` 增加“自动刷新”开关（每 3 秒轮询，关闭弹窗或卸载时清理定时器），每次刷新后日志区自动滚到底部追随最新日志。日志框必须固定高度（`height: 56vh; max-height: 440px; min-height: 260px` 加内部 `overflow:auto`），不要用 `autosize` 或 `flex:1` 撑高度，否则空日志塌缩、日志多了又把弹窗撑大。Naive UI 弹窗卡片内容是 `n-card-content`，全局 `main.css` 里用 `.container-log-modal.modal-card > .n-card-content { max-height:none; overflow:hidden }` 关掉外层滚动条，避免出现内外双滚动条；注意组件 scoped 样式无法命中 NModal 渲染的卡片根节点，这类覆盖要写在全局样式里。

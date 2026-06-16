@@ -103,6 +103,8 @@
     "submitted": "Job submitted",
     "visibilityUpdated": "Visibility updated",
     "logTitle": "Container logs - {name}",
+    "autoRefresh": "Auto refresh",
+    "logEmpty": "No logs yet",
     "emptyHint": "Containers and images cannot be loaded while Docker is disconnected. Check deployment configuration.",
     "socketHint": "Configure Docker connection in System Settings with auto detection or a manual Docker Host. Container deployment usually needs /var/run/docker.sock mounted.",
     "envPlaceholder": "One KEY=VALUE per line. Sensitive keys are filtered by the backend",
