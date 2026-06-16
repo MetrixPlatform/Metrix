@@ -922,3 +922,10 @@
 - `ScriptRunHistoryModal` 表格加 `:scroll-x="560"` 让横向滚动条正常出现，操作列改 `fixed:"right"` 始终可见；创建时间列客户端可排序（`sorter: localeCompare(created_at)` + `defaultSortOrder:"descend"`，ISO 字符串按字典序即时间序）；刷新按钮从工具栏改为右上角图标按钮，放进 `n-modal` 的 `#header-extra` 插槽（在关闭按钮左侧）。运行列表保留 `max-height:240`、日志 `<pre>` `max-height:220 + overflow:auto`，保证运行多/日志多时纵向滚动正常。弹窗宽度通过全局 `web/src/styles/main.css` 的 `.script-history-modal.modal-card { width: min(720px, calc(100vw - 32px)) }` 加宽到 720px（参照 `.container-log-modal`；scoped 样式命不中 Teleport 出去的卡片根，这类宽度覆盖必须写全局）。
 - 运行历史操作列从 120 收窄到 80（取消按钮也改成图标按钮），其余列拓宽（触发100/状态110/退出码100/创建时间220）以在 720px 弹窗内更均衡。
 - 列表「运行」按钮点击后保持 loading 旋转直到运行**真正结束**：`ScriptManageView.runFromList` 提交后用 `getScriptRun(run_id)` 每 2s 轮询，直到 success/failed/timeout/canceled 才从 `runningIds` 移除；按钮 `loading: isRunning(row.id)`、`disabled` 同时含运行中，避免重复提交（用 `ref<number[]>` 跟踪运行中项目 id，保证表格重渲染）。
+
+## 2026-06-17：脚本/容器列表横向滚动条置底（对齐数据库列表）
+
+- 现象：脚本列表、容器列表的 `page-data-table` 没加 `flex-height`，Naive 表按内容高度渲染，横向滚动条落在数据行下方而非卡片底部；数据库列表加了 `flex-height` 所以滚动条贴卡片底。
+- 脚本列表：`ScriptManageView` 的表加 `flex-height`（与数据库列表一致；该表是 `table-page-card` 直接子节点，flex 链天然成立，安全）。
+- 容器列表三张表（容器/镜像/任务）在 `n-tabs` 内——之前因缺 flex 链用 `flex-height` 会算出过小高度导致空列表，才移除过 `flex-height`。本次给容器 `n-tabs` 加 `class="container-tabs"`，并在全局 `main.css` 补 flex 链（`.container-tabs` 及其 `.n-tabs-pane-wrapper`/`.n-tab-pane` 均 `display:flex;flex-direction:column;min-height:0;flex:1 1 auto`，参照 `.database-main` 工作台做法），再给三张表加 `flex-height`，并移除 `animated`（避免过渡包装层干扰 flex 链）。横向滚动条现固定在卡片底部。
+- 验证：`vue-tsc`、`build` 通过，ReadLints 无诊断。未对用户正在运行的实例跑 Playwright（会触发安装/登录流程改其数据）；短视口空列表风险已用 flex 链从根因规避（与数据库列表/工作台同款），如需严格复核可在干净环境跑 `npm run test:regression`（含 1024x520 镜像列表用例）。

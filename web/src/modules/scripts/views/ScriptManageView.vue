@@ -19,6 +19,7 @@
 
     <n-data-table
       class="page-data-table"
+      flex-height
       remote
       :columns="columns"
       :data="items"

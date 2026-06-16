@@ -19,7 +19,7 @@
       <n-button :loading="statusLoading" @click="refreshAll">{{ t("common.refresh") }}</n-button>
     </div>
 
-    <n-tabs v-model:value="activeTab" type="line" animated>
+    <n-tabs v-model:value="activeTab" type="line" class="container-tabs">
       <n-tab-pane name="containers" :tab="t('container.tabContainers')">
         <div class="toolbar">
           <div class="table-filter-row">
@@ -45,6 +45,7 @@
         </div>
         <n-data-table
           class="page-data-table"
+          flex-height
           remote
           :columns="containerColumns"
           :data="containers"
@@ -75,6 +76,7 @@
         </div>
         <n-data-table
           class="page-data-table"
+          flex-height
           remote
           :columns="imageColumns"
           :data="images"
@@ -104,6 +106,7 @@
         </div>
         <n-data-table
           class="page-data-table"
+          flex-height
           remote
           :columns="jobColumns"
           :data="jobs"
