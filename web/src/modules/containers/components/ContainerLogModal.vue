@@ -10,7 +10,14 @@
           <n-switch v-model:value="autoRefresh" />
         </div>
       </div>
-      <pre ref="logViewRef" class="container-log-content">{{ logs || t("container.logEmpty") }}</pre>
+      <div ref="logViewRef" class="container-log-content">
+        <div class="container-log-lines">
+          <template v-if="logLines.length">
+            <div v-for="(line, index) in logLines" :key="index" class="container-log-line" :class="`container-log-line--${line.level}`">{{ line.text || " " }}</div>
+          </template>
+          <div v-else class="container-log-line container-log-line--muted">{{ t("container.logEmpty") }}</div>
+        </div>
+      </div>
     </div>
   </n-modal>
 </template>
@@ -24,6 +31,8 @@ import { copyText } from "../../../utils/clipboard";
 import { showError } from "../../../utils/message";
 import { getContainerLogs, type ContainerItem } from "../api";
 
+type LogLevel = "error" | "warn" | "success" | "info" | "debug" | "default";
+
 const AUTO_REFRESH_INTERVAL = 3000;
 
 const props = defineProps<{ show: boolean; container: ContainerItem | null }>();
@@ -36,7 +45,30 @@ const tailValue = ref(200);
 const autoRefresh = ref(false);
 const logViewRef = ref<HTMLElement | null>(null);
 const title = computed(() => t("container.logTitle", { name: props.container?.name || "" }));
+const logLines = computed(() =>
+  logs.value
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((text) => ({ text, level: detectLogLevel(text) }))
+);
 let timer: number | undefined;
+
+function detectLogLevel(line: string): LogLevel {
+  const lower = line.toLowerCase();
+  const structured = lower.match(/"(?:level|severity|lvl)"\s*:\s*"?([a-z]+)"?/)?.[1] ?? lower.match(/\blevel=([a-z]+)/)?.[1];
+  if (structured) {
+    if (/(error|err|fatal|panic|critical|crit)/.test(structured)) return "error";
+    if (/(warn)/.test(structured)) return "warn";
+    if (/(debug|trace|verbose)/.test(structured)) return "debug";
+    if (/(info|notice|log)/.test(structured)) return "info";
+  }
+  if (/\b(error|errors|fatal|panic|exception|failed|failure|denied|refused)\b/.test(lower)) return "error";
+  if (/\b(warn|warning|warnings|deprecated)\b/.test(lower)) return "warn";
+  if (/\b(success|succeeded|successfully|ready|started|listening|registered|enabled|ok)\b/.test(lower)) return "success";
+  if (/\b(debug|trace|verbose)\b/.test(lower)) return "debug";
+  if (/\b(info|notice)\b/.test(lower)) return "info";
+  return "default";
+}
 
 watch(
   () => props.show,
@@ -133,13 +165,50 @@ async function copyLogs() {
   margin: 0;
   padding: 10px 12px;
   overflow: auto;
-  border: 1px solid var(--border-color);
+  border: 1px solid #2b3240;
   border-radius: 6px;
-  background: var(--panel-bg-hover);
+  background: #11151c;
+  color: #d4d4d4;
   font-family: Consolas, Monaco, "Courier New", monospace;
   font-size: 12px;
   line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-all;
+}
+
+.container-log-lines {
+  width: max-content;
+  min-width: 100%;
+}
+
+.container-log-line {
+  white-space: pre;
+  tab-size: 4;
+}
+
+.container-log-line--error {
+  color: #ff6b6b;
+}
+
+.container-log-line--warn {
+  color: #ffd166;
+}
+
+.container-log-line--success {
+  color: #5fd07a;
+}
+
+.container-log-line--info {
+  color: #6fc1ff;
+}
+
+.container-log-line--debug {
+  color: #8b94a3;
+}
+
+.container-log-line--default {
+  color: #d4d4d4;
+}
+
+.container-log-line--muted {
+  color: #8b94a3;
 }
 </style>
