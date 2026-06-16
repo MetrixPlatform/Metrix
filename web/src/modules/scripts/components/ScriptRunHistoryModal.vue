@@ -6,16 +6,19 @@
     :title="title"
     @update:show="(value) => emit('update:show', value)"
   >
+    <template #header-extra>
+      <n-button quaternary circle size="small" :title="t('common.refresh')" :loading="loading" @click="() => void loadRuns()">
+        <template #icon><n-icon :component="ArrowClockwise20Regular" /></template>
+      </n-button>
+    </template>
     <div class="script-history">
-      <div class="script-history-toolbar">
-        <n-button size="small" :loading="loading" @click="() => void loadRuns()">{{ t("common.refresh") }}</n-button>
-      </div>
       <n-data-table
         size="small"
         :columns="columns"
         :data="runs"
         :loading="loading"
         :row-key="(row) => row.run_id"
+        :scroll-x="560"
         :max-height="240"
       />
       <div v-if="selectedRunId" class="script-history-log">
@@ -33,7 +36,7 @@
 import { computed, h, onBeforeUnmount, ref, watch } from "vue";
 import { NButton, NDataTable, NIcon, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { Document20Regular } from "@vicons/fluent";
+import { ArrowClockwise20Regular, Document20Regular } from "@vicons/fluent";
 
 import { formatDateTime, t } from "../../../i18n";
 import { showError } from "../../../utils/message";
@@ -68,11 +71,19 @@ const columns = computed<DataTableColumns<ScriptRun>>(() => [
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => statusLabel(row.status))
   },
   { title: t("script.field.exitCode"), key: "exit_code", width: 70, render: (row) => (row.exit_code === null ? "-" : String(row.exit_code)) },
-  { title: t("field.createdAt"), key: "created_at", width: 160, render: (row) => formatDateTime(row.created_at) },
+  {
+    title: t("field.createdAt"),
+    key: "created_at",
+    width: 170,
+    sorter: (a, b) => a.created_at.localeCompare(b.created_at),
+    defaultSortOrder: "descend",
+    render: (row) => formatDateTime(row.created_at)
+  },
   {
     title: t("common.actions"),
     key: "actions",
     width: 120,
+    fixed: "right",
     render: (row) =>
       h("div", { class: "table-action-group" }, [
         h(
@@ -181,11 +192,6 @@ function statusLabel(status: string) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.script-history-toolbar {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .script-history-log-bar {

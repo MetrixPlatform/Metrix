@@ -916,3 +916,7 @@
 - i18n 修复：`script.run` 原是对象（与状态对象重名导致运行按钮显示原始 key `script.run`），重构为 `script.run="运行"` 字符串 + `script.runStatus.*`（状态）+ `script.runCancel`/`script.runViewLog`；新增 shared/sharedHint/timeoutHint/uploadCode/chooseFile/uploadCodeHint/historyTitle/collapseAll/terminalAdd 与 archive 错误码、`archive_extract` 审计文案（中英）。
 - 测试：`test_scripts.py` 新增 ZIP 解压用例与共享「可见/可运行/不可编辑」用例；`pytest server/tests/test_scripts.py` 9 passed。
 - 验证：`compileall -q server\app` 通过；`pytest test_scripts.py test_auth_rbac.py` 44 passed；前端 `npm run test:smoke`、`vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build` 通过；ReadLints 无诊断。RAR 解压依赖服务器端 unrar/7z，本机未做真实 RAR/7Z 联调。
+
+## 2026-06-17：运行历史弹窗细节修正
+
+- `ScriptRunHistoryModal` 表格加 `:scroll-x="560"` 让横向滚动条正常出现，操作列改 `fixed:"right"` 始终可见；创建时间列客户端可排序（`sorter: localeCompare(created_at)` + `defaultSortOrder:"descend"`，ISO 字符串按字典序即时间序）；刷新按钮从工具栏改为右上角图标按钮，放进 `n-modal` 的 `#header-extra` 插槽（在关闭按钮左侧）。运行列表保留 `max-height:240`、日志 `<pre>` `max-height:220 + overflow:auto`，保证运行多/日志多时纵向滚动正常。
