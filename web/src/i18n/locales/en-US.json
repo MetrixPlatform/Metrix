@@ -112,7 +112,14 @@
     "basePath": "Base path",
     "newName": "New name",
     "dockerConnectionMode": "Docker connection mode",
-    "dockerHost": "Docker Host"
+    "dockerHost": "Docker Host",
+    "scriptRunMaxWorkers": "Script run concurrency",
+    "scriptRunRetentionHours": "Run history retention (hours)",
+    "scriptWorkspaceQuotaMb": "Workspace quota (MB)",
+    "scriptPipIndexUrl": "pip index URL",
+    "scriptPipTrustedHost": "pip trusted host",
+    "scriptNpmRegistry": "npm registry",
+    "scriptGoProxy": "Go proxy"
   },
   "validation": {
     "required": "Please enter {label}",

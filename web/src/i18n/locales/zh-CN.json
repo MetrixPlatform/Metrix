@@ -112,7 +112,14 @@
     "basePath": "根目录",
     "newName": "新名称",
     "dockerConnectionMode": "Docker 连接模式",
-    "dockerHost": "Docker Host"
+    "dockerHost": "Docker Host",
+    "scriptRunMaxWorkers": "脚本运行并发数",
+    "scriptRunRetentionHours": "运行记录保留小时",
+    "scriptWorkspaceQuotaMb": "工作区配额(MB)",
+    "scriptPipIndexUrl": "pip 源地址",
+    "scriptPipTrustedHost": "pip 受信主机",
+    "scriptNpmRegistry": "npm 源地址",
+    "scriptGoProxy": "Go 代理"
   },
   "validation": {
     "required": "请输入{label}",

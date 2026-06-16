@@ -929,3 +929,9 @@
 - 脚本列表：`ScriptManageView` 的表加 `flex-height`（与数据库列表一致；该表是 `table-page-card` 直接子节点，flex 链天然成立，安全）。
 - 容器列表三张表（容器/镜像/任务）在 `n-tabs` 内——之前因缺 flex 链用 `flex-height` 会算出过小高度导致空列表，才移除过 `flex-height`。本次给容器 `n-tabs` 加 `class="container-tabs"`，并在全局 `main.css` 补 flex 链（`.container-tabs` 及其 `.n-tabs-pane-wrapper`/`.n-tab-pane` 均 `display:flex;flex-direction:column;min-height:0;flex:1 1 auto`，参照 `.database-main` 工作台做法），再给三张表加 `flex-height`，并移除 `animated`（避免过渡包装层干扰 flex 链）。横向滚动条现固定在卡片底部。
 - 验证：`vue-tsc`、`build` 通过，ReadLints 无诊断。未对用户正在运行的实例跑 Playwright（会触发安装/登录流程改其数据）；短视口空列表风险已用 flex 链从根因规避（与数据库列表/工作台同款），如需严格复核可在干净环境跑 `npm run test:regression`（含 1024x520 镜像列表用例）。
+
+## 2026-06-17：修复脚本设置字段翻译路径
+
+- 现象：系统设置「脚本」tab 中 `field.scriptRunMaxWorkers`、`field.scriptPipIndexUrl` 等显示为原始 key，硬刷新无效。
+- 根因：这些脚本设置字段翻译之前被加到了后面的嵌套 `auditLog.detail.field` 对象里，而设置页使用的是顶层 `field.*` 路径；因此 `t("field.scriptRunMaxWorkers")` 命不中。
+- 修复：在 `web/src/i18n/locales/zh-CN.json` 与 `en-US.json` 的顶层 `field` 对象补齐 `scriptRunMaxWorkers`、`scriptRunRetentionHours`、`scriptWorkspaceQuotaMb`、`scriptPipIndexUrl`、`scriptPipTrustedHost`、`scriptNpmRegistry`、`scriptGoProxy`。本轮按用户要求只修改并提交，不运行测试。
