@@ -23,3 +23,17 @@ declare module "monaco-editor/esm/vs/basic-languages/sql/sql.js" {
     builtinVariables: string[];
   };
 }
+
+declare module "monaco-editor/esm/vs/basic-languages/*/*.js" {
+  export const conf: unknown;
+  export const language: {
+    keywords?: string[];
+    typeKeywords?: string[];
+    operators?: string[];
+    builtins?: string[];
+    builtinFunctions?: string[];
+    builtinVariables?: string[];
+    tags?: string[];
+    attributes?: string[];
+  };
+}

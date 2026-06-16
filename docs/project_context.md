@@ -943,3 +943,10 @@
 - 运行记录保留：`script_run_retention_hours=0` 时 `cleanup_runs_once()` 直接返回，不删除运行记录、日志文件或孤儿日志。
 - 工作区配额：`script_workspace_quota_mb=0` 时 `_ensure_quota()` 直接返回，不限制工作区大小。
 - 开发指南同步更新脚本调度与限制说明。本轮按用户要求只修改并提交，不运行测试。
+
+## 2026-06-17：脚本编辑器接入 Monaco 内置候选词
+
+- `web/src/modules/scripts/components/CodeEditor.vue` 新增静态补全 provider，不接 LSP、不手写关键字表，而是像数据库 SQL 编辑器一样直接复用 `monaco-editor/esm/vs/basic-languages/*/*.js` 导出的 `language` 定义（`keywords`、`typeKeywords`、`builtins`、`builtinFunctions`、`builtinVariables`、`tags`、`attributes`、`operators`）生成候选项。
+- 覆盖语言：python、go、cpp、shell、sql、yaml、xml、ini、javascript、typescript、css/scss/less、html。JSON/TS/JS/CSS/HTML 的 worker 仍保持原有内置语言服务；静态 provider 只是补充候选，不引入 `monaco-languageclient` 或外部语言服务器。
+- `CodeEditor` 开启 `suggestOnTriggerCharacters` 与 `quickSuggestions`，触发字符包括空格、`.`、`:`、`<`、`-`、`$`、`/`；卸载时统一 dispose completion providers。
+- `web/src/vite-env.d.ts` 增加 Monaco basic-language 模块通用声明，避免 TS 无法识别这些 `.js` 语言定义模块。本轮按用户要求只修改并提交，不运行测试。
