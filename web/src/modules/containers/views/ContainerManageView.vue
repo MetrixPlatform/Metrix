@@ -126,7 +126,8 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
-import { NAlert, NButton, NDataTable, NDropdown, NInput, NSelect, NTabPane, NTabs, NTag, useDialog, useMessage } from "naive-ui";
+import { ArrowRight20Regular } from "@vicons/fluent";
+import { NAlert, NButton, NDataTable, NDropdown, NIcon, NInput, NSelect, NTabPane, NTabs, NTag, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, DropdownOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
@@ -189,7 +190,9 @@ const jobFilters = reactive({ keyword: "", pageSize: 20 });
 const containerPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const imagePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
-const containerWidths = reactive({ name: 200, id: 160, image: 220, status: 120, ports: 160, usage: 170, owner: 130, created_at: 170, actions: 88 });
+const containerWidths = reactive({ name: 200, id: 160, image: 200, status: 110, usage: 120, ports: 220, owner: 130, created_at: 170, actions: 88 });
+const expandedPorts = ref<string[]>([]);
+const PORT_PREVIEW_COUNT = 3;
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
 const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
@@ -204,8 +207,8 @@ const containerColumns = computed<DataTableColumns<ContainerItem>>(() =>
     { title: t("container.field.containerId"), key: "id", width: containerWidths.id, ellipsis: { tooltip: true } },
     { title: t("container.field.image"), key: "image", width: containerWidths.image, ellipsis: { tooltip: true } },
     { title: t("container.field.status"), key: "status", width: containerWidths.status, render: (row) => statusTag(row.status) },
-    { title: t("container.field.ports"), key: "ports", width: containerWidths.ports, render: (row) => row.ports.join(", ") || "-" },
-    { title: t("container.field.usage"), key: "usage", width: containerWidths.usage, ellipsis: { tooltip: true }, render: (row) => renderUsage(row) },
+    { title: t("container.field.usage"), key: "usage", width: containerWidths.usage, render: (row) => renderUsage(row) },
+    { title: t("container.field.ports"), key: "ports", width: containerWidths.ports, render: (row) => renderPorts(row) },
     { title: t("container.field.owner"), key: "owner", width: containerWidths.owner, render: (row) => row.owner_username || row.owner_user_id || "-" },
     { title: t("container.field.createdAt"), key: "created_at", width: containerWidths.created_at, render: (row) => safeDate(row.created_at) },
     { title: t("common.actions"), key: "actions", width: containerWidths.actions, fixed: "right", render: (row) => actionDropdown(containerActionOptions(row), (key) => handleContainerAction(String(key), row)) }
@@ -456,10 +459,42 @@ function safeDate(value: string | null | undefined) {
 
 function renderUsage(row: ContainerItem) {
   if (row.cpu_percent === null && row.memory_usage === null) return "-";
-  const cpu = row.cpu_percent === null ? "-" : `${row.cpu_percent}%`;
-  const memUsed = row.memory_usage === null ? "-" : formatFileSize(row.memory_usage);
-  const memLimit = row.memory_limit ? ` / ${formatFileSize(row.memory_limit)}` : "";
-  return `CPU ${cpu} · RAM ${memUsed}${memLimit}`;
+  const cpu = row.cpu_percent === null ? "-" : `${row.cpu_percent.toFixed(2)}%`;
+  const memPercent =
+    row.memory_usage !== null && row.memory_limit ? `${((row.memory_usage / row.memory_limit) * 100).toFixed(2)}%` : "-";
+  const memTitle = row.memory_usage === null ? "" : `${formatFileSize(row.memory_usage)}${row.memory_limit ? ` / ${formatFileSize(row.memory_limit)}` : ""}`;
+  return h("div", { class: "container-usage-cell" }, [
+    h("span", `${t("container.field.cpu")}: ${cpu}`),
+    h("span", { title: memTitle }, `${t("container.field.memory")}: ${memPercent}`)
+  ]);
+}
+
+function renderPorts(row: ContainerItem) {
+  if (!row.ports.length) return "-";
+  const expanded = expandedPorts.value.includes(row.id);
+  const shown = expanded ? row.ports : row.ports.slice(0, PORT_PREVIEW_COUNT);
+  const nodes = shown.map((port) =>
+    h(NTag, { size: "small", bordered: false, class: "container-port-tag" }, {
+      icon: () => h(NIcon, { component: ArrowRight20Regular }),
+      default: () => port
+    })
+  );
+  if (row.ports.length > PORT_PREVIEW_COUNT) {
+    nodes.push(
+      h(
+        NButton,
+        { text: true, size: "tiny", type: "primary", class: "container-port-more", onClick: () => togglePorts(row.id) },
+        () => (expanded ? t("container.portsCollapse") : t("container.portsExpand"))
+      )
+    );
+  }
+  return h("div", { class: "container-port-list" }, nodes);
+}
+
+function togglePorts(id: string) {
+  expandedPorts.value = expandedPorts.value.includes(id)
+    ? expandedPorts.value.filter((item) => item !== id)
+    : [...expandedPorts.value, id];
 }
 
 function imageRef(row: ImageItem) {

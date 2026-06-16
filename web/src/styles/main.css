@@ -564,6 +564,38 @@ a {
   margin-top: 0;
 }
 
+.n-data-table-td:has(.container-usage-cell),
+.n-data-table-td:has(.container-port-list) {
+  white-space: normal;
+  overflow: visible;
+  vertical-align: top;
+}
+
+.container-usage-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.container-port-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.container-port-list .container-port-tag {
+  max-width: 100%;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+}
+
+.container-port-more {
+  margin-top: 2px;
+}
+
 .container-log-modal.modal-card {
   width: min(720px, calc(100vw - 32px));
 }
