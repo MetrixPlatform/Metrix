@@ -919,4 +919,4 @@
 
 ## 2026-06-17：运行历史弹窗细节修正
 
-- `ScriptRunHistoryModal` 表格加 `:scroll-x="560"` 让横向滚动条正常出现，操作列改 `fixed:"right"` 始终可见；创建时间列客户端可排序（`sorter: localeCompare(created_at)` + `defaultSortOrder:"descend"`，ISO 字符串按字典序即时间序）；刷新按钮从工具栏改为右上角图标按钮，放进 `n-modal` 的 `#header-extra` 插槽（在关闭按钮左侧）。运行列表保留 `max-height:240`、日志 `<pre>` `max-height:220 + overflow:auto`，保证运行多/日志多时纵向滚动正常。
+- `ScriptRunHistoryModal` 表格加 `:scroll-x="560"` 让横向滚动条正常出现，操作列改 `fixed:"right"` 始终可见；创建时间列客户端可排序（`sorter: localeCompare(created_at)` + `defaultSortOrder:"descend"`，ISO 字符串按字典序即时间序）；刷新按钮从工具栏改为右上角图标按钮，放进 `n-modal` 的 `#header-extra` 插槽（在关闭按钮左侧）。运行列表保留 `max-height:240`、日志 `<pre>` `max-height:220 + overflow:auto`，保证运行多/日志多时纵向滚动正常。弹窗宽度通过全局 `web/src/styles/main.css` 的 `.script-history-modal.modal-card { width: min(720px, calc(100vw - 32px)) }` 加宽到 720px（参照 `.container-log-modal`；scoped 样式命不中 Teleport 出去的卡片根，这类宽度覆盖必须写全局）。
