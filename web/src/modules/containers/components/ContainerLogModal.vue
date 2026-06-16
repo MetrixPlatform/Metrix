@@ -222,6 +222,32 @@ async function clearLogsWithRestart(containerId: string) {
   font-family: Consolas, Monaco, "Courier New", monospace;
   font-size: 12px;
   line-height: 1.6;
+  scrollbar-width: thin;
+  scrollbar-color: #4f5d75 #0c0f14;
+}
+
+.container-log-content::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.container-log-content::-webkit-scrollbar-track {
+  background: #0c0f14;
+  border-radius: 6px;
+}
+
+.container-log-content::-webkit-scrollbar-thumb {
+  background: #44506a;
+  border: 2px solid #0c0f14;
+  border-radius: 6px;
+}
+
+.container-log-content::-webkit-scrollbar-thumb:hover {
+  background: #5a6b8c;
+}
+
+.container-log-content::-webkit-scrollbar-corner {
+  background: #0c0f14;
 }
 
 .container-log-lines {
