@@ -16,11 +16,18 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 IS_WINDOWS = os.name == "nt"
 VENV_PYTHON = ROOT / ".venv" / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
+BACKEND_HOST = os.environ.get("METRIX_HOST", "127.0.0.1")
+try:
+    BACKEND_PORT = int(os.environ.get("METRIX_PORT", "8000"))
+except ValueError:
+    BACKEND_PORT = 8000
 
 _processes: list[tuple[str, subprocess.Popen]] = []
 _stopping = threading.Event()
@@ -77,6 +84,27 @@ def _stop_all() -> None:
             pass
 
 
+def _wait_for_backend(host: str, port: int, timeout: float = 60.0) -> bool:
+    """Block until the backend answers HTTP, so the frontend (and the browser it serves)
+    does not fire requests at a backend that has not finished starting (avoids the
+    startup ECONNREFUSED flood on /api/install/status, /api/auth/me, etc.)."""
+    url = f"http://{host}:{port}/api/health"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if _stopping.is_set():
+            return False
+        if any(name == "backend" and proc.poll() is not None for name, proc in _processes):
+            return False
+        try:
+            with urllib.request.urlopen(url, timeout=2):
+                return True
+        except urllib.error.HTTPError:
+            return True  # any HTTP status means the ASGI app is serving
+        except (urllib.error.URLError, OSError):
+            time.sleep(0.4)
+    return False
+
+
 def main() -> int:
     try:
         sys.stdout.reconfigure(errors="replace")  # tolerate non-encodable child output (e.g. GBK consoles)
@@ -106,10 +134,23 @@ def main() -> int:
         return 1
 
     backend_env = {**os.environ, "METRIX_RELOAD": "1"}
-    _spawn("backend", [str(VENV_PYTHON), "main.py"], ROOT / "server", backend_env)
-    _spawn("web", [node, str(vite_bin), "--host", "127.0.0.1", "--port", "5173"], web_dir)
+    backend_proc = _spawn("backend", [str(VENV_PYTHON), "main.py"], ROOT / "server", backend_env)
+    log("backend", f"starting -> http://{BACKEND_HOST}:{BACKEND_PORT} (auto-reload)")
 
-    log("backend", "starting -> http://127.0.0.1:8000 (auto-reload)")
+    # Start the frontend only after the backend is serving, so the browser does not hit
+    # a cold backend and flood the console with proxy ECONNREFUSED errors.
+    log("web", "waiting for backend to be ready...")
+    if _wait_for_backend(BACKEND_HOST, BACKEND_PORT):
+        log("web", "backend ready")
+    elif not _stopping.is_set():
+        log("web", "backend not ready in time; starting frontend anyway")
+    if _stopping.is_set():
+        return 0
+    if backend_proc.poll() is not None:
+        log("backend", f"exited with code {backend_proc.poll()} during startup")
+        return backend_proc.poll() or 0
+
+    _spawn("web", [node, str(vite_bin), "--host", "127.0.0.1", "--port", "5173"], web_dir)
     log("web", "starting -> http://127.0.0.1:5173 (hot reload)")
     log("dev", "press Ctrl+C to stop both services")
 

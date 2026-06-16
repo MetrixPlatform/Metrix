@@ -897,3 +897,9 @@
 - 终端环境变量：`open_terminal` 改用 `terminal_environment(settings, project)` = 包源变量（PIP_INDEX_URL 等）+ 项目 `env`（JSON 解析）+ `TERM=xterm-256color` + `LANG=C.UTF-8`，作为常驻容器 environment，exec 自动继承；`TERM` 是行编辑/补全显示正确的关键。`parse_project_env` 从 `runs.py` 上移到 `runtime.py` 复用，`runs.py` 删除重复实现与不再使用的 `json` 导入。
 - i18n：脚本语言包新增 `script.tab.terminal`、`script.terminalIdle`，删除随弹窗废弃的 `script.terminal`/`terminalTitle`/`terminalCommand`，`terminalHint` 更新为「默认 bash、上下键历史、TAB 补全、自动激活 venv」。
 - 验证：`compileall -q server\app` 通过、`pytest server/tests/test_scripts.py` 7 passed；前端 `npm run test:smoke`、`vue-tsc --noEmit --noUnusedLocals --noUnusedParameters`、`npm run build` 通过；ReadLints 无诊断。Docker 守护进程代理未开，未做真实终端联调。
+
+## 2026-06-16：修复 dev.py 启动竞态导致的代理报错
+
+- 现象：`python dev.py` 启动时前端 vite 立即就绪、浏览器随即请求 `/api/install/status`、`/api/auth/me`、`/api/announcements/public`，而后端 uvicorn 仍在 “Waiting for application startup”（worker 未绑定 8000；脚本模块新增的 APScheduler 启动/模块加载/运行恢复让启动更慢），于是一串 `[vite] http proxy error ... connect ECONNREFUSED 127.0.0.1:8000`；待 “Application startup complete” 后自动恢复，属无害瞬时报错（前端对 install/status 本就有兜底）。
+- 修复：`dev.py` 改为先起后端，再用 `_wait_for_backend()` 轮询 `GET http://127.0.0.1:8000/api/health`（拿到任意 HTTP 响应即视为就绪，最长 60s，期间检测到后端进程已退出则直接结束），就绪后才启动前端 vite，避免浏览器打到冷后端。`/api/health` 无需鉴权，返回 `{ok, installed}`；等待地址用 `METRIX_HOST`/`METRIX_PORT` 覆盖，默认 127.0.0.1:8000。
+- 说明：uvicorn 热重载在改后端代码触发 worker 重启的短暂窗口仍可能有个别 proxy error，属热重载固有现象，不处理。
