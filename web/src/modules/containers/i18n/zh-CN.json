@@ -106,6 +106,7 @@
     "visibilityUpdated": "可见性已更新",
     "logTitle": "容器日志 - {name}",
     "autoRefresh": "自动刷新",
+    "wrapLines": "自动换行",
     "logTailLabel": "最近条数",
     "clearLogs": "清空日志",
     "clearLogsRestartConfirm": "清空运行中容器 {name} 的日志需要重启容器，是否继续？",

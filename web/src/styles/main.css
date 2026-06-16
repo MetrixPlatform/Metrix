@@ -565,7 +565,7 @@ a {
 }
 
 .container-log-modal.modal-card {
-  width: min(900px, calc(100vw - 32px));
+  width: min(720px, calc(100vw - 32px));
 }
 
 .container-log-modal.modal-card > .n-card__content,

@@ -162,7 +162,7 @@ class ContainerService:
 
     def logs(self, actor: User, container_id: str, tail: int = 200) -> str:
         container = self._get_visible_container(actor, container_id)
-        output = container.logs(tail=max(1, min(tail, 5000)), timestamps=True)
+        output = container.logs(tail=max(1, min(tail, 5000)))
         if isinstance(output, bytes):
             return output.decode("utf-8", errors="replace")
         return str(output)

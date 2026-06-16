@@ -7,12 +7,18 @@
         <n-button :loading="loading" @click="() => loadLogs()">{{ t("common.refresh") }}</n-button>
         <n-button :disabled="!logs" @click="copyLogs">{{ t("common.copy") }}</n-button>
         <n-button :loading="clearing" @click="clearLogs">{{ t("container.clearLogs") }}</n-button>
-        <div class="container-log-auto">
-          <span>{{ t("container.autoRefresh") }}</span>
-          <n-switch v-model:value="autoRefresh" />
+        <div class="container-log-switches">
+          <div class="container-log-switch">
+            <span>{{ t("container.wrapLines") }}</span>
+            <n-switch v-model:value="wrapLines" size="small" />
+          </div>
+          <div class="container-log-switch">
+            <span>{{ t("container.autoRefresh") }}</span>
+            <n-switch v-model:value="autoRefresh" size="small" />
+          </div>
         </div>
       </div>
-      <div ref="logViewRef" class="container-log-content">
+      <div ref="logViewRef" class="container-log-content" :class="{ 'container-log-content--wrap': wrapLines }">
         <div class="container-log-lines">
           <template v-if="logLines.length">
             <div v-for="(line, index) in logLines" :key="index" class="container-log-line" :class="`container-log-line--${line.level}`">{{ line.text || " " }}</div>
@@ -47,6 +53,7 @@ const clearing = ref(false);
 const logs = ref("");
 const tailValue = ref(200);
 const autoRefresh = ref(false);
+const wrapLines = ref(false);
 const logViewRef = ref<HTMLElement | null>(null);
 const title = computed(() => t("container.logTitle", { name: props.container?.name || "" }));
 const logLines = computed(() =>
@@ -198,11 +205,17 @@ async function clearLogsWithRestart(containerId: string) {
   white-space: nowrap;
 }
 
-.container-log-auto {
+.container-log-switches {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.container-log-switch {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
   color: var(--text-color-2);
   white-space: nowrap;
 }
@@ -258,6 +271,16 @@ async function clearLogsWithRestart(containerId: string) {
 .container-log-line {
   white-space: pre;
   tab-size: 4;
+}
+
+.container-log-content--wrap .container-log-lines {
+  width: auto;
+  min-width: 0;
+}
+
+.container-log-content--wrap .container-log-line {
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .container-log-line--error {

@@ -106,6 +106,7 @@
     "visibilityUpdated": "Visibility updated",
     "logTitle": "Container logs - {name}",
     "autoRefresh": "Auto refresh",
+    "wrapLines": "Wrap lines",
     "logTailLabel": "Recent lines",
     "clearLogs": "Clear logs",
     "clearLogsRestartConfirm": "Clearing logs of running container {name} requires restarting it. Continue?",
