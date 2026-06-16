@@ -59,6 +59,7 @@
     "editorEmpty": "从左侧选择文件进行编辑",
     "fileTruncated": "文件过大，仅显示前部分内容",
     "fileSaved": "文件已保存",
+    "autoSave": "自动保存",
     "fileDeleted": "已删除",
     "created": "已创建",
     "uploaded": "已上传",

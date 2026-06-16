@@ -950,3 +950,10 @@
 - 覆盖语言：python、go、cpp、shell、sql、yaml、xml、ini、javascript、typescript、css/scss/less、html。JSON/TS/JS/CSS/HTML 的 worker 仍保持原有内置语言服务；静态 provider 只是补充候选，不引入 `monaco-languageclient` 或外部语言服务器。
 - `CodeEditor` 开启 `suggestOnTriggerCharacters` 与 `quickSuggestions`，触发字符包括空格、`.`、`:`、`<`、`-`、`$`、`/`；卸载时统一 dispose completion providers。
 - `web/src/vite-env.d.ts` 增加 Monaco basic-language 模块通用声明，避免 TS 无法识别这些 `.js` 语言定义模块。本轮按用户要求只修改并提交，不运行测试。
+
+## 2026-06-17：脚本编辑器支持自动保存
+
+- `ScriptWorkbenchView` 编辑器工具栏新增「自动保存」开关，状态用 `localStorage` key `appKey("scriptWorkbench.autoSave")` 持久化。
+- 开启后监听 `currentContent`，内容变化 800ms 防抖调用 `writeScriptFile` 保存当前文件；自动保存不弹成功提示，只在失败时沿用 `showError` 提示。手动「保存」仍保留成功提示。
+- 切换文件、删除当前文件、组件卸载时会清理待执行的自动保存定时器；读取文件时用 `skipNextContentWatch` 跳过首次内容回填，避免刚打开文件就误触发保存。
+- 补充脚本模块中英文 `script.autoSave` 文案。本轮按用户要求只修改并提交，不运行测试。

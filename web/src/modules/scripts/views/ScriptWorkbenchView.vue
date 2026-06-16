@@ -55,6 +55,10 @@
         <div class="script-editor-bar">
           <span class="script-editor-path">{{ currentPath || t("script.noFileSelected") }}</span>
           <div class="script-editor-actions">
+            <div v-if="currentPath" class="script-auto-save">
+              <span>{{ t("script.autoSave") }}</span>
+              <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
+            </div>
             <n-button
               v-if="currentPath"
               size="small"
@@ -215,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onBeforeUnmount, onMounted, reactive, ref, type VNodeChild } from "vue";
+import { computed, h, onBeforeUnmount, onMounted, reactive, ref, watch, type VNodeChild } from "vue";
 import {
   Add20Regular,
   ArrowLeft20Regular,
@@ -251,6 +255,7 @@ import {
 import type { DataTableColumns, TreeOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
+import { appKey } from "../../../config/app";
 import { formatDateTime, t } from "../../../i18n";
 import { messageText, showError } from "../../../utils/message";
 import {
@@ -282,6 +287,8 @@ import { SCRIPT_OPERATE } from "../permissions";
 const props = defineProps<{ project: ScriptProject }>();
 const emit = defineEmits<{ close: [] }>();
 
+const AUTO_SAVE_KEY = appKey("scriptWorkbench.autoSave");
+
 const message = useMessage();
 const dialog = useDialog();
 
@@ -292,6 +299,7 @@ const currentPath = ref("");
 const currentContent = ref("");
 const currentLanguage = ref("plaintext");
 const savingFile = ref(false);
+const autoSaveEnabled = ref(localStorage.getItem(AUTO_SAVE_KEY) === "1");
 const uploadInputRef = ref<HTMLInputElement | null>(null);
 
 interface TerminalTab {
@@ -332,6 +340,8 @@ const scheduleForm = reactive<{ name: string; trigger_type: ScriptScheduleTrigge
 });
 
 let pollTimer: number | null = null;
+let autoSaveTimer: number | null = null;
+let skipNextContentWatch = false;
 
 const isActiveRun = computed(() => runStatus.value === "pending" || runStatus.value === "running");
 const currentDir = computed(() => {
@@ -401,7 +411,20 @@ onMounted(() => {
   void loadRuns();
 });
 
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  stopPolling();
+  clearAutoSaveTimer();
+});
+
+watch(currentContent, (value) => {
+  if (skipNextContentWatch) {
+    skipNextContentWatch = false;
+    return;
+  }
+  if (autoSaveEnabled.value && currentPath.value) {
+    scheduleAutoSave(currentPath.value, value);
+  }
+});
 
 function toNodes(entries: { name: string; path: string; is_dir: boolean }[]): TreeOption[] {
   return entries.map((entry) => ({ key: entry.path, label: entry.name, isLeaf: !entry.is_dir }));
@@ -433,8 +456,10 @@ async function handleSelect(keys: Array<string | number>) {
   const node = findNode(treeData.value, String(key));
   if (!node || !node.isLeaf) return;
   try {
+    clearAutoSaveTimer();
     const result = await readScriptFile(props.project.id, String(key));
     currentPath.value = result.path;
+    skipNextContentWatch = true;
     currentContent.value = result.content;
     currentLanguage.value = languageForPath(result.path);
     if (result.truncated) message.warning(t("script.fileTruncated"));
@@ -445,14 +470,43 @@ async function handleSelect(keys: Array<string | number>) {
 
 async function saveFile() {
   if (!currentPath.value) return;
+  clearAutoSaveTimer();
+  await saveFileContent(currentPath.value, currentContent.value, false);
+}
+
+async function saveFileContent(path: string, content: string, silent: boolean) {
   savingFile.value = true;
   try {
-    await writeScriptFile(props.project.id, currentPath.value, currentContent.value);
-    message.success(t("script.fileSaved"));
+    await writeScriptFile(props.project.id, path, content);
+    if (!silent) message.success(t("script.fileSaved"));
   } catch (error) {
     showError(message, error);
   } finally {
     savingFile.value = false;
+  }
+}
+
+function setAutoSave(value: boolean) {
+  localStorage.setItem(AUTO_SAVE_KEY, value ? "1" : "0");
+  if (value && currentPath.value) {
+    scheduleAutoSave(currentPath.value, currentContent.value);
+  } else {
+    clearAutoSaveTimer();
+  }
+}
+
+function scheduleAutoSave(path: string, content: string) {
+  clearAutoSaveTimer();
+  autoSaveTimer = window.setTimeout(() => {
+    autoSaveTimer = null;
+    void saveFileContent(path, content, true);
+  }, 800);
+}
+
+function clearAutoSaveTimer() {
+  if (autoSaveTimer !== null) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
   }
 }
 
@@ -467,6 +521,7 @@ function deleteCurrent() {
     onPositiveClick: async () => {
       try {
         await deleteScriptEntry(props.project.id, path);
+        clearAutoSaveTimer();
         currentPath.value = "";
         currentContent.value = "";
         await reloadTree();
@@ -893,6 +948,15 @@ function languageForPath(path: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.script-auto-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-color-3);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .script-editor-host {

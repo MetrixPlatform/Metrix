@@ -59,6 +59,7 @@
     "editorEmpty": "Select a file on the left to edit",
     "fileTruncated": "File too large, showing the first part only",
     "fileSaved": "File saved",
+    "autoSave": "Auto save",
     "fileDeleted": "Deleted",
     "created": "Created",
     "uploaded": "Uploaded",
