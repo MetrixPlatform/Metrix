@@ -920,3 +920,5 @@
 ## 2026-06-17：运行历史弹窗细节修正
 
 - `ScriptRunHistoryModal` 表格加 `:scroll-x="560"` 让横向滚动条正常出现，操作列改 `fixed:"right"` 始终可见；创建时间列客户端可排序（`sorter: localeCompare(created_at)` + `defaultSortOrder:"descend"`，ISO 字符串按字典序即时间序）；刷新按钮从工具栏改为右上角图标按钮，放进 `n-modal` 的 `#header-extra` 插槽（在关闭按钮左侧）。运行列表保留 `max-height:240`、日志 `<pre>` `max-height:220 + overflow:auto`，保证运行多/日志多时纵向滚动正常。弹窗宽度通过全局 `web/src/styles/main.css` 的 `.script-history-modal.modal-card { width: min(720px, calc(100vw - 32px)) }` 加宽到 720px（参照 `.container-log-modal`；scoped 样式命不中 Teleport 出去的卡片根，这类宽度覆盖必须写全局）。
+- 运行历史操作列从 120 收窄到 80（取消按钮也改成图标按钮），其余列拓宽（触发100/状态110/退出码100/创建时间220）以在 720px 弹窗内更均衡。
+- 列表「运行」按钮点击后保持 loading 旋转直到运行**真正结束**：`ScriptManageView.runFromList` 提交后用 `getScriptRun(run_id)` 每 2s 轮询，直到 success/failed/timeout/canceled 才从 `runningIds` 移除；按钮 `loading: isRunning(row.id)`、`disabled` 同时含运行中，避免重复提交（用 `ref<number[]>` 跟踪运行中项目 id，保证表格重渲染）。

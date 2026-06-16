@@ -18,7 +18,7 @@
         :data="runs"
         :loading="loading"
         :row-key="(row) => row.run_id"
-        :scroll-x="560"
+        :scroll-x="610"
         :max-height="240"
       />
       <div v-if="selectedRunId" class="script-history-log">
@@ -36,7 +36,7 @@
 import { computed, h, onBeforeUnmount, ref, watch } from "vue";
 import { NButton, NDataTable, NIcon, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
-import { ArrowClockwise20Regular, Document20Regular } from "@vicons/fluent";
+import { ArrowClockwise20Regular, Dismiss20Regular, Document20Regular } from "@vicons/fluent";
 
 import { formatDateTime, t } from "../../../i18n";
 import { showError } from "../../../utils/message";
@@ -63,18 +63,18 @@ let pollTimer: number | null = null;
 const title = computed(() => t("script.historyTitle", { name: props.project?.name || "" }));
 
 const columns = computed<DataTableColumns<ScriptRun>>(() => [
-  { title: t("script.field.trigger"), key: "trigger", width: 80, render: (row) => t(`script.trigger.${row.trigger}`) },
+  { title: t("script.field.trigger"), key: "trigger", width: 100, render: (row) => t(`script.trigger.${row.trigger}`) },
   {
     title: t("field.status"),
     key: "status",
-    width: 90,
+    width: 110,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => statusLabel(row.status))
   },
-  { title: t("script.field.exitCode"), key: "exit_code", width: 70, render: (row) => (row.exit_code === null ? "-" : String(row.exit_code)) },
+  { title: t("script.field.exitCode"), key: "exit_code", width: 100, render: (row) => (row.exit_code === null ? "-" : String(row.exit_code)) },
   {
     title: t("field.createdAt"),
     key: "created_at",
-    width: 170,
+    width: 220,
     sorter: (a, b) => a.created_at.localeCompare(b.created_at),
     defaultSortOrder: "descend",
     render: (row) => formatDateTime(row.created_at)
@@ -82,7 +82,7 @@ const columns = computed<DataTableColumns<ScriptRun>>(() => [
   {
     title: t("common.actions"),
     key: "actions",
-    width: 120,
+    width: 80,
     fixed: "right",
     render: (row) =>
       h("div", { class: "table-action-group" }, [
@@ -92,7 +92,11 @@ const columns = computed<DataTableColumns<ScriptRun>>(() => [
           { icon: () => h(NIcon, { component: Document20Regular }) }
         ),
         row.status === "pending" || row.status === "running"
-          ? h(NButton, { size: "tiny", quaternary: true, type: "warning", onClick: () => void cancel(row.run_id) }, () => t("script.runCancel"))
+          ? h(
+              NButton,
+              { size: "tiny", quaternary: true, circle: true, type: "warning", title: t("script.runCancel"), onClick: () => void cancel(row.run_id) },
+              { icon: () => h(NIcon, { component: Dismiss20Regular }) }
+            )
           : null
       ].filter(Boolean))
   }

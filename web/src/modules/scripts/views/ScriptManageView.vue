@@ -141,6 +141,7 @@ import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from ".
 import {
   createScript,
   deleteScript,
+  getScriptRun,
   listScriptImages,
   listScripts,
   submitScriptRun,
@@ -172,6 +173,8 @@ const items = ref<ScriptProject[]>([]);
 const envText = ref("");
 const showHistory = ref(false);
 const historyProject = ref<ScriptProject | null>(null);
+// Projects whose run was triggered from the list and is still running (keeps the run icon spinning).
+const runningIds = ref<number[]>([]);
 const createFileInput = ref<HTMLInputElement | null>(null);
 const createFile = ref<File | null>(null);
 const createFileName = ref("");
@@ -350,7 +353,8 @@ const columns = computed<DataTableColumns<ScriptProject>>(() =>
                   quaternary: true,
                   circle: true,
                   type: "primary",
-                  disabled: !row.run_command,
+                  loading: isRunning(row.id),
+                  disabled: !row.run_command || isRunning(row.id),
                   title: row.run_command ? t("script.run") : t("script.runCommandMissing"),
                   onClick: () => void runFromList(row)
                 },
@@ -601,12 +605,35 @@ function handleMoreSelect(key: string, item: ScriptProject) {
   else if (key === "delete") confirmDelete(item);
 }
 
+function isRunning(id: number) {
+  return runningIds.value.includes(id);
+}
+
+// Keep the run icon spinning from submit until the run actually finishes (not just submitted).
 async function runFromList(item: ScriptProject) {
+  if (isRunning(item.id)) return;
+  runningIds.value = [...runningIds.value, item.id];
   try {
-    await submitScriptRun(item.id);
+    const submitted = await submitScriptRun(item.id);
     message.success(t("script.runStarted"));
+    await waitForRunFinished(submitted.run_id);
   } catch (error) {
     showError(message, error);
+  } finally {
+    runningIds.value = runningIds.value.filter((id) => id !== item.id);
+  }
+}
+
+async function waitForRunFinished(runId: string) {
+  const terminal = new Set(["success", "failed", "timeout", "canceled"]);
+  for (let attempt = 0; attempt < 1800; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const run = await getScriptRun(runId);
+      if (terminal.has(run.status)) return;
+    } catch {
+      return;
+    }
   }
 }
 
