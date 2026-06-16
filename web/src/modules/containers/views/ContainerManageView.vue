@@ -189,7 +189,7 @@ const jobFilters = reactive({ keyword: "", pageSize: 20 });
 const containerPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const imagePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
-const containerWidths = reactive({ name: 200, id: 160, image: 220, status: 120, ports: 180, owner: 140, created_at: 180, actions: 150 });
+const containerWidths = reactive({ name: 200, id: 160, image: 220, status: 120, ports: 160, usage: 170, owner: 130, created_at: 170, actions: 88 });
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
 const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
@@ -205,6 +205,7 @@ const containerColumns = computed<DataTableColumns<ContainerItem>>(() =>
     { title: t("container.field.image"), key: "image", width: containerWidths.image, ellipsis: { tooltip: true } },
     { title: t("container.field.status"), key: "status", width: containerWidths.status, render: (row) => statusTag(row.status) },
     { title: t("container.field.ports"), key: "ports", width: containerWidths.ports, render: (row) => row.ports.join(", ") || "-" },
+    { title: t("container.field.usage"), key: "usage", width: containerWidths.usage, ellipsis: { tooltip: true }, render: (row) => renderUsage(row) },
     { title: t("container.field.owner"), key: "owner", width: containerWidths.owner, render: (row) => row.owner_username || row.owner_user_id || "-" },
     { title: t("container.field.createdAt"), key: "created_at", width: containerWidths.created_at, render: (row) => safeDate(row.created_at) },
     { title: t("common.actions"), key: "actions", width: containerWidths.actions, fixed: "right", render: (row) => actionDropdown(containerActionOptions(row), (key) => handleContainerAction(String(key), row)) }
@@ -451,6 +452,14 @@ function capitalize(value: string) {
 
 function safeDate(value: string | null | undefined) {
   return value ? formatDateTime(value) : "-";
+}
+
+function renderUsage(row: ContainerItem) {
+  if (row.cpu_percent === null && row.memory_usage === null) return "-";
+  const cpu = row.cpu_percent === null ? "-" : `${row.cpu_percent}%`;
+  const memUsed = row.memory_usage === null ? "-" : formatFileSize(row.memory_usage);
+  const memLimit = row.memory_limit ? ` / ${formatFileSize(row.memory_limit)}` : "";
+  return `CPU ${cpu} · RAM ${memUsed}${memLimit}`;
 }
 
 function imageRef(row: ImageItem) {

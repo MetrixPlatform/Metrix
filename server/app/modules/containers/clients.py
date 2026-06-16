@@ -103,6 +103,26 @@ class DockerAdapter:
         except Exception:
             self.client.volumes.create(name=name, labels={"metrix.created_by": "metrix", "metrix.resource_type": "volume"})
 
+    def truncate_container_log(self, container: Any) -> None:
+        attrs = getattr(container, "attrs", {}) or {}
+        log_path = attrs.get("LogPath") or ""
+        if not log_path:
+            raise DockerOperationError("Container has no log file")
+        image_id = attrs.get("Image") or getattr(getattr(container, "image", None), "id", "")
+        if not image_id:
+            raise DockerOperationError("Container image not found")
+        # A helper container running inside the daemon truncates the json log file in place.
+        # The platform host cannot reach the daemon log path directly (e.g. Docker Desktop VM),
+        # so we mount the daemon container dir and truncate from within.
+        self.client.containers.run(
+            image=image_id,
+            entrypoint=["/bin/sh", "-c", 'truncate -s 0 "$1" 2>/dev/null || : > "$1"', "sh", log_path],
+            remove=True,
+            network_mode="none",
+            user="0:0",
+            volumes={"/var/lib/docker/containers": {"bind": "/var/lib/docker/containers", "mode": "rw"}},
+        )
+
 
 def create_client(config: DockerClientConfig | None = None) -> DockerAdapter:
     try:

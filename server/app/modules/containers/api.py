@@ -12,6 +12,7 @@ from app.modules.containers.schemas import (
     ContainerItem,
     ContainerJobListResponse,
     ContainerListResponse,
+    ContainerLogClearResult,
     ContainerLogsResponse,
     ImageItem,
     ImageListResponse,
@@ -143,6 +144,16 @@ def get_container_logs(
     actor: User = Depends(require_permission(CONTAINER_READ)),
 ) -> ContainerLogsResponse:
     return ContainerLogsResponse(logs=ContainerService(db).logs(actor, container_id, tail))
+
+
+@instances_router.post("/{container_id}/clear-logs", response_model=ContainerLogClearResult)
+def clear_container_logs(
+    container_id: str,
+    restart: bool = False,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(CONTAINER_OPERATE)),
+) -> ContainerLogClearResult:
+    return ContainerService(db).clear_logs(actor, container_id, restart)
 
 
 @instances_router.delete("/{container_id}", response_model=MessageResponse)

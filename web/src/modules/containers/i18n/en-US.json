@@ -25,7 +25,8 @@
     "containerPathInvalid": "Invalid container path",
     "containerJobFailed": "Container job failed",
     "containerJobNotDownloadable": "Job is not downloadable",
-    "containerJobFileMissing": "Job file is missing"
+    "containerJobFileMissing": "Job file is missing",
+    "containerLogClearFailed": "Failed to clear container logs. Ensure the container image is available or try again later"
   },
   "container": {
     "engine": "Docker Engine",
@@ -52,6 +53,7 @@
       "image": "Image",
       "status": "Status",
       "ports": "Ports",
+      "usage": "Usage",
       "owner": "Owner",
       "createdAt": "Created",
       "repoTags": "Repo tags",
@@ -104,6 +106,10 @@
     "visibilityUpdated": "Visibility updated",
     "logTitle": "Container logs - {name}",
     "autoRefresh": "Auto refresh",
+    "logTailLabel": "Recent lines",
+    "clearLogs": "Clear logs",
+    "clearLogsRestartConfirm": "Clearing logs of running container {name} requires restarting it. Continue?",
+    "logsCleared": "Logs cleared",
     "logEmpty": "No logs yet",
     "emptyHint": "Containers and images cannot be loaded while Docker is disconnected. Check deployment configuration.",
     "socketHint": "Configure Docker connection in System Settings with auto detection or a manual Docker Host. Container deployment usually needs /var/run/docker.sock mounted.",

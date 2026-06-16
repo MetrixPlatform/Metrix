@@ -24,6 +24,15 @@ export interface ContainerItem {
   created_at: string;
   owner_user_id: number | null;
   owner_username: string;
+  cpu_percent: number | null;
+  memory_usage: number | null;
+  memory_limit: number | null;
+}
+
+export interface ContainerLogClearResult {
+  cleared: boolean;
+  restarted: boolean;
+  requires_restart: boolean;
 }
 
 export interface ImageItem {
@@ -140,6 +149,10 @@ export function deleteContainer(containerId: string, force = false) {
 
 export function getContainerLogs(containerId: string, tail = 200) {
   return request<ContainerLogsResponse>(`/container-instances/${encodeURIComponent(containerId)}/logs${queryString({ tail })}`);
+}
+
+export function clearContainerLogs(containerId: string, restart = false) {
+  return post<ContainerLogClearResult>(`/container-instances/${encodeURIComponent(containerId)}/clear-logs${queryString({ restart: restart || "" })}`);
 }
 
 export function listImages(filters: ImageFilters = {}) {

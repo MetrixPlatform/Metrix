@@ -25,7 +25,8 @@
     "containerPathInvalid": "容器路径不合法",
     "containerJobFailed": "容器任务执行失败",
     "containerJobNotDownloadable": "任务不可下载",
-    "containerJobFileMissing": "任务文件不存在"
+    "containerJobFileMissing": "任务文件不存在",
+    "containerLogClearFailed": "清空容器日志失败，请确认容器镜像可用或稍后重试"
   },
   "container": {
     "engine": "Docker 引擎",
@@ -52,6 +53,7 @@
       "image": "镜像",
       "status": "状态",
       "ports": "端口",
+      "usage": "系统占用",
       "owner": "归属用户",
       "createdAt": "创建时间",
       "repoTags": "仓库标签",
@@ -104,6 +106,10 @@
     "visibilityUpdated": "可见性已更新",
     "logTitle": "容器日志 - {name}",
     "autoRefresh": "自动刷新",
+    "logTailLabel": "最近条数",
+    "clearLogs": "清空日志",
+    "clearLogsRestartConfirm": "清空运行中容器 {name} 的日志需要重启容器，是否继续？",
+    "logsCleared": "日志已清空",
     "logEmpty": "暂无日志",
     "emptyHint": "Docker 未连接时无法加载容器和镜像，请检查部署配置。",
     "socketHint": "请在系统设置的 Docker 连接中选择自动检测或手动配置 Docker Host；容器部署通常需要挂载 /var/run/docker.sock。",

@@ -2,9 +2,11 @@
   <n-modal :show="show" preset="card" class="modal-card container-log-modal" :title="title" @update:show="$emit('update:show', $event)">
     <div class="container-log-body">
       <div class="container-log-toolbar">
+        <span class="container-log-tail-label">{{ t("container.logTailLabel") }}</span>
         <n-input-number v-model:value="tailValue" :min="1" :max="5000" :show-button="false" />
         <n-button :loading="loading" @click="() => loadLogs()">{{ t("common.refresh") }}</n-button>
         <n-button :disabled="!logs" @click="copyLogs">{{ t("common.copy") }}</n-button>
+        <n-button :loading="clearing" @click="clearLogs">{{ t("container.clearLogs") }}</n-button>
         <div class="container-log-auto">
           <span>{{ t("container.autoRefresh") }}</span>
           <n-switch v-model:value="autoRefresh" />
@@ -24,12 +26,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { NButton, NInputNumber, NModal, NSwitch, useMessage } from "naive-ui";
+import { NButton, NInputNumber, NModal, NSwitch, useDialog, useMessage } from "naive-ui";
 
 import { t } from "../../../i18n";
 import { copyText } from "../../../utils/clipboard";
 import { showError } from "../../../utils/message";
-import { getContainerLogs, type ContainerItem } from "../api";
+import { clearContainerLogs, getContainerLogs, type ContainerItem } from "../api";
 
 type LogLevel = "error" | "warn" | "success" | "info" | "debug" | "default";
 
@@ -39,7 +41,9 @@ const props = defineProps<{ show: boolean; container: ContainerItem | null }>();
 const emit = defineEmits<{ "update:show": [value: boolean] }>();
 
 const message = useMessage();
+const dialog = useDialog();
 const loading = ref(false);
+const clearing = ref(false);
 const logs = ref("");
 const tailValue = ref(200);
 const autoRefresh = ref(false);
@@ -128,6 +132,46 @@ async function copyLogs() {
   await copyText(logs.value);
   message.success(t("common.copied"));
 }
+
+async function clearLogs() {
+  const container = props.container;
+  if (!container) return;
+  clearing.value = true;
+  try {
+    const result = await clearContainerLogs(container.id, false);
+    if (result.cleared) {
+      message.success(t("container.logsCleared"));
+      await loadLogs({ silent: true });
+      return;
+    }
+    if (result.requires_restart) {
+      dialog.warning({
+        title: t("container.clearLogs"),
+        content: t("container.clearLogsRestartConfirm", { name: container.name }),
+        positiveText: t("common.confirm"),
+        negativeText: t("common.cancel"),
+        onPositiveClick: () => void clearLogsWithRestart(container.id)
+      });
+    }
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    clearing.value = false;
+  }
+}
+
+async function clearLogsWithRestart(containerId: string) {
+  clearing.value = true;
+  try {
+    await clearContainerLogs(containerId, true);
+    message.success(t("container.logsCleared"));
+    await loadLogs({ silent: true });
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    clearing.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -145,7 +189,13 @@ async function copyLogs() {
 }
 
 .container-log-toolbar .n-input-number {
-  width: 120px;
+  width: 96px;
+}
+
+.container-log-tail-label {
+  flex: 0 0 auto;
+  color: var(--text-color-2);
+  white-space: nowrap;
 }
 
 .container-log-auto {

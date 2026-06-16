@@ -29,6 +29,7 @@ from app.modules.containers.schemas import (
     ContainerJobItem,
     ContainerJobListResponse,
     ContainerListResponse,
+    ContainerLogClearResult,
     ImageItem,
     ImageListResponse,
     JobSubmitResponse,
@@ -84,17 +85,18 @@ class ContainerService:
         page: int = 1,
         page_size: int = 20,
     ) -> ContainerListResponse:
-        containers = [_container_item(item) for item in self._client().list_containers()]
+        pairs = [(raw, _container_item(raw)) for raw in self._client().list_containers()]
         if not has_permission(actor, CONTAINER_MANAGE_OTHERS):
-            containers = [item for item in containers if item.owner_user_id == actor.id]
+            pairs = [pair for pair in pairs if pair[1].owner_user_id == actor.id]
         if keyword:
             needle = keyword.lower()
-            containers = [item for item in containers if needle in item.name.lower() or needle in item.image.lower() or needle in item.id.lower()]
+            pairs = [pair for pair in pairs if needle in pair[1].name.lower() or needle in pair[1].image.lower() or needle in pair[1].id.lower()]
         if status:
-            containers = [item for item in containers if item.status == status or item.state == status]
-        containers.sort(key=lambda item: item.name.lower())
-        total = len(containers)
-        items = containers[(page - 1) * page_size : page * page_size]
+            pairs = [pair for pair in pairs if pair[1].status == status or pair[1].state == status]
+        pairs.sort(key=lambda pair: pair[1].name.lower())
+        total = len(pairs)
+        page_pairs = pairs[(page - 1) * page_size : page * page_size]
+        items = _attach_container_stats(page_pairs)
         return ContainerListResponse(items=self._with_container_usernames(items), total=total, page=page, page_size=page_size)
 
     def create_container(self, actor: User, payload: ContainerCreatePayload) -> ContainerItem:
@@ -164,6 +166,30 @@ class ContainerService:
         if isinstance(output, bytes):
             return output.decode("utf-8", errors="replace")
         return str(output)
+
+    def clear_logs(self, actor: User, container_id: str, restart: bool = False) -> ContainerLogClearResult:
+        container = self._get_visible_container(actor, container_id)
+        running = bool((getattr(container, "attrs", {}) or {}).get("State", {}).get("Running", False))
+        # Truncating a running container's log corrupts the json-file reader, so it must be
+        # stopped first; that needs a restart, which we confirm with the user before doing it.
+        if running and not restart:
+            return ContainerLogClearResult(cleared=False, restarted=False, requires_restart=True)
+        try:
+            if running:
+                container.stop()
+            docker_clients.DockerAdapter(getattr(container, "client", None)).truncate_container_log(container)
+            if running:
+                container.start()
+        except Exception as exc:
+            if running:
+                try:
+                    container.start()
+                except Exception:
+                    pass
+            raise bad_request("error.containerLogClearFailed", "Failed to clear container logs") from exc
+        record_audit(self.db, actor.id, "container.clear_logs", "container", container.id, _container_name(container))
+        self.db.commit()
+        return ContainerLogClearResult(cleared=True, restarted=running, requires_restart=False)
 
     def list_images(self, actor: User, keyword: str = "", page: int = 1, page_size: int = 20) -> ImageListResponse:
         images = [_image_item(item) for item in self._client().list_images()]
@@ -429,6 +455,53 @@ def _container_item(container) -> ContainerItem:
         created_at=str(attrs.get("Created", "")),
         owner_user_id=_container_owner(container),
     )
+
+
+def _attach_container_stats(pairs: list[tuple]) -> list[ContainerItem]:
+    running = [(raw, item) for raw, item in pairs if item.status == "running" or item.state == "running"]
+    stats_by_id: dict[str, tuple[float | None, int | None, int | None]] = {}
+    if running:
+        with ThreadPoolExecutor(max_workers=min(8, len(running)), thread_name_prefix="container-stats") as pool:
+            futures = {pool.submit(_read_container_stats, raw): item.id for raw, item in running}
+            for future, container_id in futures.items():
+                try:
+                    stats_by_id[container_id] = future.result(timeout=5)
+                except Exception:
+                    stats_by_id[container_id] = (None, None, None)
+    items: list[ContainerItem] = []
+    for _, item in pairs:
+        cpu, mem_used, mem_limit = stats_by_id.get(item.id, (None, None, None))
+        items.append(item.model_copy(update={"cpu_percent": cpu, "memory_usage": mem_used, "memory_limit": mem_limit}))
+    return items
+
+
+def _read_container_stats(container) -> tuple[float | None, int | None, int | None]:
+    stats = container.stats(stream=False)
+    return _parse_container_stats(stats)
+
+
+def _parse_container_stats(stats: dict) -> tuple[float | None, int | None, int | None]:
+    cpu_stats = stats.get("cpu_stats", {}) or {}
+    precpu_stats = stats.get("precpu_stats", {}) or {}
+    cpu_usage = (cpu_stats.get("cpu_usage", {}) or {}).get("total_usage")
+    precpu_usage = (precpu_stats.get("cpu_usage", {}) or {}).get("total_usage")
+    system = cpu_stats.get("system_cpu_usage")
+    presystem = precpu_stats.get("system_cpu_usage")
+    cpu_percent: float | None = None
+    if None not in (cpu_usage, precpu_usage, system, presystem):
+        cpu_delta = cpu_usage - precpu_usage
+        system_delta = system - presystem
+        online = cpu_stats.get("online_cpus") or len((cpu_stats.get("cpu_usage", {}) or {}).get("percpu_usage") or []) or 1
+        if system_delta > 0 and cpu_delta >= 0:
+            cpu_percent = round(cpu_delta / system_delta * online * 100, 2)
+    memory_stats = stats.get("memory_stats", {}) or {}
+    usage = memory_stats.get("usage")
+    limit = memory_stats.get("limit")
+    cache = (memory_stats.get("stats", {}) or {}).get("inactive_file")
+    if cache is None:
+        cache = (memory_stats.get("stats", {}) or {}).get("cache", 0)
+    mem_used = max(0, usage - cache) if usage is not None else None
+    return cpu_percent, mem_used, limit
 
 
 def _image_item(image) -> ImageItem:

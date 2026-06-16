@@ -66,6 +66,9 @@ class ContainerItem(BaseModel):
     created_at: str = ""
     owner_user_id: int | None = None
     owner_username: str = ""
+    cpu_percent: float | None = None
+    memory_usage: int | None = None
+    memory_limit: int | None = None
 
 
 class ContainerListResponse(BaseModel):
@@ -77,6 +80,12 @@ class ContainerListResponse(BaseModel):
 
 class ContainerLogsResponse(BaseModel):
     logs: str
+
+
+class ContainerLogClearResult(BaseModel):
+    cleared: bool
+    restarted: bool
+    requires_restart: bool
 
 
 class ImageItem(BaseModel):
