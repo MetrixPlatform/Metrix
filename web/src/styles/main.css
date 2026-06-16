@@ -564,19 +564,40 @@ a {
   margin-top: 0;
 }
 
-.n-data-table-td:has(.container-usage-cell),
 .n-data-table-td:has(.container-port-list) {
   white-space: normal;
   overflow: visible;
   vertical-align: top;
 }
 
+.n-data-table-td:has(.container-usage-cell) {
+  white-space: normal;
+  overflow: visible;
+  vertical-align: middle;
+}
+
 .container-usage-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  line-height: 1.5;
+  gap: 4px;
+  line-height: 1.4;
   white-space: nowrap;
+}
+
+.container-usage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.container-usage-key {
+  min-width: 30px;
+  color: var(--text-color-2);
+  font-size: 12px;
+}
+
+.container-usage-val {
+  font-variant-numeric: tabular-nums;
 }
 
 .container-port-list {

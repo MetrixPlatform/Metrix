@@ -196,7 +196,7 @@ const imagePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSize
 const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const containerWidths = reactive({ name: 200, id: 160, image: 200, status: 110, usage: 120, ports: 220, owner: 130, created_at: 170, actions: 88 });
 const expandedPorts = ref<string[]>([]);
-const PORT_PREVIEW_COUNT = 3;
+const PORT_PREVIEW_COUNT = 2;
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
 const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
@@ -474,8 +474,14 @@ function renderUsage(row: ContainerItem) {
     row.memory_usage !== null && row.memory_limit ? `${((row.memory_usage / row.memory_limit) * 100).toFixed(2)}%` : "-";
   const memTitle = row.memory_usage === null ? "" : `${formatFileSize(row.memory_usage)}${row.memory_limit ? ` / ${formatFileSize(row.memory_limit)}` : ""}`;
   return h("div", { class: "container-usage-cell" }, [
-    h("span", `${t("container.field.cpu")}: ${cpu}`),
-    h("span", { title: memTitle }, `${t("container.field.memory")}: ${memPercent}`)
+    h("div", { class: "container-usage-row" }, [
+      h("span", { class: "container-usage-key" }, "CPU"),
+      h("span", { class: "container-usage-val" }, cpu)
+    ]),
+    h("div", { class: "container-usage-row" }, [
+      h("span", { class: "container-usage-key" }, "RAM"),
+      h("span", { class: "container-usage-val", title: memTitle }, memPercent)
+    ])
   ]);
 }
 

@@ -55,8 +55,6 @@
       "status": "Status",
       "ports": "Ports",
       "usage": "Usage",
-      "cpu": "CPU",
-      "memory": "Memory",
       "owner": "Owner",
       "createdAt": "Created",
       "repoTags": "Repo tags",

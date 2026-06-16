@@ -55,8 +55,6 @@
       "status": "状态",
       "ports": "端口",
       "usage": "系统占用",
-      "cpu": "CPU",
-      "memory": "内存",
       "owner": "归属用户",
       "createdAt": "创建时间",
       "repoTags": "仓库标签",
