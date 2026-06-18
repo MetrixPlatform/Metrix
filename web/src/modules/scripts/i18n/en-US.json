@@ -69,6 +69,11 @@
     "moved": "Moved",
     "renamed": "Renamed",
     "moveInvalidTarget": "Cannot move to this location",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedConfirm": "{name} has unsaved changes. Save before closing?",
+    "unsavedConfirmMulti": "{count} files have unsaved changes. Save all before closing?",
+    "saveAndClose": "Save and close",
+    "closeWithoutSaving": "Don't save",
     "editorTab": {
       "close": "Close",
       "closeOthers": "Close others",

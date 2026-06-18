@@ -101,7 +101,7 @@
           size="small"
           class="script-editor-tabs"
           @update:value="(value) => setActive(String(value))"
-          @close="(name) => closeTab(String(name))"
+          @close="(name) => requestCloseTab(String(name))"
         >
           <n-tab
             v-for="file in openFiles"
@@ -696,6 +696,55 @@ function closeAllTabs() {
   clearAutoSaveTimer();
 }
 
+function isDirty(file: OpenFile) {
+  return file.content !== file.savedContent;
+}
+
+// When auto save is off, closing a file with unsaved edits first asks whether to save.
+function requestCloseTab(path: string) {
+  const file = openFiles.value.find((item) => item.path === path);
+  if (!file || autoSaveEnabled.value || !isDirty(file)) {
+    closeTab(path);
+    return;
+  }
+  dialog.warning({
+    title: t("script.unsavedTitle"),
+    content: t("script.unsavedConfirm", { name: file.name }),
+    positiveText: t("script.saveAndClose"),
+    negativeText: t("script.closeWithoutSaving"),
+    onPositiveClick: async () => {
+      await saveFileContent(path, file.content, true);
+      closeTab(path);
+    },
+    onNegativeClick: () => closeTab(path)
+  });
+}
+
+// Bulk close variants prompt once if any of the files being closed have unsaved edits.
+function requestCloseTabs(closing: OpenFile[], doClose: () => void) {
+  const dirty = autoSaveEnabled.value ? [] : closing.filter(isDirty);
+  if (dirty.length === 0) {
+    doClose();
+    return;
+  }
+  dialog.warning({
+    title: t("script.unsavedTitle"),
+    content:
+      dirty.length === 1
+        ? t("script.unsavedConfirm", { name: dirty[0].name })
+        : t("script.unsavedConfirmMulti", { count: dirty.length }),
+    positiveText: t("script.saveAndClose"),
+    negativeText: t("script.closeWithoutSaving"),
+    onPositiveClick: async () => {
+      for (const file of dirty) {
+        await saveFileContent(file.path, file.content, true);
+      }
+      doClose();
+    },
+    onNegativeClick: () => doClose()
+  });
+}
+
 async function saveFile() {
   const file = activeFile.value;
   if (!file) return;
@@ -758,11 +807,19 @@ function handleTabMenuSelect(key: string) {
   tabMenu.show = false;
   const path = tabMenu.path;
   if (!path) return;
-  if (key === "close") closeTab(path);
-  else if (key === "closeOthers") closeOtherTabs(path);
-  else if (key === "closeLeft") closeTabsToSide(path, "left");
-  else if (key === "closeRight") closeTabsToSide(path, "right");
-  else if (key === "closeAll") closeAllTabs();
+  if (key === "close") {
+    requestCloseTab(path);
+  } else if (key === "closeOthers") {
+    requestCloseTabs(openFiles.value.filter((file) => file.path !== path), () => closeOtherTabs(path));
+  } else if (key === "closeLeft") {
+    const index = openFiles.value.findIndex((file) => file.path === path);
+    requestCloseTabs(index > 0 ? openFiles.value.slice(0, index) : [], () => closeTabsToSide(path, "left"));
+  } else if (key === "closeRight") {
+    const index = openFiles.value.findIndex((file) => file.path === path);
+    requestCloseTabs(index >= 0 ? openFiles.value.slice(index + 1) : [], () => closeTabsToSide(path, "right"));
+  } else if (key === "closeAll") {
+    requestCloseTabs([...openFiles.value], () => closeAllTabs());
+  }
 }
 
 function scheduleAutoSave(path: string, content: string) {
@@ -886,7 +943,10 @@ async function confirmRename() {
 
 async function handleTreeDrop({ node, dragNode, dropPosition }: TreeDropInfo) {
   const sourcePath = String(dragNode.key);
-  const targetDir = dropPosition === "inside" && !node.isLeaf ? String(node.key) : nodeDir(node);
+  // Drop "inside" a folder targets that folder; "before"/"after" (or onto a file) targets the drop
+  // node's parent directory, so dropping next to a top-level node moves the file to the root ("/").
+  const targetDir =
+    dropPosition === "inside" && !node.isLeaf ? String(node.key) : parentPath(String(node.key));
   if (parentPath(sourcePath) === targetDir) return;
   if (!dragNode.isLeaf && (targetDir === sourcePath || targetDir.startsWith(sourcePath.replace(/\/+$/, "") + "/"))) {
     message.warning(t("script.moveInvalidTarget"));

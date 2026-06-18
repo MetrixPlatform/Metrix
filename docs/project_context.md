@@ -1032,3 +1032,10 @@
 - 终端 fit 时机：除原有 `watch(active)`(切到终端) 与 `ResizeObserver`(容器尺寸变)，新增 `window` `resize` 监听（active+connected 时 `fit()`+`sendResize()`）；面板展开仍由 `togglePanel` 派发 `window resize` 触发，覆盖「切到终端/面板展开/窗口 resize」三种 fit 场景。
 - i18n：`script.tab.config`（配置/Config）、`script.configHint`（配置运行命令提示）；运行按钮空命令提示复用既有 `script.runCommandMissing`。
 - 验证：`npm run typecheck`、`npm run build` 通过；改动文件 ReadLints 无报错。本轮无新增依赖。只修改并提交，不推送；与本任务无关的 `server/app/core/permissions.py`、`web/src/config/permissions.ts`、`dev.bat` 保持原样不纳入提交。
+
+## 2026-06-19：脚本工作台修复拖拽到根目录 + 关闭未保存文件提示
+
+- 拖拽到根目录修复：`ScriptWorkbenchView.handleTreeDrop` 原 `targetDir` 用 `nodeDir(node)`（文件夹→自身），导致把文件拖到顶层节点的 before/after 时落到该文件夹而非根目录，无法移到根。改为：`inside` 文件夹→该文件夹；其余（before/after 或落在文件上）→ `parentPath(node.key)`（成为该节点的同级目录），顶层节点的 parent 即 `/`，从而支持移动到工作区根目录。后端 `move_entries` 经 `_virtual_path("/")` 已正确解析根目录，无需改动。
+- 关闭未保存文件提示：仅在「自动保存关闭」时生效。脏判定复用既有 `content !== savedContent`（抽出 `isDirty`）。新增 `requestCloseTab`（单标签）与 `requestCloseTabs`（关闭其他/左/右/全部的批量场景）；关闭含未保存修改的文件时弹 `dialog.warning`：保存并关闭 / 不保存 / 取消（点 X 或遮罩=取消、不关闭）。编辑器标签 `@close` 与右键菜单各关闭项均改走 request 版本；删除文件仍走原有删除确认、不重复提示。
+- i18n：新增 `script.unsavedTitle/unsavedConfirm/unsavedConfirmMulti/saveAndClose/closeWithoutSaving`（中英文同步）。
+- 验证：改动文件 ReadLints 无报错。只修改并提交，不推送；无关的权限文件与 `dev.bat` 不纳入提交。
