@@ -115,7 +115,7 @@ def test_installed_database_auto_syncs_new_tables_and_permissions(tmp_path, monk
         conn.execute(text("DROP TABLE announcement_reads"))
         conn.execute(text("DROP TABLE announcements"))
         conn.execute(text("DELETE FROM role_permissions WHERE permission_id IN (SELECT id FROM permissions WHERE resource = 'announcement')"))
-        conn.execute(text("DELETE FROM permissions WHERE resource = 'announcement' OR code = 'route:announcements'"))
+        conn.execute(text("DELETE FROM permissions WHERE resource = 'announcement'"))
     engine.dispose()
     reset_engine()
 
@@ -127,7 +127,7 @@ def test_installed_database_auto_syncs_new_tables_and_permissions(tmp_path, monk
     assert announcements.json()["total"] == 0
 
     permissions = client.get("/api/permissions", headers=headers)
-    assert "route:announcements" in {item["code"] for item in permissions.json()}
+    assert "action:announcement:read" in {item["code"] for item in permissions.json()}
 
 
 def test_database_column_sync_records_migration_history(tmp_path, monkeypatch):
@@ -486,45 +486,37 @@ def test_app_config_defaults_and_env_override(monkeypatch):
     get_settings.cache_clear()
 
 
-def test_permission_specs_generate_codes_and_route_read_mapping():
+def test_permission_specs_generate_codes_and_read_gateway():
     from app.core.permissions import (
-        AUDIT_LOG_MANAGE_OTHERS,
-        AUDIT_LOG_READ,
         ANNOUNCEMENT_MANAGE_OTHERS,
-        ANNOUNCEMENT_READ,
         API_DOCS_READ,
         API_TOKEN_CREATE,
         API_TOKEN_DELETE,
         API_TOKEN_READ,
+        AUDIT_LOG_MANAGE_OTHERS,
+        AUDIT_LOG_READ,
+        DASHBOARD_READ,
         DEPRECATED_PERMISSION_CODES,
         PERMISSION_SEEDS,
-        ROLE_READ,
-        ROUTE_API_DOCS,
-        ROUTE_AUDIT_LOGS,
-        ROUTE_ANNOUNCEMENTS,
-        ROUTE_PERMISSIONS,
-        ROUTE_SETTINGS,
-        ROUTE_TOKENS,
-        ROUTE_READ_PERMISSIONS,
-        ROUTE_USERS,
         SETTING_OPERATE,
         SETTING_READ,
         SETTING_UPDATE,
         USER_READ,
         action_code,
         expand_permissions,
-        route_code,
     )
 
     seeds_by_code = {seed.code: seed for seed in PERMISSION_SEEDS}
 
     assert len(seeds_by_code) == len(PERMISSION_SEEDS)
-    assert route_code("tasks") == "route:tasks"
     assert action_code("task", "start") == "action:task:start"
-    assert seeds_by_code[ROUTE_USERS].type == "route"
-    assert seeds_by_code[ROUTE_USERS].name == "permission.route:users"
-    assert seeds_by_code[ROUTE_USERS].group_name == "permission.group.page"
-    assert seeds_by_code[ROUTE_USERS].description == "permission.description.route:users"
+    # 页面权限已退役：seed 中不再有任何 route:* code，全部为资源动作权限。
+    assert not any(code.startswith("route:") for code in seeds_by_code)
+    assert all(seed.type == "action" for seed in PERMISSION_SEEDS)
+    # 首页改为一个 dashboard 资源的查询权限。
+    assert seeds_by_code[DASHBOARD_READ].type == "action"
+    assert seeds_by_code[DASHBOARD_READ].name == "permission.action:dashboard:read"
+    assert seeds_by_code[DASHBOARD_READ].group_name == "permission.group.dashboard"
     assert seeds_by_code[USER_READ].type == "action"
     assert seeds_by_code[USER_READ].name == "permission.action:user:read"
     assert seeds_by_code[USER_READ].group_name == "permission.group.user"
@@ -545,22 +537,11 @@ def test_permission_specs_generate_codes_and_route_read_mapping():
     assert seeds_by_code[API_DOCS_READ].resource == "api_docs"
     assert "action:announcement:operate" in DEPRECATED_PERMISSION_CODES
     assert "action:announcement:operate" not in seeds_by_code
-    assert ROUTE_READ_PERMISSIONS == {
-        ROUTE_USERS: USER_READ,
-        ROUTE_PERMISSIONS: ROLE_READ,
-        ROUTE_ANNOUNCEMENTS: ANNOUNCEMENT_READ,
-        ROUTE_AUDIT_LOGS: AUDIT_LOG_READ,
-        ROUTE_SETTINGS: SETTING_READ,
-        ROUTE_TOKENS: API_TOKEN_READ,
-        ROUTE_API_DOCS: API_DOCS_READ,
-        route_code("storage"): action_code("storage", "read"),
-        route_code("database"): action_code("database", "read"),
-        route_code("containers"): action_code("container", "read"),
-        route_code("scripts"): action_code("script", "read"),
-        route_code("demo_crud"): action_code("demo_item", "read"),
-    }
-    assert expand_permissions({ROUTE_USERS}) == {ROUTE_USERS, USER_READ}
-    assert expand_permissions({ROUTE_TOKENS, ROUTE_API_DOCS}) == {ROUTE_TOKENS, API_TOKEN_READ, ROUTE_API_DOCS, API_DOCS_READ}
+    # 持有某资源的任意操作权限即自动补齐该资源的查询(read)权限（页面网关）。
+    assert expand_permissions({action_code("user", "update")}) == {action_code("user", "update"), USER_READ}
+    assert expand_permissions({API_TOKEN_CREATE}) == {API_TOKEN_CREATE, API_TOKEN_READ}
+    # 只持有查询权限时不会引入额外权限。
+    assert expand_permissions({USER_READ}) == {USER_READ}
 
 
 def test_app_modules_register_permissions_routers_and_openapi_filters():
@@ -568,7 +549,6 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
         get_app_modules,
         get_openapi_hidden_path_prefixes,
         get_openapi_hidden_tags,
-        get_page_permission_specs,
         get_resource_permission_specs,
         get_table_column_syncs,
         load_module_routers,
@@ -583,8 +563,7 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
     assert "app.modules.containers.api:instances_router" in routers_by_module["containers"]
     assert "app.modules.scripts.api:router" in routers_by_module["scripts"]
     assert "app.modules.demo_crud.api:router" in routers_by_module["demo_crud"]
-    assert {spec.code for spec in get_page_permission_specs()} >= {"route:dashboard", "route:users", "route:storage", "route:database", "route:containers", "route:scripts", "route:demo_crud"}
-    assert {spec.resource for spec in get_resource_permission_specs()} >= {"user", "role", "announcement", "storage", "database", "sql_script", "container", "script", "demo_item"}
+    assert {spec.resource for spec in get_resource_permission_specs()} >= {"dashboard", "user", "role", "announcement", "storage", "database", "sql_script", "container", "script", "demo_item"}
     models_by_module = {module.key: module.model_paths for module in modules}
     assert "app.modules.storage.models" in models_by_module["storage"]
     assert "app.modules.database.models" in models_by_module["database"]
@@ -608,17 +587,14 @@ def test_app_modules_register_permissions_routers_and_openapi_filters():
 
 
 def test_app_modules_can_be_filtered_by_environment(monkeypatch):
-    from app.modules.registry import get_app_modules, get_page_permission_specs
+    from app.modules.registry import get_app_modules, get_resource_permission_specs
 
     monkeypatch.setenv("METRIX_DISABLED_MODULES", "demo_crud,storage,database,containers,scripts")
     get_app_modules.cache_clear()
     try:
         assert [module.key for module in get_app_modules()] == ["core"]
-        assert "route:demo_crud" not in {spec.code for spec in get_page_permission_specs()}
-        assert "route:storage" not in {spec.code for spec in get_page_permission_specs()}
-        assert "route:database" not in {spec.code for spec in get_page_permission_specs()}
-        assert "route:containers" not in {spec.code for spec in get_page_permission_specs()}
-        assert "route:scripts" not in {spec.code for spec in get_page_permission_specs()}
+        resources = {spec.resource for spec in get_resource_permission_specs()}
+        assert resources.isdisjoint({"demo_item", "storage", "database", "sql_script", "container", "script"})
     finally:
         get_app_modules.cache_clear()
 
@@ -900,7 +876,7 @@ def test_admin_login_and_dashboard(tmp_path, monkeypatch):
 
     me = client.get("/api/auth/me", headers=headers)
     assert me.status_code == 200
-    assert "route:dashboard" in me.json()["permissions"]
+    assert "action:dashboard:read" in me.json()["permissions"]
 
     summary = client.get("/api/dashboard/summary", headers=headers)
     assert summary.status_code == 200
@@ -1097,9 +1073,9 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
 
     permissions = client.get("/api/permissions", headers=admin_headers).json()
     assert "route:approvals" not in {item["code"] for item in permissions}
-    users_route = next(item for item in permissions if item["code"] == "route:users")
+    users_read = next(item for item in permissions if item["code"] == "action:user:read")
     user_operate = next(item for item in permissions if item["code"] == "action:user:operate")
-    assign = client.put(f"/api/roles/{role_id}/permissions", json={"permission_ids": [users_route["id"], user_operate["id"]]}, headers=admin_headers)
+    assign = client.put(f"/api/roles/{role_id}/permissions", json={"permission_ids": [users_read["id"], user_operate["id"]]}, headers=admin_headers)
     assert assign.status_code == 200
 
     user = client.post(
@@ -1120,7 +1096,7 @@ def test_role_permission_controls_route_and_read_permission(tmp_path, monkeypatc
 
     reader_headers = login(client, "reader", "Reader123")
     me = client.get("/api/auth/me", headers=reader_headers).json()
-    assert "route:users" in me["permissions"]
+    assert "action:user:operate" in me["permissions"]
     assert "action:user:read" in me["permissions"]
     assert client.get("/api/users", headers=reader_headers).status_code == 200
     role_options = client.get("/api/users/role-options", headers=reader_headers)
@@ -1142,7 +1118,7 @@ def test_demo_crud_module_covers_permissions_audit_and_owner_scope(tmp_path, mon
     permissions = client.get("/api/permissions", headers=admin_headers).json()
     permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
     demo_base_codes = {
-        "route:demo_crud",
+        "action:demo_item:read",
         "action:demo_item:create",
         "action:demo_item:read",
         "action:demo_item:update",
@@ -1198,7 +1174,7 @@ def test_demo_crud_module_covers_permissions_audit_and_owner_scope(tmp_path, mon
     owner_headers = login(client, "demo_owner", "DemoPass123")
     other_headers = login(client, "demo_other", "DemoPass123")
     me = client.get("/api/auth/me", headers=owner_headers).json()
-    assert "route:demo_crud" in me["permissions"]
+    assert "action:demo_item:read" in me["permissions"]
     assert "action:demo_item:read" in me["permissions"]
 
     owner_item = client.post(
@@ -1253,10 +1229,10 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     permissions = client.get("/api/permissions", headers=admin_headers).json()
     permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
     for code in [
-        "route:dashboard",
-        "route:tokens",
-        "route:api_docs",
-        "route:announcements",
+        "action:dashboard:read",
+        "action:api_token:read",
+        "action:api_docs:read",
+        "action:announcement:read",
         "action:announcement:create",
         "action:api_token:create",
         "action:api_token:delete",
@@ -1276,10 +1252,10 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
             "permission_ids": [
                 permission_ids_by_code[code]
                 for code in [
-                    "route:dashboard",
-                    "route:tokens",
-                    "route:api_docs",
-                    "route:announcements",
+                    "action:dashboard:read",
+                    "action:api_token:read",
+                    "action:api_docs:read",
+                    "action:announcement:read",
                     "action:announcement:create",
                     "action:api_token:create",
                     "action:api_token:delete",
@@ -1308,7 +1284,7 @@ def test_api_tokens_follow_role_permissions_and_api_feature_toggle(tmp_path, mon
     user_headers = login(client, "api_user", "ApiPass123")
 
     me = client.get("/api/auth/me", headers=user_headers).json()
-    assert "route:tokens" in me["permissions"]
+    assert "action:api_token:read" in me["permissions"]
     assert "action:api_token:read" in me["permissions"]
     assert "action:api_docs:read" in me["permissions"]
 
@@ -1737,7 +1713,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
 
     permissions = client.get("/api/permissions", headers=admin_headers).json()
     permission_ids_by_code = {item["code"]: item["id"] for item in permissions}
-    assert "route:audit_logs" in permission_ids_by_code
+    assert "action:audit_log:read" in permission_ids_by_code
     assert "action:audit_log:read" in permission_ids_by_code
     assert "action:audit_log:manage_others" in permission_ids_by_code
 
@@ -1750,7 +1726,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     role_id = role.json()["id"]
     assign = client.put(
         f"/api/roles/{role_id}/permissions",
-        json={"permission_ids": [permission_ids_by_code["route:audit_logs"]]},
+        json={"permission_ids": [permission_ids_by_code["action:audit_log:read"]]},
         headers=admin_headers,
     )
     assert assign.status_code == 200
@@ -1773,7 +1749,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
     reader_headers = login(client, "audit_reader", "Audit123")
 
     me = client.get("/api/auth/me", headers=reader_headers).json()
-    assert "route:audit_logs" in me["permissions"]
+    assert "action:audit_log:read" in me["permissions"]
     assert "action:audit_log:read" in me["permissions"]
 
     self_logs = client.get("/api/audit-logs", headers=reader_headers)
@@ -1793,7 +1769,7 @@ def test_audit_logs_scope_permission_controls_owner_filter(tmp_path, monkeypatch
         f"/api/roles/{role_id}/permissions",
         json={
             "permission_ids": [
-                permission_ids_by_code["route:audit_logs"],
+                permission_ids_by_code["action:audit_log:read"],
                 permission_ids_by_code["action:audit_log:manage_others"],
             ]
         },

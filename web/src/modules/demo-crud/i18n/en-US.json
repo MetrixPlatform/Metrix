@@ -9,7 +9,6 @@
     "group": {
       "demoCrud": "CRUD Demo"
     },
-    "route:demo_crud": "CRUD Demo",
     "action:demo_item:create": "Create demo items",
     "action:demo_item:read": "Read demo items",
     "action:demo_item:update": "Update demo items",

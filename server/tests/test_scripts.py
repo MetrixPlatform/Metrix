@@ -6,7 +6,6 @@ import zipfile
 from test_auth_rbac import create_client, install_sqlite, login, page_items
 
 SCRIPT_BASE_CODES = {
-    "route:scripts",
     "action:script:create",
     "action:script:read",
     "action:script:update",

@@ -76,7 +76,7 @@ function write(filePath, content) {
 function webIndexTemplate() {
   return render(`import { Database20Regular } from "@vicons/fluent";
 
-import { defineMenuGroup, defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineMenuGroup, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "__KEBAB__",
@@ -92,7 +92,7 @@ export default defineModule({
       path: "/__KEBAB__",
       titleKey: "route.__CAMEL__",
       component: () => import("./views/__PASCAL__View.vue"),
-      permission: routePermission("__SNAKE__"),
+      permission: actionPermission("__SNAKE__", "read"),
       fallbackOrder: 80,
       menu: { group: "__CAMEL__Group", icon: Database20Regular, order: 10 }
     })
@@ -481,7 +481,7 @@ function isCreatorFilter(value: unknown): value is CreatorFilter {
 }
 
 function serverInitTemplate() {
-  return render(`from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+  return render(`from app.core.module import AppModule, action_code, define_module, resource_action, resource_permissions
 
 __CONSTANT___CREATE = action_code("__SNAKE__", "create")
 __CONSTANT___READ = action_code("__SNAKE__", "read")
@@ -497,9 +497,6 @@ APP_MODULE = define_module(
         dependencies=("core",),
         router_paths=("app.modules.__SNAKE__.api:router",),
         model_paths=("app.modules.__SNAKE__.models",),
-        page_permissions=(
-            page_permission("__SNAKE__", "__SNAKE__", 1000, __CONSTANT___READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "__SNAKE__",
@@ -848,7 +845,6 @@ def test___SNAKE___crud_module(tmp_path, monkeypatch):
     permissions = client.get("/api/permissions", headers=headers).json()
     codes = {item["code"] for item in permissions}
     assert {
-        "route:__SNAKE__",
         "action:__SNAKE__:create",
         "action:__SNAKE__:read",
         "action:__SNAKE__:update",
@@ -896,7 +892,6 @@ function zhLocale() {
       group: {
         [camel]: zhTitle
       },
-      [`route:${snake}`]: zhTitle,
       [`action:${snake}:create`]: `新增${zhTitle}`,
       [`action:${snake}:read`]: `查询${zhTitle}`,
       [`action:${snake}:update`]: `修改${zhTitle}`,
@@ -956,7 +951,6 @@ function enLocale() {
       group: {
         [camel]: enTitle
       },
-      [`route:${snake}`]: enTitle,
       [`action:${snake}:create`]: `Create ${enTitle}`,
       [`action:${snake}:read`]: `Read ${enTitle}`,
       [`action:${snake}:update`]: `Update ${enTitle}`,

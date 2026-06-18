@@ -6,7 +6,6 @@
     "group": {
       "script": "Scripts"
     },
-    "route:scripts": "Scripts",
     "action:script:create": "Create script project",
     "action:script:read": "View scripts and runs",
     "action:script:update": "Update script project",

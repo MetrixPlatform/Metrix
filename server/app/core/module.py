@@ -3,10 +3,6 @@ from dataclasses import dataclass
 MODULE_LIFECYCLE_EVENTS = {"install", "upgrade", "disable", "uninstall"}
 
 
-def route_code(page: str) -> str:
-    return f"route:{page}"
-
-
 def action_code(resource: str, action: str) -> str:
     return f"action:{resource}:{action}"
 
@@ -32,25 +28,6 @@ class PermissionSeed:
     group_name: str
     description: str
     sort_order: int
-
-
-@dataclass(frozen=True)
-class PagePermissionSpec:
-    code: str
-    resource: str
-    sort_order: int
-    read_permission: str | None = None
-
-    def to_seed(self) -> PermissionSeed:
-        return PermissionSeed(
-            self.code,
-            permission_name_key(self.code),
-            "route",
-            self.resource,
-            permission_group_key("page"),
-            permission_description_key(self.code),
-            self.sort_order,
-        )
 
 
 @dataclass(frozen=True)
@@ -90,7 +67,6 @@ class AppModule:
     dependencies: tuple[str, ...] = ()
     router_paths: tuple[str, ...] = ()
     model_paths: tuple[str, ...] = ()
-    page_permissions: tuple[PagePermissionSpec, ...] = ()
     resource_permissions: tuple[ResourcePermissionSpec, ...] = ()
     table_syncs: tuple["TableColumnSync", ...] = ()
     migrations: tuple["MigrationStep", ...] = ()
@@ -122,15 +98,6 @@ class ModuleLifecycleHook:
 
 def define_module(module: AppModule) -> AppModule:
     return module
-
-
-def page_permission(
-    page: str,
-    resource: str,
-    sort_order: int,
-    read_permission: str | None = None,
-) -> PagePermissionSpec:
-    return PagePermissionSpec(route_code(page), resource, sort_order, read_permission)
 
 
 def resource_permissions(

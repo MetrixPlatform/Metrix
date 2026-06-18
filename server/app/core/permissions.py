@@ -1,15 +1,8 @@
-from app.core.module import action_code, route_code
-from app.modules.registry import get_page_permission_specs, get_resource_permission_specs
+from app.core.module import action_code
+from app.modules.registry import get_resource_permission_specs
 
 
-ROUTE_DASHBOARD = route_code("dashboard")
-ROUTE_USERS = route_code("users")
-ROUTE_PERMISSIONS = route_code("permissions")
-ROUTE_ANNOUNCEMENTS = route_code("announcements")
-ROUTE_AUDIT_LOGS = route_code("audit_logs")
-ROUTE_SETTINGS = route_code("settings")
-ROUTE_TOKENS = route_code("tokens")
-ROUTE_API_DOCS = route_code("api_docs")
+DASHBOARD_READ = action_code("dashboard", "read")
 
 USER_CREATE = action_code("user", "create")
 USER_READ = action_code("user", "read")
@@ -44,28 +37,24 @@ API_DOCS_READ = action_code("api_docs", "read")
 ADMIN_ROLE = "admin"
 USER_ROLE = "user"
 
-DEPRECATED_PERMISSION_CODES = {"route:approvals", "action:announcement:operate"}
-
-
-PAGE_PERMISSION_SPECS = get_page_permission_specs()
+# route:* 页面权限已退役（页面/导航改由资源的查询权限充当网关）；历史 route:* 行由
+# db/init.py 的清理逻辑删除，这里只保留非 route 的废弃 code。
+DEPRECATED_PERMISSION_CODES = {"action:announcement:operate"}
 
 RESOURCE_PERMISSION_SPECS = get_resource_permission_specs()
 
-ROUTE_READ_PERMISSIONS = {
-    spec.code: spec.read_permission
-    for spec in PAGE_PERMISSION_SPECS
-    if spec.read_permission
-}
-
-PERMISSION_SEEDS = (
-    *(spec.to_seed() for spec in PAGE_PERMISSION_SPECS),
-    *(seed for spec in RESOURCE_PERMISSION_SPECS for seed in spec.to_seeds()),
-)
+PERMISSION_SEEDS = tuple(seed for spec in RESOURCE_PERMISSION_SPECS for seed in spec.to_seeds())
 
 
 def expand_permissions(codes: set[str]) -> set[str]:
+    # 页面/导航由资源的查询(read)权限充当网关：持有某资源的任意操作权限
+    # （action:<resource>:<verb>）即视为可访问该资源对应页面，自动补齐其 read 权限，
+    # 因此授予了能力后无需再单独勾选页面权限。
     expanded = set(codes)
-    for route_permission, read_permission in ROUTE_READ_PERMISSIONS.items():
-        if route_permission in expanded:
-            expanded.add(read_permission)
+    for code in codes:
+        if not code.startswith("action:"):
+            continue
+        parts = code.split(":", 2)
+        if len(parts) == 3:
+            expanded.add(action_code(parts[1], "read"))
     return expanded

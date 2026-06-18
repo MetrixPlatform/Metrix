@@ -6,7 +6,6 @@
     "group": {
       "database": "数据库管理"
     },
-    "route:database": "数据库管理",
     "action:database:create": "新增数据库连接",
     "action:database:read": "查询数据库",
     "action:database:update": "修改数据库连接",

@@ -1,20 +1,10 @@
 from app.core.module import (
     AppModule,
-    action_code,
     define_module,
-    page_permission,
     resource_action,
     resource_permissions,
     table_column_sync,
 )
-
-USER_READ = action_code("user", "read")
-ROLE_READ = action_code("role", "read")
-ANNOUNCEMENT_READ = action_code("announcement", "read")
-AUDIT_LOG_READ = action_code("audit_log", "read")
-SETTING_READ = action_code("setting", "read")
-API_TOKEN_READ = action_code("api_token", "read")
-API_DOCS_READ = action_code("api_docs", "read")
 
 APP_MODULE = define_module(
     AppModule(
@@ -32,17 +22,15 @@ APP_MODULE = define_module(
             "app.api.users:router",
             "app.api.roles:router",
         ),
-        page_permissions=(
-            page_permission("dashboard", "dashboard", 10),
-            page_permission("users", "user", 20, USER_READ),
-            page_permission("permissions", "role", 30, ROLE_READ),
-            page_permission("announcements", "announcement", 40, ANNOUNCEMENT_READ),
-            page_permission("audit_logs", "audit_log", 50, AUDIT_LOG_READ),
-            page_permission("settings", "setting", 60, SETTING_READ),
-            page_permission("tokens", "api_token", 70, API_TOKEN_READ),
-            page_permission("api_docs", "api_docs", 80, API_DOCS_READ),
-        ),
         resource_permissions=(
+            resource_permissions(
+                "dashboard",
+                "dashboard",
+                50,
+                (
+                    resource_action("read", 20),
+                ),
+            ),
             resource_permissions(
                 "user",
                 "user",

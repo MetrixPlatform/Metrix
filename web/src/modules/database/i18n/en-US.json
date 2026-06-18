@@ -6,7 +6,6 @@
     "group": {
       "database": "Database"
     },
-    "route:database": "Databases",
     "action:database:create": "Create database connections",
     "action:database:read": "Read databases",
     "action:database:update": "Update database connections",

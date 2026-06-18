@@ -3,7 +3,7 @@ import json
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.core.permissions import ADMIN_ROLE, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, ROUTE_DASHBOARD, USER_ROLE
+from app.core.permissions import ADMIN_ROLE, DASHBOARD_READ, DEPRECATED_PERMISSION_CODES, PERMISSION_SEEDS, USER_ROLE
 from app.core.security import hash_password
 from app.db.base import Base
 from app.models import Permission, Role, User
@@ -58,7 +58,7 @@ def sync_seed_data(db: Session) -> tuple[dict[str, Permission], Role]:
     user_role = _ensure_role(db, USER_ROLE, "role.user.name", "role.user.description", True)
     admin_role.permissions = list(permissions_by_code.values())
     if not user_role.permissions:
-        user_role.permissions = [permissions_by_code[ROUTE_DASHBOARD]]
+        user_role.permissions = [permissions_by_code[DASHBOARD_READ]]
     return permissions_by_code, admin_role
 
 
@@ -223,6 +223,7 @@ def _sync_permission_seeds(db: Session) -> dict[str, Permission]:
             permission.description = seed.description
             permission.sort_order = seed.sort_order
         permissions_by_code[seed.code] = permission
+    _delete_legacy_route_permissions(db)
     _delete_deprecated_permissions(db)
     db.flush()
     return permissions_by_code
@@ -244,6 +245,14 @@ def _delete_deprecated_permissions(db: Session) -> None:
     if not DEPRECATED_PERMISSION_CODES:
         return
     permissions = db.query(Permission).filter(Permission.code.in_(DEPRECATED_PERMISSION_CODES)).all()
+    for permission in permissions:
+        permission.roles.clear()
+        db.delete(permission)
+
+
+def _delete_legacy_route_permissions(db: Session) -> None:
+    # route:* 页面权限已退役（页面/导航改由资源的查询权限充当网关），清理历史遗留行。
+    permissions = db.query(Permission).filter(Permission.code.like("route:%")).all()
     for permission in permissions:
         permission.roles.clear()
         db.delete(permission)

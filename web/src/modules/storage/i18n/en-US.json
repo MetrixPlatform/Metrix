@@ -6,7 +6,6 @@
     "group": {
       "storage": "Storage"
     },
-    "route:storage": "Storage",
     "action:storage:create": "Create storage connections",
     "action:storage:read": "Read storage and files",
     "action:storage:update": "Update storage connections",

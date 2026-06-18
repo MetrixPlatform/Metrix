@@ -1,4 +1,4 @@
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import AppModule, action_code, define_module, resource_action, resource_permissions
 
 DEMO_ITEM_CREATE = action_code("demo_item", "create")
 DEMO_ITEM_READ = action_code("demo_item", "read")
@@ -14,9 +14,6 @@ APP_MODULE = define_module(
         dependencies=("core",),
         router_paths=("app.modules.demo_crud.api:router",),
         model_paths=("app.modules.demo_crud.models",),
-        page_permissions=(
-            page_permission("demo_crud", "demo_item", 900, DEMO_ITEM_READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "demo_item",

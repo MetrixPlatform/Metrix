@@ -9,7 +9,6 @@
     "group": {
       "demoCrud": "CRUD 示例"
     },
-    "route:demo_crud": "CRUD 示例",
     "action:demo_item:create": "新增示例数据",
     "action:demo_item:read": "查询示例数据",
     "action:demo_item:update": "修改示例数据",

@@ -46,10 +46,6 @@ export function defineMenuGroup(group: AppMenuGroup) {
   return group;
 }
 
-export function routePermission(page: string) {
-  return `route:${page}`;
-}
-
 export function actionPermission(resource: string, action: string) {
   return `action:${resource}:${action}`;
 }

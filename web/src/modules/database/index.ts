@@ -1,6 +1,6 @@
 import { Database20Regular } from "@vicons/fluent";
 
-import { defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "database",
@@ -13,7 +13,7 @@ export default defineModule({
       path: "/database",
       titleKey: "route.database",
       component: () => import("./views/DatabaseManageView.vue"),
-      permission: routePermission("database"),
+      permission: actionPermission("database", "read"),
       fallbackOrder: 86,
       menu: { icon: Database20Regular, order: 30 }
     })

@@ -1,4 +1,4 @@
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import AppModule, action_code, define_module, resource_action, resource_permissions
 
 CONTAINER_CREATE = action_code("container", "create")
 CONTAINER_READ = action_code("container", "read")
@@ -20,9 +20,6 @@ APP_MODULE = define_module(
             "app.modules.containers.api:jobs_router",
         ),
         model_paths=("app.modules.containers.models",),
-        page_permissions=(
-            page_permission("containers", "container", 875, CONTAINER_READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "container",

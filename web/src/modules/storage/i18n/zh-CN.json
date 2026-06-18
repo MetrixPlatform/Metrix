@@ -6,7 +6,6 @@
     "group": {
       "storage": "储存管理"
     },
-    "route:storage": "储存管理",
     "action:storage:create": "新增储存连接",
     "action:storage:read": "查询储存与文件",
     "action:storage:update": "修改储存连接",

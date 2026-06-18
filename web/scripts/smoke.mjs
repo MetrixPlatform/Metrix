@@ -75,7 +75,11 @@ function assertModuleGraph(entries) {
     menuGroups.push(...matches(entry, /defineMenuGroup\(\s*\{\s*key:\s*["']([^"']+)["']/g));
     pageKeys.push(...matches(entry, /definePage\(\s*\{\s*key:\s*["']([^"']+)["']/g));
     pagePaths.push(...matches(entry, /\bpath:\s*["']([^"']+)["']/g));
-    pagePermissions.push(...matches(entry, /\bpermission:\s*routePermission\(\s*["']([^"']+)["']\s*\)/g).map((code) => `route:${code}`));
+    pagePermissions.push(
+      ...matches(entry, /\bpermission:\s*actionPermission\(\s*["']([^"']+)["']\s*,\s*["']([^"']+)["']\s*\)/g).map(
+        ([resource, action]) => `action:${resource}:${action}`
+      )
+    );
     pageMenuGroups.push(...matches(entry, /\bmenu:\s*\{[^}]*\bgroup:\s*["']([^"']+)["']/gs));
   }
 
@@ -153,7 +157,6 @@ function requiredTranslationKeys(moduleEntry) {
   const keys = [
     ...matches(moduleEntry, /\btitleKey:\s*["']([^"']+)["']/g),
     ...matches(moduleEntry, /\blabelKey:\s*["']([^"']+)["']/g),
-    ...matches(moduleEntry, /\broutePermission\(\s*["']([^"']+)["']\s*\)/g).map((code) => `permission.route:${code}`),
     ...matches(moduleEntry, /\bactionPermission\(\s*["']([^"']+)["']\s*,\s*["']([^"']+)["']\s*\)/g).map(
       ([resource, action]) => `permission.action:${resource}:${action}`
     )

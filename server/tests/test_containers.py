@@ -6,7 +6,6 @@ from app.core.permissions import ADMIN_ROLE
 from app.modules.containers import CONTAINER_MANAGE_OTHERS
 
 CONTAINER_CODES = {
-    "route:containers",
     "action:container:create",
     "action:container:read",
     "action:container:update",

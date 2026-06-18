@@ -12,7 +12,6 @@ from app.core.module import (
     MODULE_LIFECYCLE_EVENTS,
     AppModule,
     MigrationStep,
-    PagePermissionSpec,
     ResourcePermissionSpec,
     TableColumnSync,
 )
@@ -42,10 +41,6 @@ def get_app_modules() -> tuple[AppModule, ...]:
     sorted_modules = tuple(_filter_modules(get_discovered_app_modules()))
     validate_app_modules(sorted_modules)
     return sorted_modules
-
-
-def get_page_permission_specs() -> tuple[PagePermissionSpec, ...]:
-    return tuple(spec for module in get_app_modules() for spec in module.page_permissions)
 
 
 def get_resource_permission_specs() -> tuple[ResourcePermissionSpec, ...]:
@@ -138,7 +133,6 @@ def validate_app_modules(modules: tuple[AppModule, ...]) -> None:
             for column in sync.columns
         ),
     )
-    _ensure_unique("page permission code", (spec.code for module in modules for spec in module.page_permissions))
     _ensure_unique(
         "resource permission code",
         (

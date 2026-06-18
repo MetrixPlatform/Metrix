@@ -1,4 +1,4 @@
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import AppModule, action_code, define_module, resource_action, resource_permissions
 
 STORAGE_CREATE = action_code("storage", "create")
 STORAGE_READ = action_code("storage", "read")
@@ -15,9 +15,6 @@ APP_MODULE = define_module(
         dependencies=("core",),
         router_paths=("app.modules.storage.api:router",),
         model_paths=("app.modules.storage.models",),
-        page_permissions=(
-            page_permission("storage", "storage", 850, STORAGE_READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "storage",

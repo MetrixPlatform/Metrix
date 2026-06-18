@@ -1,6 +1,6 @@
 import { Database20Regular } from "@vicons/fluent";
 
-import { defineMenuGroup, defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineMenuGroup, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "demo-crud",
@@ -17,7 +17,7 @@ export default defineModule({
       path: "/demo-crud",
       titleKey: "route.demoCrud",
       component: () => import("./views/DemoCrudView.vue"),
-      permission: routePermission("demo_crud"),
+      permission: actionPermission("demo_item", "read"),
       fallbackOrder: 90
       // menu: { group: "examples", icon: Database20Regular, order: 10 }
     })

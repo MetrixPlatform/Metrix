@@ -8,7 +8,6 @@ from app.modules.storage.clients import RemoteEntry, StorageConnectError, Storag
 from test_auth_rbac import create_client, install_sqlite, login, page_items
 
 STORAGE_BASE_CODES = {
-    "route:storage",
     "action:storage:create",
     "action:storage:read",
     "action:storage:update",

@@ -166,7 +166,6 @@ const permissionTreeGroups = computed<PermissionTreeGroup[]>(() => {
   const groups = new Map<string, PermissionItem[]>();
   permissions.value
     .filter((permission) => isActivePermissionCode(permission.code))
-    .filter((permission) => permission.type === "route" || (permission.type === "action" && !permission.code.endsWith(":read")))
     .forEach((permission) => {
       const group = permission.group_name || "";
       groups.set(group, [...(groups.get(group) || []), permission]);
@@ -312,11 +311,27 @@ function isPermissionChecked(permissionId: number) {
 
 function setPermissionChecked(permissionId: number, checked: boolean) {
   if (isPermissionReadonly.value) return;
+  const target = permissions.value.find((permission) => permission.id === permissionId);
   const checkedIds = new Set(checkedPermissionIds.value);
   if (checked) {
     checkedIds.add(permissionId);
+    // 勾选任意动作时自动补上同资源的「查询」权限（查询即页面访问权限）。
+    if (target && !target.code.endsWith(":read")) {
+      const read = permissions.value.find(
+        (permission) => permission.resource === target.resource && permission.code.endsWith(":read")
+      );
+      if (read) checkedIds.add(read.id);
+    }
   } else {
     checkedIds.delete(permissionId);
+    // 取消「查询」时一并取消该资源其它动作（无查询则无操作）。
+    if (target && target.code.endsWith(":read")) {
+      for (const permission of permissions.value) {
+        if (permission.resource === target.resource) {
+          checkedIds.delete(permission.id);
+        }
+      }
+    }
   }
   checkedPermissionIds.value = [...checkedIds];
 }

@@ -31,12 +31,9 @@ const adminSession = {
     roles: []
   },
   permissions: [
-    "route:dashboard",
-    "route:users",
-    "route:settings",
-    "route:database",
-    "route:containers",
-    "route:demo_crud",
+    "action:dashboard:read",
+    "action:user:read",
+    "action:setting:read",
     "action:container:create",
     "action:container:read",
     "action:container:update",

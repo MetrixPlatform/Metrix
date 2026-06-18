@@ -2,7 +2,6 @@ from app.core.module import (
     AppModule,
     action_code,
     define_module,
-    page_permission,
     resource_action,
     resource_permissions,
     table_column_sync,
@@ -33,9 +32,6 @@ APP_MODULE = define_module(
             "app.modules.database.api:jobs_router",
         ),
         model_paths=("app.modules.database.models",),
-        page_permissions=(
-            page_permission("database", "database", 870, DATABASE_READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "database",

@@ -6,7 +6,6 @@
     "group": {
       "script": "脚本管理"
     },
-    "route:scripts": "脚本管理",
     "action:script:create": "新增脚本项目",
     "action:script:read": "查询脚本与运行",
     "action:script:update": "修改脚本项目",

@@ -10,7 +10,7 @@ import {
   Settings20Regular
 } from "@vicons/fluent";
 
-import { defineMenuGroup, defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineMenuGroup, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "core",
@@ -25,7 +25,7 @@ export default defineModule({
       path: "/",
       titleKey: "route.dashboard",
       component: () => import("../../views/DashboardView.vue"),
-      permission: routePermission("dashboard"),
+      permission: actionPermission("dashboard", "read"),
       fallbackOrder: 10,
       menu: { icon: Board20Regular, order: 10 }
     }),
@@ -34,7 +34,7 @@ export default defineModule({
       path: "/users",
       titleKey: "route.users",
       component: () => import("../../views/UserManageView.vue"),
-      permission: routePermission("users"),
+      permission: actionPermission("user", "read"),
       fallbackOrder: 20,
       menu: { group: "system", icon: People20Regular, order: 10 }
     }),
@@ -43,7 +43,7 @@ export default defineModule({
       path: "/permissions",
       titleKey: "route.permissions",
       component: () => import("../../views/PermissionView.vue"),
-      permission: routePermission("permissions"),
+      permission: actionPermission("role", "read"),
       fallbackOrder: 30,
       menu: { group: "system", icon: KeyMultiple20Regular, order: 20 }
     }),
@@ -52,7 +52,7 @@ export default defineModule({
       path: "/announcements",
       titleKey: "route.announcements",
       component: () => import("../../views/AnnouncementManageView.vue"),
-      permission: routePermission("announcements"),
+      permission: actionPermission("announcement", "read"),
       fallbackOrder: 40,
       menu: { group: "system", icon: MegaphoneLoud20Regular, order: 30 }
     }),
@@ -61,7 +61,7 @@ export default defineModule({
       path: "/audit-logs",
       titleKey: "route.auditLogs",
       component: () => import("../../views/AuditLogView.vue"),
-      permission: routePermission("audit_logs"),
+      permission: actionPermission("audit_log", "read"),
       fallbackOrder: 50,
       menu: { group: "system", icon: ClipboardClock20Regular, order: 40 }
     }),
@@ -70,7 +70,7 @@ export default defineModule({
       path: "/settings",
       titleKey: "route.settings",
       component: () => import("../../views/SystemSettingsView.vue"),
-      permission: routePermission("settings"),
+      permission: actionPermission("setting", "read"),
       fallbackOrder: 60,
       menu: { group: "system", icon: PeopleSettings20Regular, order: 90 }
     }),
@@ -79,7 +79,7 @@ export default defineModule({
       path: "/tokens",
       titleKey: "route.tokens",
       component: () => import("../../views/TokenManageView.vue"),
-      permission: routePermission("tokens"),
+      permission: actionPermission("api_token", "read"),
       feature: "api",
       fallbackOrder: 70,
       menu: { group: "system", icon: Key20Regular, order: 50 }
@@ -89,7 +89,7 @@ export default defineModule({
       path: "/api-docs",
       titleKey: "route.apiDocs",
       component: () => import("../../views/ApiDocsView.vue"),
-      permission: routePermission("api_docs"),
+      permission: actionPermission("api_docs", "read"),
       feature: "api",
       fallbackOrder: 80,
       menu: { group: "system", icon: Code20Regular, order: 60 }

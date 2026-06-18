@@ -1,6 +1,6 @@
 import { Toolbox20Regular } from "@vicons/fluent";
 
-import { defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "containers",
@@ -13,7 +13,7 @@ export default defineModule({
       path: "/containers",
       titleKey: "route.containers",
       component: () => import("./views/ContainerManageView.vue"),
-      permission: routePermission("containers"),
+      permission: actionPermission("container", "read"),
       fallbackOrder: 87,
       menu: { icon: Toolbox20Regular, order: 45 }
     })

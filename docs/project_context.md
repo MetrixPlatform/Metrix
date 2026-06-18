@@ -968,3 +968,17 @@
 - 选 AUTOCOMMIT 而非单事务：MySQL DDL 会隐式提交，整段「一个事务回滚」做不到也无意义；这里要的是「同一条连接」让临时表/会话变量存活，AUTOCOMMIT 下每条即时提交、连接不断开，临时表照常跨语句。临时表连接私有、会话结束自动清理、并发安全。
 - 配套（CapacityReport 平台脚本，位于 `temp/`，已被 `.gitignore`，不入库）：`report_script.sql` 改回临时表版本（仅 `SET GLOBAL`→`SET SESSION`）；`platform_client.run_script` 支持 `single_session`，`main.py` 调用报表 SQL 时传 `single_session=True`。
 - 本轮按用户要求只修改并提交，不运行测试。
+
+## 2026-06-19：用查询(read)权限替代 route 页面权限
+
+- 目标：导航/进入页面的网关从独立的 `route:<page>` 改为该模块资源的 `action:<resource>:read`（查询权限）；角色编辑器里勾任意操作自动带上查询；首页用一条 `action:dashboard:read` 表示；新角色默认带首页；彻底退役 `route:*` 机制并清理库中遗留行（含此前未翻译的 `route:database_jobs`）。
+- 背景：旧模型导航只认 `route:<page>`，而资源操作权限不会反推页面权限，导致「授予了操作权限但导航不出现」；且「页面」分组与同名资源分组并存、易混。本轮直接退役 route 机制，让「查询权限=能看列表+能进页面+出导航」。
+- 后端：
+  - `core/module.py` 删除 `route_code`/`PagePermissionSpec`/`page_permission` 及 `AppModule.page_permissions` 字段；`modules/registry.py` 删除 `get_page_permission_specs` 与页面权限唯一性校验。
+  - `core/permissions.py` 移除全部 `ROUTE_*`/`ROUTE_READ_PERMISSIONS`/页面 seed；新增 `DASHBOARD_READ`；`PERMISSION_SEEDS` 仅资源权限；`expand_permissions` 改为「含任意 `action:<res>:<verb>` 即补 `action:<res>:read`」（页面网关兜底，保证授予能力即可进页面）。
+  - `modules/core.py` 移除 `page_permissions`，新增 `dashboard` 资源（仅 `read`，组 `dashboard`，排在编辑器最前）；scripts/containers/database/storage/demo_crud 各 `__init__.py` 移除 `page_permission`/`page_permissions`（保留各自 `*_READ` 常量，仍被 `api.py` 守卫使用）。
+  - `api/dashboard.py` 守卫改 `DASHBOARD_READ`；`db/init.py` 默认 user 角色改 `[DASHBOARD_READ]`，新增 `_delete_legacy_route_permissions`（删除 `code LIKE 'route:%'` 行并清角色关联）；`services/roles.py` `create_role` 默认给新角色赋 `action:dashboard:read`。
+- 前端：各模块 `index.ts` 的 `page.permission` 改 `actionPermission("<resource>","read")`（scripts→script、containers→container、demo_crud→demo_item、core 八页对应各自资源）；`modules/types.ts` 删除 `routePermission`；`views/PermissionView.vue` 取消隐藏 `:read` 的过滤（显示查询项），勾任意动作自动补勾同资源查询、取消查询连带取消该资源其它动作；`config/permissions.ts` 的 DEPRECATED 收敛为 `action:announcement:operate`。
+- i18n：核心删 `permission.group.page` 与 `permission.route:*`，新增 `permission.group.dashboard` 与 `permission.action:dashboard:read`（查看首页/View dashboard）；各模块删 `permission.route:<x>` 标签（保留菜单标题 `route.<x>`）。
+- 脚手架/文档/测试：`scripts/create-module.mjs` 模板改为 read 即页面权限（index/init/生成测试/i18n 去 route）；`DEVELOPMENT_GUIDE.md` 更新前后端示例与「权限 code 规则」；`server/tests/test_auth_rbac.py` 全量改写 route 断言为新模型。
+- 生效：现有角色无需重勾——含模块操作权限的角色经 `expand_permissions` 自动获得对应 read（页面），刷新/重登即出现导航；旧 `route:*` 行在应用下次初始化时清理。验证：后端改动文件 `py_compile` 通过、`server/app` 内无残留 route 机制引用；前端 `npm run typecheck` 通过；i18n JSON 全部可解析；脚手架 `node --check` 通过。本轮按用户要求只修改并提交，不运行 pytest。

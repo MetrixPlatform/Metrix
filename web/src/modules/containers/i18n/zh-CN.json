@@ -6,7 +6,6 @@
     "group": {
       "container": "容器管理"
     },
-    "route:containers": "容器管理",
     "action:container:create": "创建容器/镜像任务",
     "action:container:read": "查看容器与镜像",
     "action:container:update": "修改容器/镜像配置",

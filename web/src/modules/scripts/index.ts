@@ -1,6 +1,6 @@
 import { Code20Regular } from "@vicons/fluent";
 
-import { defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "scripts",
@@ -13,7 +13,7 @@ export default defineModule({
       path: "/scripts",
       titleKey: "route.scripts",
       component: () => import("./views/ScriptManageView.vue"),
-      permission: routePermission("scripts"),
+      permission: actionPermission("script", "read"),
       fallbackOrder: 88,
       menu: { icon: Code20Regular, order: 50 }
     })

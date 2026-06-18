@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import bad_request, forbidden, not_found
-from app.core.permissions import ADMIN_ROLE
+from app.core.permissions import ADMIN_ROLE, DASHBOARD_READ
 from app.models import Permission, Role
 from app.repositories.roles import RoleRepository
 from app.schemas.role import AssignPermissionsRequest, RoleCreateRequest, RoleUpdateRequest
@@ -28,7 +28,12 @@ class RoleService:
     def create_role(self, actor_id: int, payload: RoleCreateRequest) -> Role:
         if self.roles.get_by_code(payload.code):
             raise bad_request("error.roleCodeExists", "Role code already exists")
-        role = self.roles.create(Role(code=payload.code, name=payload.name, description=payload.description))
+        role = Role(code=payload.code, name=payload.name, description=payload.description)
+        # 新角色默认拥有首页访问权限（查看首页），保证每个角色至少能进入系统首页。
+        dashboard_read = self.db.query(Permission).filter(Permission.code == DASHBOARD_READ).first()
+        if dashboard_read is not None:
+            role.permissions = [dashboard_read]
+        role = self.roles.create(role)
         record_audit(
             self.db,
             actor_id,

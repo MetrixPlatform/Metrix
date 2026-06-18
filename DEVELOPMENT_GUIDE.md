@@ -30,7 +30,7 @@ node scripts/create-module.mjs task "任务管理" "Tasks"
 ```ts
 import { Board20Regular } from "@vicons/fluent";
 
-import { defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "task",
@@ -43,7 +43,7 @@ export default defineModule({
       path: "/task",
       titleKey: "route.task",
       component: () => import("./views/TaskManageView.vue"),
-      permission: routePermission("task"),
+      permission: actionPermission("task", "read"),
       fallbackOrder: 100,
       menu: { icon: Board20Regular, order: 10 }
     })
@@ -75,7 +75,7 @@ export default defineModule({
 常用入口结构：
 
 ```python
-from app.core.module import AppModule, action_code, define_module, page_permission, resource_action, resource_permissions
+from app.core.module import AppModule, action_code, define_module, resource_action, resource_permissions
 
 TASK_READ = action_code("task", "read")
 
@@ -87,9 +87,6 @@ APP_MODULE = define_module(
         dependencies=("core",),
         router_paths=("app.modules.task.api:router",),
         model_paths=("app.modules.task.models",),
-        page_permissions=(
-            page_permission("task", "task", 100, TASK_READ),
-        ),
         resource_permissions=(
             resource_permissions(
                 "task",
@@ -120,9 +117,11 @@ APP_MODULE = define_module(
 
 权限 code 使用固定规则：
 
-- 页面权限：`route:<page>`
 - 功能权限：`action:<resource>:<action>`
+- 页面/导航权限：用该资源的查询权限 `action:<resource>:read` 充当；前端页面 `permission` 直接填 `actionPermission("<resource>", "read")`，没有独立的 `route:<page>`。
 - 操作他人数据：`action:<resource>:manage_others`
+
+角色编辑器中勾选任意操作会自动补勾同资源的查询权限；后端 `expand_permissions` 也会据此补齐 read，因此「授予了能力即可访问对应页面」。首页是一个特殊的 `action:dashboard:read`，新建角色默认带上它。
 
 后端接口必须做权限校验。前端按钮只负责体验，不能作为唯一保护。
 

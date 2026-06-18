@@ -6,7 +6,6 @@
     "group": {
       "container": "Containers"
     },
-    "route:containers": "Containers",
     "action:container:create": "Create containers/image jobs",
     "action:container:read": "Read containers and images",
     "action:container:update": "Update container/image settings",

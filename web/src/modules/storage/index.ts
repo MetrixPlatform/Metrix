@@ -1,6 +1,6 @@
 import { Server20Regular } from "@vicons/fluent";
 
-import { defineModule, definePage, routePermission } from "../types";
+import { actionPermission, defineModule, definePage } from "../types";
 
 export default defineModule({
   key: "storage",
@@ -13,7 +13,7 @@ export default defineModule({
       path: "/storage",
       titleKey: "route.storage",
       component: () => import("./views/StorageManageView.vue"),
-      permission: routePermission("storage"),
+      permission: actionPermission("storage", "read"),
       fallbackOrder: 85,
       menu: { icon: Server20Regular, order: 20 }
     })
