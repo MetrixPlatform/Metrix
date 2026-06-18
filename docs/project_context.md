@@ -1020,3 +1020,15 @@
 - 依赖：`web/package.json` 新增 `markdown-it`(^14.2.0) 依赖与 `@types/markdown-it`(^14.1.2) devDependency；构建后 markdown-it 打入脚本分包。注：`node_modules` 里虽有 `marked`，但它只是未声明的传递依赖（不在 package.json），按需求采用并显式声明 `markdown-it`。
 - i18n：`web/src/modules/scripts/i18n/{zh-CN,en-US}.json` 的 `script` 下新增 `panelCollapse`/`panelExpand`/`markdownSource`/`markdownPreview`。
 - 验证：`npm run typecheck`、`npm run build` 通过；改动文件 ReadLints 无报错。本轮按用户要求只修改并提交，不推送；与本任务无关的 `server/app/core/permissions.py`、`web/src/config/permissions.ts`、`dev.bat` 改动保持原样不纳入提交。
+
+## 2026-06-19：脚本工作台编辑页体验改进（后续反馈修复）
+
+- 需求：工具栏并入「运行」行、底部新增「配置」标签编辑 run_command、运行按钮按 run_command 禁用/提示、修复折叠失效与终端外层溢出。仍只动脚本模块前端与 i18n、记忆文档。
+- 工具栏并入运行行：删除独立的 `.script-editor-bar`（少占一行竖向空间），把「文件路径 + Markdown 源代码/预览切换 + 保存（`v-if="!autoSaveEnabled"`）+ 自动保存开关」全部移入头部 `.script-workbench-actions`（即「运行」按钮所在行），用 `<template v-if="activeFile">` 包裹；保存仍在自动保存左侧、随开关显隐。路径用 `.script-editor-path`（`max-width:260px` + 省略号）简洁显示工作区相对路径。清理了不再使用的 `.script-editor-bar`/`.script-editor-actions` 样式。
+- 「配置」标签：tabs 顺序 运行日志/运行历史/定时计划/环境信息/配置/终端（插在终端左侧）。内容为 `run_command` 输入 + 保存按钮（`SCRIPT_UPDATE` 权限）。保存复用 `updateScript(project.id, payload)`（`ScriptProjectPayload` 需全字段，故用 `props.project` 其余字段 + 新 `run_command` 组装）；成功后同步本地 `runCommand`，使运行按钮禁用/提示即时生效。新增本地状态 `runCommand`(生效值，驱动运行按钮) 与 `configRunCommand`(配置页草稿)，进入配置标签时 `handleTabChange` 把草稿重置为当前生效值。
+- 运行按钮禁用/提示：`:disabled="!runCommand"`、`:title="runCommand || t('script.runCommandMissing')"`（`PermissionButton` 用 `v-bind="$attrs"` 透传到 n-button，title 作原生 tooltip 显示实际运行命令，明确「运行」执行的是配置命令而非当前编辑文件）。
+- 折叠失效根因与修复：naive-ui NTabs 仅在 `animated=true` 时才渲染 `.n-tabs-pane-wrapper`（见 `Tabs.mjs`），当前未开 `animated` 故该容器根本不存在，上一轮的 `:pane-wrapper-style="display:none"` 完全无效。改为去掉该绑定，纯用面板类驱动：`.script-panel-collapsed :deep(.n-tab-pane){display:none}` 直接隐藏所有面板内容、`:deep(.n-tabs){flex:0 0 auto}` 收缩到仅 tab 栏，配合 `.script-panel-collapsed{flex:0 0 auto;height:auto;min-height:0}` 让编辑器占满。由 `:class` 响应式驱动，点击切换立即生效。
+- 终端外层溢出修复：根因是 `.script-terminal-screen` 固定 `height:clamp(160px,28vh,340px)` 常高于 `.script-panel`(38%/min220px) 的可用空间，导致面板 `overflow:auto` 出现外层滚动条而 xterm 自身不滚。改为：`.script-panel` 改 `overflow:hidden`，并建立 flex 高度链——`:deep(.n-tabs){flex:1;min-height:0}`、`:deep(.n-tabs>.n-tabs-nav){flex:0 0 auto}`、`:deep(.n-tab-pane){flex:1;min-height:0;overflow:auto}`（非终端页内部自带 max-height/滚动）；`ScriptTerminalPanel` 的 `.script-terminal` 改 `height:100%;overflow:hidden`、`.script-terminal-screen` 改 `flex:1;min-height:0`，使终端精确填充其面板高度、不溢出，xterm 经 FitAddon 适配高度并由 `.xterm-viewport` 自身纵向滚动。
+- 终端 fit 时机：除原有 `watch(active)`(切到终端) 与 `ResizeObserver`(容器尺寸变)，新增 `window` `resize` 监听（active+connected 时 `fit()`+`sendResize()`）；面板展开仍由 `togglePanel` 派发 `window resize` 触发，覆盖「切到终端/面板展开/窗口 resize」三种 fit 场景。
+- i18n：`script.tab.config`（配置/Config）、`script.configHint`（配置运行命令提示）；运行按钮空命令提示复用既有 `script.runCommandMissing`。
+- 验证：`npm run typecheck`、`npm run build` 通过；改动文件 ReadLints 无报错。本轮无新增依赖。只修改并提交，不推送；与本任务无关的 `server/app/core/permissions.py`、`web/src/config/permissions.ts`、`dev.bat` 保持原样不纳入提交。

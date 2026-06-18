@@ -97,11 +97,13 @@
     "panelExpand": "展开面板",
     "markdownSource": "源代码",
     "markdownPreview": "预览",
+    "configHint": "配置「运行」按钮执行的命令（例如 python main.py），保存后立即生效。",
     "tab": {
       "log": "运行日志",
       "history": "运行历史",
       "schedules": "定时计划",
       "environment": "环境信息",
+      "config": "配置",
       "terminal": "终端"
     },
     "field": {

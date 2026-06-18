@@ -68,16 +68,28 @@ watch(
   }
 );
 
+// Refit on window resize; the workbench also dispatches a resize event when the panel expands.
+function handleWindowResize() {
+  if (props.active && connected.value) {
+    fit?.fit();
+    sendResize();
+  }
+}
+
 // The default first terminal connects as soon as the workbench mounts, without
 // waiting for the tab to be focused; extra terminals still connect on activation.
 onMounted(() => {
+  window.addEventListener("resize", handleWindowResize);
   if (props.autoConnect && props.project && !autoConnected) {
     autoConnected = true;
     void connect();
   }
 });
 
-onBeforeUnmount(disconnect);
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", handleWindowResize);
+  disconnect();
+});
 
 function toggle() {
   if (connected.value) {
@@ -183,7 +195,9 @@ function disconnect() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%;
   padding-bottom: 10px;
+  overflow: hidden;
 }
 
 .script-terminal-toolbar {
@@ -198,7 +212,8 @@ function disconnect() {
 }
 
 .script-terminal-screen {
-  height: clamp(160px, 28vh, 340px);
+  flex: 1;
+  min-height: 0;
   padding: 8px;
   border-radius: 6px;
   background: #000000;

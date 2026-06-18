@@ -9,7 +9,35 @@
         <n-tag size="small" :bordered="false">{{ project.language }}</n-tag>
       </div>
       <div class="script-workbench-actions">
-        <permission-button :permission="SCRIPT_OPERATE" type="primary" :loading="running" @click="runScript">
+        <template v-if="activeFile">
+          <span class="script-editor-path" :title="activeFile.path">{{ activeFile.path }}</span>
+          <n-radio-group v-if="isActiveMarkdown" v-model:value="viewMode" size="small">
+            <n-radio-button value="source" :label="t('script.markdownSource')" />
+            <n-radio-button value="preview" :label="t('script.markdownPreview')" />
+          </n-radio-group>
+          <permission-button
+            v-if="!autoSaveEnabled"
+            :permission="SCRIPT_OPERATE"
+            size="small"
+            type="primary"
+            :loading="savingFile"
+            @click="saveFile"
+          >
+            {{ t("common.save") }}
+          </permission-button>
+          <div class="script-auto-save">
+            <span>{{ t("script.autoSave") }}</span>
+            <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
+          </div>
+        </template>
+        <permission-button
+          :permission="SCRIPT_OPERATE"
+          type="primary"
+          :loading="running"
+          :disabled="!runCommand"
+          :title="runCommand || t('script.runCommandMissing')"
+          @click="runScript"
+        >
           <template #icon><n-icon :component="Play20Regular" /></template>
           {{ t("script.run") }}
         </permission-button>
@@ -84,30 +112,6 @@
           />
         </n-tabs>
 
-        <div v-if="activeFile" class="script-editor-bar">
-          <span class="script-editor-path">{{ activeFile.path }}</span>
-          <div class="script-editor-actions">
-            <n-radio-group v-if="isActiveMarkdown" v-model:value="viewMode" size="small">
-              <n-radio-button value="source" :label="t('script.markdownSource')" />
-              <n-radio-button value="preview" :label="t('script.markdownPreview')" />
-            </n-radio-group>
-            <permission-button
-              v-if="!autoSaveEnabled"
-              :permission="SCRIPT_OPERATE"
-              size="small"
-              type="primary"
-              :loading="savingFile"
-              @click="saveFile"
-            >
-              {{ t("common.save") }}
-            </permission-button>
-            <div class="script-auto-save">
-              <span>{{ t("script.autoSave") }}</span>
-              <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
-            </div>
-          </div>
-        </div>
-
         <div class="script-editor-host">
           <!-- renderedMarkdown comes from markdown-it with html:false, so raw HTML is escaped (safe for v-html) -->
           <div v-if="showMarkdownPreview" class="script-markdown-preview" v-html="renderedMarkdown"></div>
@@ -131,7 +135,6 @@
             v-model:value="activeTab"
             type="line"
             size="small"
-            :pane-wrapper-style="panelCollapsed ? 'display: none' : undefined"
             @update:value="handleTabChange"
           >
             <template #suffix>
@@ -211,6 +214,26 @@
                 </template>
               </div>
               <div v-else class="script-log-empty">{{ t("script.env.hint") }}</div>
+            </n-tab-pane>
+
+            <n-tab-pane name="config" :tab="t('script.tab.config')">
+              <div class="script-config">
+                <n-form label-placement="top" class="script-config-form">
+                  <n-form-item :label="t('script.field.runCommand')">
+                    <n-input
+                      v-model:value="configRunCommand"
+                      :placeholder="t('script.runCommandPlaceholder')"
+                      @keyup.enter="saveConfig"
+                    />
+                  </n-form-item>
+                </n-form>
+                <div class="script-config-actions">
+                  <permission-button :permission="SCRIPT_UPDATE" type="primary" :loading="savingConfig" @click="saveConfig">
+                    {{ t("common.save") }}
+                  </permission-button>
+                </div>
+                <p class="script-config-hint">{{ t("script.configHint") }}</p>
+              </div>
             </n-tab-pane>
 
             <n-tab-pane
@@ -348,6 +371,7 @@ import {
   readScriptFile,
   renameScriptEntry,
   submitScriptRun,
+  updateScript,
   updateScriptSchedule,
   uploadScriptFile,
   writeScriptFile,
@@ -359,7 +383,7 @@ import {
 } from "../api";
 import CodeEditor from "../components/CodeEditor.vue";
 import ScriptTerminalPanel from "../components/ScriptTerminalPanel.vue";
-import { SCRIPT_OPERATE } from "../permissions";
+import { SCRIPT_OPERATE, SCRIPT_UPDATE } from "../permissions";
 import { getFileIcon, getFolderIcon } from "../utils/fileIcons";
 
 const props = defineProps<{ project: ScriptProject }>();
@@ -412,6 +436,10 @@ const terminals = ref<TerminalTab[]>([{ id: "terminal-1", index: 1, closable: fa
 let terminalSeq = 1;
 
 const activeTab = ref<string>("terminal-1");
+// Effective run command (drives the Run button); configRunCommand is the editable draft on the Config tab.
+const runCommand = ref(props.project.run_command || "");
+const configRunCommand = ref(props.project.run_command || "");
+const savingConfig = ref(false);
 const running = ref(false);
 const currentRunId = ref("");
 const runLog = ref("");
@@ -1101,6 +1129,33 @@ async function refreshLog() {
 function handleTabChange(tab: string) {
   if (tab === "history") void loadRuns();
   else if (tab === "schedules") void loadSchedules();
+  else if (tab === "config") configRunCommand.value = runCommand.value;
+}
+
+async function saveConfig() {
+  savingConfig.value = true;
+  try {
+    const updated = await updateScript(props.project.id, {
+      name: props.project.name,
+      description: props.project.description,
+      language: props.project.language,
+      base_image: props.project.base_image,
+      network_mode: props.project.network_mode,
+      is_shared: props.project.is_shared,
+      run_command: configRunCommand.value,
+      env: { ...props.project.env },
+      cpu_limit: props.project.cpu_limit,
+      memory_limit_mb: props.project.memory_limit_mb,
+      timeout_seconds: props.project.timeout_seconds
+    });
+    runCommand.value = updated.run_command;
+    configRunCommand.value = updated.run_command;
+    message.success(t("script.saved"));
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    savingConfig.value = false;
+  }
 }
 
 async function loadSchedules() {
@@ -1320,7 +1375,9 @@ function languageForPath(path: string): string {
 
 .script-workbench-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .script-workbench-body {
@@ -1379,27 +1436,13 @@ function languageForPath(path: string): string {
   min-height: 0;
 }
 
-.script-editor-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border-color);
-}
-
 .script-editor-path {
   font-size: 12px;
   color: var(--text-color-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.script-editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  max-width: 260px;
 }
 
 .script-auto-save {
@@ -1550,20 +1593,62 @@ function languageForPath(path: string): string {
   display: flex;
   flex-direction: column;
   padding: 0 12px;
+  overflow: hidden;
+}
+
+/* Let the tabs fill the panel so the active pane (terminal) can size to it instead of overflowing. */
+.script-panel :deep(.n-tabs) {
+  flex: 1;
+  min-height: 0;
+}
+
+.script-panel :deep(.n-tabs > .n-tabs-nav) {
+  flex: 0 0 auto;
+}
+
+.script-panel :deep(.n-tab-pane) {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
+/* Collapsed: hide every pane and shrink the panel to just the tab bar so the editor fills the space. */
 .script-panel.script-panel-collapsed {
   flex: 0 0 auto;
   height: auto;
   min-height: 0;
-  overflow: visible;
+}
+
+.script-panel.script-panel-collapsed :deep(.n-tabs) {
+  flex: 0 0 auto;
+}
+
+.script-panel.script-panel-collapsed :deep(.n-tab-pane) {
+  display: none;
 }
 
 .script-panel-suffix {
   display: inline-flex;
   align-items: center;
   gap: 2px;
+}
+
+.script-config {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 2px;
+  max-width: 560px;
+}
+
+.script-config-actions {
+  display: flex;
+}
+
+.script-config-hint {
+  margin: 4px 0 0;
+  color: var(--text-color-3);
+  font-size: 12px;
 }
 
 .script-panel-toolbar {

@@ -97,11 +97,13 @@
     "panelExpand": "Expand panel",
     "markdownSource": "Source",
     "markdownPreview": "Preview",
+    "configHint": "Set the command the Run button executes (e.g. python main.py); it takes effect immediately after saving.",
     "tab": {
       "log": "Run log",
       "history": "Run history",
       "schedules": "Schedules",
       "environment": "Environment",
+      "config": "Config",
       "terminal": "Terminal"
     },
     "field": {
