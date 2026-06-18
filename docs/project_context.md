@@ -1008,3 +1008,15 @@
 - i18n：`web/src/modules/scripts/i18n/{zh-CN,en-US}.json` 补 `script.paste/rename/copyPrepared/pasted/moved/renamed/moveInvalidTarget` 与 `script.editorTab.{close,closeOthers,closeLeft,closeRight,closeAll}`，以及审计 `file_copy`/`file_move`。
 - 关键取舍：编辑器用单一共享编辑器实例（非每标签一个 Monaco），切换标签交换内容/语言；切换标签会取消上一个文件的待保存防抖（与原单文件逻辑一致，未引入 focus-out 即时保存）；拖拽移动到根目录需拖到根级节点的前/后（无独立根节点）。
 - 验证：`npm run typecheck`、`npm run build` 通过；改动 py 文件 `python -m py_compile` 通过；改动文件 ReadLints 无报错。本轮按用户要求只修改并提交，不推送；与本任务无关的 `dev.bat` 不纳入提交。
+
+## 2026-06-19：脚本工作台编辑页体验改进
+
+- 需求：进入工作台首个终端自动连接、自动保存默认开启、编辑器工具栏精简、底部面板可折叠、Markdown 源代码/预览切换。本轮只动脚本模块前端与其 i18n、记忆文档。
+- 首个终端自动连接：`components/ScriptTerminalPanel.vue` 新增 `autoConnect` prop（默认 false），在 `onMounted` 内当 `autoConnect && project && !autoConnected` 时直接 `connect()`；其余终端仍走原 `watch(active)` 的按需连接。`ScriptWorkbenchView` 给终端面板传 `:auto-connect="!term.closable"`（仅默认的 `terminal-1` 自动连）。终端 pane 用 `display-directive="show"` 故工作台挂载即 mount，`activeTab` 默认就是 `terminal-1`（可见、有尺寸），`fit()` 正常。
+- 自动保存默认开启：`autoSaveEnabled` 初值由 `=== "1"` 改为 `localStorage.getItem(AUTO_SAVE_KEY) !== "0"`——无存储值时默认开启，只有用户显式关过（存 "0"）才保持关闭，尊重历史选择。
+- 工具栏调整（`script-editor-bar` 的 actions 区）：删除原「删除」按钮（文件删除仍可从左侧文件树右键菜单 `delete`→`deletePath` 进行），同时移除仅服务于该按钮的 `deleteActive()`；「保存」按钮移到「自动保存」开关左侧，并加 `v-if="!autoSaveEnabled"`——开启自动保存时隐藏保存按钮，关闭时显示。
+- 底部面板折叠：新增 `panelCollapsed`（`localStorage` key `appKey("scriptWorkbench.panelCollapsed")` 记忆）与 `togglePanel()`；在 n-tabs `#suffix` 的「新建终端」旁加一个 chevron 图标按钮（展开显示 `ChevronDown20Regular`、收起显示 `ChevronUp20Regular`）。收起用 naive-ui NTabs 公开属性 `:pane-wrapper-style="panelCollapsed ? 'display: none' : undefined"` 隐藏内容容器（类 `n-tabs-pane-wrapper`），`.script-panel` 加 `.script-panel-collapsed`（`flex:0 0 auto;height:auto;min-height:0`）让 `.script-editor-host`(flex:1) 占满。展开时 `nextTick` 派发一次 `window resize`（Monaco 用 automaticLayout 自适应；xterm 经其 ResizeObserver 在容器由 0 变可见时自动 `fit`）。
+- Markdown 预览：静态引入 `markdown-it`（`new MarkdownIt({ html:false, linkify:true, breaks:false })`，`html:false` 转义原始 HTML 故 `v-html` 安全、无需 DOMPurify）。`languageForPath` 增加 `markdown:"markdown"`（`.markdown` 同 `.md`）；`isActiveMarkdown` 以 `activeFile.language === "markdown"` 判断，仅 md 文件在右上角显示 `n-radio-group`(源代码/预览，复用既有 NRadioButton/NRadioGroup)。`showMarkdownPreview` 为真时编辑器宿主渲染 `.script-markdown-preview`(absolute inset:0、滚动、`:deep()` 标题/代码/引用/表格样式) 替代 `CodeEditor`。`setActive` 切换文件时把 `viewMode` 复位为 `source`（打开新文件回到源代码视图）。
+- 依赖：`web/package.json` 新增 `markdown-it`(^14.2.0) 依赖与 `@types/markdown-it`(^14.1.2) devDependency；构建后 markdown-it 打入脚本分包。注：`node_modules` 里虽有 `marked`，但它只是未声明的传递依赖（不在 package.json），按需求采用并显式声明 `markdown-it`。
+- i18n：`web/src/modules/scripts/i18n/{zh-CN,en-US}.json` 的 `script` 下新增 `panelCollapse`/`panelExpand`/`markdownSource`/`markdownPreview`。
+- 验证：`npm run typecheck`、`npm run build` 通过；改动文件 ReadLints 无报错。本轮按用户要求只修改并提交，不推送；与本任务无关的 `server/app/core/permissions.py`、`web/src/config/permissions.ts`、`dev.bat` 改动保持原样不纳入提交。

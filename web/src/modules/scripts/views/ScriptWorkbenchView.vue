@@ -87,14 +87,12 @@
         <div v-if="activeFile" class="script-editor-bar">
           <span class="script-editor-path">{{ activeFile.path }}</span>
           <div class="script-editor-actions">
-            <div class="script-auto-save">
-              <span>{{ t("script.autoSave") }}</span>
-              <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
-            </div>
-            <n-button size="small" quaternary circle type="error" :title="t('common.delete')" @click="deleteActive">
-              <template #icon><n-icon :component="Delete20Regular" /></template>
-            </n-button>
+            <n-radio-group v-if="isActiveMarkdown" v-model:value="viewMode" size="small">
+              <n-radio-button value="source" :label="t('script.markdownSource')" />
+              <n-radio-button value="preview" :label="t('script.markdownPreview')" />
+            </n-radio-group>
             <permission-button
+              v-if="!autoSaveEnabled"
               :permission="SCRIPT_OPERATE"
               size="small"
               type="primary"
@@ -103,11 +101,17 @@
             >
               {{ t("common.save") }}
             </permission-button>
+            <div class="script-auto-save">
+              <span>{{ t("script.autoSave") }}</span>
+              <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
+            </div>
           </div>
         </div>
 
         <div class="script-editor-host">
-          <code-editor v-if="activeFile" v-model="editorContent" :language="activeFile.language" />
+          <!-- renderedMarkdown comes from markdown-it with html:false, so raw HTML is escaped (safe for v-html) -->
+          <div v-if="showMarkdownPreview" class="script-markdown-preview" v-html="renderedMarkdown"></div>
+          <code-editor v-else-if="activeFile" v-model="editorContent" :language="activeFile.language" />
           <div v-else class="script-editor-empty">{{ t("script.editorEmpty") }}</div>
         </div>
 
@@ -122,12 +126,29 @@
           @clickoutside="tabMenu.show = false"
         />
 
-        <div class="script-panel">
-          <n-tabs v-model:value="activeTab" type="line" size="small" @update:value="handleTabChange">
+        <div class="script-panel" :class="{ 'script-panel-collapsed': panelCollapsed }">
+          <n-tabs
+            v-model:value="activeTab"
+            type="line"
+            size="small"
+            :pane-wrapper-style="panelCollapsed ? 'display: none' : undefined"
+            @update:value="handleTabChange"
+          >
             <template #suffix>
-              <n-button quaternary circle size="tiny" :title="t('script.terminalAdd')" @click="addTerminal">
-                <template #icon><n-icon :component="Add20Regular" /></template>
-              </n-button>
+              <div class="script-panel-suffix">
+                <n-button quaternary circle size="tiny" :title="t('script.terminalAdd')" @click="addTerminal">
+                  <template #icon><n-icon :component="Add20Regular" /></template>
+                </n-button>
+                <n-button
+                  quaternary
+                  circle
+                  size="tiny"
+                  :title="panelCollapsed ? t('script.panelExpand') : t('script.panelCollapse')"
+                  @click="togglePanel"
+                >
+                  <template #icon><n-icon :component="panelCollapsed ? ChevronUp20Regular : ChevronDown20Regular" /></template>
+                </n-button>
+              </div>
             </template>
             <n-tab-pane name="log" :tab="t('script.tab.log')">
               <div class="script-log-bar">
@@ -199,7 +220,7 @@
               :tab="() => renderTerminalTab(term)"
               display-directive="show"
             >
-              <script-terminal-panel :project="project" :active="activeTab === term.id" />
+              <script-terminal-panel :project="project" :active="activeTab === term.id" :auto-connect="!term.closable" />
             </n-tab-pane>
           </n-tabs>
         </div>
@@ -274,6 +295,7 @@ import {
   ArrowLeft20Regular,
   ArrowSync20Regular,
   ArrowUpload20Regular,
+  ChevronDown20Regular,
   ChevronUp20Regular,
   Delete20Regular,
   Dismiss16Regular,
@@ -304,6 +326,7 @@ import {
   useMessage
 } from "naive-ui";
 import type { DataTableColumns, DropdownOption, TreeDropInfo, TreeOption } from "naive-ui";
+import MarkdownIt from "markdown-it";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { appKey } from "../../../config/app";
@@ -343,15 +366,21 @@ const props = defineProps<{ project: ScriptProject }>();
 const emit = defineEmits<{ close: [] }>();
 
 const AUTO_SAVE_KEY = appKey("scriptWorkbench.autoSave");
+const PANEL_COLLAPSED_KEY = appKey("scriptWorkbench.panelCollapsed");
 
 const message = useMessage();
 const dialog = useDialog();
+
+const markdown = new MarkdownIt({ html: false, linkify: true, breaks: false });
 
 const treeData = ref<TreeOption[]>([]);
 const selectedKeys = ref<string[]>([]);
 const expandedKeys = ref<string[]>([]);
 const savingFile = ref(false);
-const autoSaveEnabled = ref(localStorage.getItem(AUTO_SAVE_KEY) === "1");
+// Auto save is on by default; only an explicit "0" (the user turned it off) keeps it off.
+const autoSaveEnabled = ref(localStorage.getItem(AUTO_SAVE_KEY) !== "0");
+const panelCollapsed = ref(localStorage.getItem(PANEL_COLLAPSED_KEY) === "1");
+const viewMode = ref<"source" | "preview">("source");
 const uploadInputRef = ref<HTMLInputElement | null>(null);
 
 interface OpenFile {
@@ -421,6 +450,10 @@ const editorContent = computed<string>({
     if (activeFile.value) activeFile.value.content = value;
   }
 });
+const isActiveMarkdown = computed(() => activeFile.value?.language === "markdown");
+const showMarkdownPreview = computed(() => isActiveMarkdown.value && viewMode.value === "preview");
+// html: false makes markdown-it escape raw HTML, so v-html only renders markdown-generated tags.
+const renderedMarkdown = computed(() => (activeFile.value ? markdown.render(activeFile.value.content) : ""));
 // New files/folders/uploads land in the selected directory (or the selected file's directory).
 const selectedDir = computed(() => {
   const key = selectedKeys.value[0];
@@ -593,6 +626,8 @@ function setActive(path: string) {
   skipNextContentWatch = true;
   activePath.value = path;
   selectedKeys.value = [path];
+  // Each newly focused file starts in source view; markdown preview is opt-in per file.
+  viewMode.value = "source";
 }
 
 function closeTab(path: string) {
@@ -717,8 +752,13 @@ function clearAutoSaveTimer() {
   }
 }
 
-function deleteActive() {
-  if (activeFile.value) deletePath(activeFile.value.path);
+function togglePanel() {
+  panelCollapsed.value = !panelCollapsed.value;
+  localStorage.setItem(PANEL_COLLAPSED_KEY, panelCollapsed.value ? "1" : "0");
+  // On expand, nudge a layout pass so the embedded terminal (xterm) re-fits to the restored size.
+  if (!panelCollapsed.value) {
+    void nextTick(() => window.dispatchEvent(new Event("resize")));
+  }
 }
 
 function deletePath(path: string) {
@@ -1239,6 +1279,7 @@ function languageForPath(path: string): string {
     ini: "ini",
     toml: "ini",
     md: "markdown",
+    markdown: "markdown",
     vue: "html"
   };
   return map[ext] || "plaintext";
@@ -1424,6 +1465,84 @@ function languageForPath(path: string): string {
   color: var(--text-color-3);
 }
 
+.script-markdown-preview {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 16px 28px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-color);
+  word-wrap: break-word;
+}
+
+.script-markdown-preview :deep(h1),
+.script-markdown-preview :deep(h2) {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.script-markdown-preview :deep(h1),
+.script-markdown-preview :deep(h2),
+.script-markdown-preview :deep(h3),
+.script-markdown-preview :deep(h4) {
+  margin: 1em 0 0.5em;
+  line-height: 1.3;
+}
+
+.script-markdown-preview :deep(p),
+.script-markdown-preview :deep(ul),
+.script-markdown-preview :deep(ol) {
+  margin: 0.6em 0;
+}
+
+.script-markdown-preview :deep(a) {
+  color: var(--primary-color);
+}
+
+.script-markdown-preview :deep(code) {
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 0.92em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: var(--panel-bg-hover);
+}
+
+.script-markdown-preview :deep(pre) {
+  margin: 0.8em 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow: auto;
+  background: var(--panel-bg-hover);
+}
+
+.script-markdown-preview :deep(pre code) {
+  padding: 0;
+  background: transparent;
+}
+
+.script-markdown-preview :deep(blockquote) {
+  margin: 0.8em 0;
+  padding: 0 1em;
+  color: var(--muted-color);
+  border-left: 3px solid var(--border-color);
+}
+
+.script-markdown-preview :deep(table) {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+}
+
+.script-markdown-preview :deep(th),
+.script-markdown-preview :deep(td) {
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+}
+
+.script-markdown-preview :deep(img) {
+  max-width: 100%;
+}
+
 .script-panel {
   height: 38%;
   min-height: 220px;
@@ -1432,6 +1551,19 @@ function languageForPath(path: string): string {
   flex-direction: column;
   padding: 0 12px;
   overflow: auto;
+}
+
+.script-panel.script-panel-collapsed {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.script-panel-suffix {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .script-panel-toolbar {

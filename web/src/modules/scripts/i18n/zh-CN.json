@@ -93,6 +93,10 @@
     "historyTitle": "运行历史 - {name}",
     "collapseAll": "折叠全部",
     "terminalAdd": "新建终端",
+    "panelCollapse": "收起面板",
+    "panelExpand": "展开面板",
+    "markdownSource": "源代码",
+    "markdownPreview": "预览",
     "tab": {
       "log": "运行日志",
       "history": "运行历史",

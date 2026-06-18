@@ -93,6 +93,10 @@
     "historyTitle": "Run history - {name}",
     "collapseAll": "Collapse all",
     "terminalAdd": "New terminal",
+    "panelCollapse": "Collapse panel",
+    "panelExpand": "Expand panel",
+    "markdownSource": "Source",
+    "markdownPreview": "Preview",
     "tab": {
       "log": "Run log",
       "history": "Run history",

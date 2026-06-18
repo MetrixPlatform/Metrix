@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { NButton, NCheckbox, NInput, useMessage } from "naive-ui";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
@@ -30,7 +30,10 @@ import { t, translateMessage } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import type { ScriptProject } from "../api";
 
-const props = defineProps<{ project: ScriptProject | null; active: boolean }>();
+const props = withDefaults(
+  defineProps<{ project: ScriptProject | null; active: boolean; autoConnect?: boolean }>(),
+  { autoConnect: false }
+);
 
 const message = useMessage();
 const customCommand = ref(false);
@@ -64,6 +67,15 @@ watch(
     disconnect();
   }
 );
+
+// The default first terminal connects as soon as the workbench mounts, without
+// waiting for the tab to be focused; extra terminals still connect on activation.
+onMounted(() => {
+  if (props.autoConnect && props.project && !autoConnected) {
+    autoConnected = true;
+    void connect();
+  }
+});
 
 onBeforeUnmount(disconnect);
 
