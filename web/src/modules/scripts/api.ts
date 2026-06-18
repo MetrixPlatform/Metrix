@@ -88,6 +88,14 @@ export interface ScriptFileContent {
   truncated: boolean;
 }
 
+export type ScriptConflictPolicy = "error" | "overwrite" | "rename";
+
+export interface ScriptEntryTransferPayload {
+  paths: string[];
+  target_dir: string;
+  conflict_policy: ScriptConflictPolicy;
+}
+
 export interface ScriptRun {
   id: number;
   run_id: string;
@@ -199,6 +207,14 @@ export function mkdirScript(projectId: number, path: string) {
 
 export function renameScriptEntry(projectId: number, path: string, newName: string) {
   return post<ScriptFileEntry>(`/scripts/${projectId}/rename`, { path, new_name: newName });
+}
+
+export function copyScriptEntries(projectId: number, payload: ScriptEntryTransferPayload) {
+  return post<ScriptFileEntry[]>(`/scripts/${projectId}/copy`, payload);
+}
+
+export function moveScriptEntries(projectId: number, payload: ScriptEntryTransferPayload) {
+  return post<ScriptFileEntry[]>(`/scripts/${projectId}/move`, payload);
 }
 
 export function deleteScriptEntry(projectId: number, path: string) {

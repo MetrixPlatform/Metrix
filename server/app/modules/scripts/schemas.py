@@ -108,6 +108,15 @@ class ScriptRenameRequest(BaseModel):
     new_name: str = Field(min_length=1, max_length=255)
 
 
+ScriptConflictPolicy = Literal["error", "overwrite", "rename"]
+
+
+class ScriptEntryTransferRequest(BaseModel):
+    paths: list[str] = Field(min_length=1, max_length=100)
+    target_dir: str = Field(min_length=1, max_length=1000)
+    conflict_policy: ScriptConflictPolicy = "error"
+
+
 class ScriptRunItem(BaseModel):
     id: int
     run_id: str

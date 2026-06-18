@@ -991,3 +991,20 @@
 - 集成：`web/src/modules/scripts/views/ScriptWorkbenchView.vue` 给 `n-tree` 加 `:render-prefix`（`renderTreePrefix`）与对齐样式；`web/vite.config.ts` 接 `Icons({ compiler: "vue3", autoInstall: false })`（离线、不联网自动装）；`web/tsconfig.json` 的 `types` 增加 `unplugin-icons/types/vue` 让 `~icons/*` 通过类型检查。
 - 顺带修复：`web/src/vite-env.d.ts` 中 monaco `basic-languages/*/*.js` 用了 TS 不支持的双通配模块声明，导致 `CodeEditor.vue` 类型检查 TS7016、`npm run build` 阻断；改为单通配 `*` 后 `typecheck`/`build` 通过。
 - 验证：`npm run typecheck`、`npm run build` 通过，图标随脚本分包按需打包。本轮按用户要求只修改并提交，不推送。
+
+## 2026-06-19：脚本工作台 IDE 交互增强（VSCode 化）
+
+- 需求：脚本工作台对齐 VSCode 体验——工作区文件树右键菜单（复制/粘贴/重命名/删除）、拖拽移动、编辑器多标签、底部面板默认终端。复制/粘贴/移动参考储存管理（`storage`）的剪贴板与后端能力。
+- 后端（对齐 `storage` 的安全校验与权限，编辑类操作走 `get_manageable_project`=创建者/管理员）：
+  - `server/app/modules/scripts/schemas.py` 新增 `ScriptConflictPolicy`(error/overwrite/rename) 与 `ScriptEntryTransferRequest`(paths/target_dir/conflict_policy)。
+  - `server/app/modules/scripts/services.py` 新增 `ScriptProjectService.copy_entries`/`move_entries` 与 `_resolve_destination`，以及模块级 `_transfer_sources`/`_ensure_not_nested`/`_unique_destination`/`_split_name`/`_path_size`/`_remove_path`；复制用 `shutil.copytree/copyfile` 并按配额校验、移动用 `shutil.move`（同目录为 no-op），全部经 `_safe_target` 防越界/zip-slip，冲突 rename 生成「X - copy」、overwrite 先删后写、error 抛 `error.scriptEntryExists`。
+  - `server/app/modules/scripts/api.py` 新增 `POST /{project_id}/copy`、`/{project_id}/move`（`SCRIPT_OPERATE` 权限），返回 `list[ScriptFileEntry]`。新增审计 `script.file_copy`/`script.file_move`（i18n 已补）。
+- 前端：
+  - `web/src/modules/scripts/api.ts` 新增 `ScriptConflictPolicy`/`ScriptEntryTransferPayload` 与 `copyScriptEntries`/`moveScriptEntries`。
+  - `web/src/modules/scripts/views/ScriptWorkbenchView.vue` 重构：单文件 `currentPath/currentContent` 模型改为「打开文件列表 `openFiles` + 活动标签 `activePath`」；编辑器顶部用 `n-tabs(type=card)` + `n-tab(closable, :tab 渲染函数=文件图标+名+脏点)` 作纯标签栏（`showPane=!tabChildren.length`，无空面板），下方仍是单个共享 `CodeEditor`（避免多 Monaco 实例导致补全重复注册）。标签右键用 `n-dropdown(trigger=manual)` 提供 关闭/关闭其他/关闭左侧/关闭右侧/关闭全部；自动保存按活动文件防抖（沿用 `AUTO_SAVE_KEY`）。
+  - 文件树：`n-tree` 加 `:node-props` 绑定 `contextmenu` 打开 `n-dropdown(trigger=manual)`（复制/粘贴/重命名/删除，粘贴在剪贴板有内容时才可用、无取消项）；剪贴板 `clipboard` 记住源路径、复制后保留可多次粘贴；粘贴用 `conflict_policy=rename` 粘到选中目录或选中文件所在目录。移动改用 `draggable` + `@drop`（拖到文件夹即移动，`conflict_policy=error`，同目录/拖入自身或子目录均拦截），右键菜单不含「移动」。删除走确认弹窗、复用 `deleteScriptEntry`；重命名复用 `renameScriptEntry`。
+  - 树刷新改为局部/保留展开：`refreshDir`(目标目录在树中已加载则就地重载其 children，否则 `reloadTreePreservingExpansion` 递归重载已展开子树并保留 `expandedKeys`)，新建/上传/粘贴/移动/重命名/删除后只刷新受影响目录；刷新按钮也改为保留展开。删除/重命名/移动会同步关闭或改写受影响的打开标签（`closeTabsUnder`/`syncPathsAfterMove`）。
+  - 底部面板默认 `activeTab` 由 `log` 改为 `terminal-1`（终端面板 `watch(active)` 无 `immediate`，挂载时不会自动连容器，仅展示空闲态）。
+- i18n：`web/src/modules/scripts/i18n/{zh-CN,en-US}.json` 补 `script.paste/rename/copyPrepared/pasted/moved/renamed/moveInvalidTarget` 与 `script.editorTab.{close,closeOthers,closeLeft,closeRight,closeAll}`，以及审计 `file_copy`/`file_move`。
+- 关键取舍：编辑器用单一共享编辑器实例（非每标签一个 Monaco），切换标签交换内容/语言；切换标签会取消上一个文件的待保存防抖（与原单文件逻辑一致，未引入 focus-out 即时保存）；拖拽移动到根目录需拖到根级节点的前/后（无独立根节点）。
+- 验证：`npm run typecheck`、`npm run build` 通过；改动 py 文件 `python -m py_compile` 通过；改动文件 ReadLints 无报错。本轮按用户要求只修改并提交，不推送；与本任务无关的 `dev.bat` 不纳入提交。

@@ -26,6 +26,7 @@ from app.modules.scripts.schemas import (
     ScriptEnvironmentInfo,
     ScriptFileContent,
     ScriptFileEntry,
+    ScriptEntryTransferRequest,
     ScriptFileListResponse,
     ScriptFileWriteRequest,
     ScriptPathRequest,
@@ -226,6 +227,26 @@ def rename_script_entry(
     actor: User = Depends(require_permission(SCRIPT_OPERATE)),
 ) -> ScriptFileEntry:
     return ScriptProjectService(db).rename(actor, project_id, payload.path, payload.new_name)
+
+
+@router.post("/{project_id}/copy", response_model=list[ScriptFileEntry], dependencies=WEB_ONLY)
+def copy_script_entries(
+    project_id: int,
+    payload: ScriptEntryTransferRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(SCRIPT_OPERATE)),
+) -> list[ScriptFileEntry]:
+    return ScriptProjectService(db).copy_entries(actor, project_id, payload.paths, payload.target_dir, payload.conflict_policy)
+
+
+@router.post("/{project_id}/move", response_model=list[ScriptFileEntry], dependencies=WEB_ONLY)
+def move_script_entries(
+    project_id: int,
+    payload: ScriptEntryTransferRequest,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(SCRIPT_OPERATE)),
+) -> list[ScriptFileEntry]:
+    return ScriptProjectService(db).move_entries(actor, project_id, payload.paths, payload.target_dir, payload.conflict_policy)
 
 
 @router.post("/{project_id}/upload", response_model=ScriptFileEntry, dependencies=WEB_ONLY)

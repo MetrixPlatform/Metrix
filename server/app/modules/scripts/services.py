@@ -290,6 +290,86 @@ class ScriptProjectService:
         record_audit(self.db, actor.id, "script.file_delete", "script_project", project.slug, _virtual_path(path))
         self.db.commit()
 
+    def copy_entries(
+        self,
+        actor: User,
+        project_id: int,
+        paths: list[str],
+        target_dir: str,
+        conflict_policy: str = "error",
+    ) -> list[ScriptFileEntry]:
+        project = self.get_manageable_project(actor, project_id)
+        root = _ensure_workspace(project)
+        sources = _transfer_sources(paths)
+        target_virtual = _virtual_path(target_dir)
+        if not _safe_target(root, target_virtual).is_dir():
+            raise bad_request("error.scriptNotDirectory", "Target is not a directory")
+        results: list[ScriptFileEntry] = []
+        for source_virtual in sources:
+            source = _safe_target(root, source_virtual)
+            if source == root.resolve() or not source.exists():
+                raise bad_request("error.scriptPathInvalid", "Invalid path")
+            source_is_dir = source.is_dir()
+            _ensure_not_nested(source_virtual, target_virtual, source_is_dir)
+            destination_virtual = self._resolve_destination(root, source_virtual, target_virtual, conflict_policy)
+            destination = _safe_target(root, destination_virtual)
+            if destination != source:
+                self._ensure_quota(root, _path_size(source))
+                if source_is_dir:
+                    shutil.copytree(source, destination)
+                else:
+                    shutil.copyfile(source, destination)
+            results.append(_entry(root, destination))
+        record_audit(self.db, actor.id, "script.file_copy", "script_project", project.slug, target_virtual)
+        self.db.commit()
+        return results
+
+    def move_entries(
+        self,
+        actor: User,
+        project_id: int,
+        paths: list[str],
+        target_dir: str,
+        conflict_policy: str = "error",
+    ) -> list[ScriptFileEntry]:
+        project = self.get_manageable_project(actor, project_id)
+        root = _ensure_workspace(project)
+        sources = _transfer_sources(paths)
+        target_virtual = _virtual_path(target_dir)
+        if not _safe_target(root, target_virtual).is_dir():
+            raise bad_request("error.scriptNotDirectory", "Target is not a directory")
+        results: list[ScriptFileEntry] = []
+        for source_virtual in sources:
+            source = _safe_target(root, source_virtual)
+            if source == root.resolve() or not source.exists():
+                raise bad_request("error.scriptPathInvalid", "Invalid path")
+            source_is_dir = source.is_dir()
+            _ensure_not_nested(source_virtual, target_virtual, source_is_dir)
+            if posixpath.dirname(source_virtual) == target_virtual:
+                results.append(_entry(root, source))
+                continue
+            destination_virtual = self._resolve_destination(root, source_virtual, target_virtual, conflict_policy)
+            destination = _safe_target(root, destination_virtual)
+            shutil.move(str(source), str(destination))
+            results.append(_entry(root, destination))
+        record_audit(self.db, actor.id, "script.file_move", "script_project", project.slug, target_virtual)
+        self.db.commit()
+        return results
+
+    def _resolve_destination(self, root: Path, source_virtual: str, target_virtual: str, conflict_policy: str) -> str:
+        name = posixpath.basename(source_virtual)
+        destination_virtual = posixpath.join(target_virtual, name)
+        destination = _safe_target(root, destination_virtual)
+        if not destination.exists():
+            return destination_virtual
+        if conflict_policy == "rename":
+            return _unique_destination(root, target_virtual, name)
+        if conflict_policy == "overwrite":
+            if destination != _safe_target(root, source_virtual):
+                _remove_path(destination)
+            return destination_virtual
+        raise bad_request("error.scriptEntryExists", "Entry already exists")
+
     # --- helpers ---------------------------------------------------------
 
     def _ensure_quota(self, root: Path, delta_bytes: int) -> None:
@@ -462,6 +542,58 @@ def _validated_name(name: str) -> str:
     if not cleaned or cleaned in (".", "..") or any(char in cleaned for char in ENTRY_NAME_INVALID_CHARS) or len(cleaned) > 255:
         raise bad_request("error.scriptNameInvalid", "Invalid file or directory name")
     return cleaned
+
+
+def _transfer_sources(paths: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for path in paths:
+        virtual = _virtual_path(path)
+        if virtual == "/" or virtual in seen:
+            continue
+        seen.add(virtual)
+        result.append(virtual)
+    if not result:
+        raise bad_request("error.scriptPathInvalid", "Invalid path")
+    return result
+
+
+def _ensure_not_nested(source_virtual: str, target_virtual: str, source_is_dir: bool) -> None:
+    if source_is_dir and (target_virtual == source_virtual or target_virtual.startswith(source_virtual.rstrip("/") + "/")):
+        raise bad_request("error.scriptPathInvalid", "Invalid path")
+
+
+def _unique_destination(root: Path, target_virtual: str, name: str) -> str:
+    target = _safe_target(root, target_virtual)
+    existing = {child.name for child in target.iterdir()} if target.is_dir() else set()
+    stem, suffix = _split_name(name)
+    candidate = f"{stem} - copy{suffix}"
+    index = 2
+    while candidate in existing:
+        candidate = f"{stem} - copy {index}{suffix}"
+        index += 1
+    return posixpath.join(target_virtual, candidate)
+
+
+def _split_name(name: str) -> tuple[str, str]:
+    stem, suffix = posixpath.splitext(name)
+    return (stem or name, suffix if stem else "")
+
+
+def _path_size(path: Path) -> int:
+    if path.is_file():
+        try:
+            return path.stat().st_size
+        except OSError:
+            return 0
+    return _directory_size(path)
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        path.unlink(missing_ok=True)
 
 
 def _entry(root: Path, target: Path) -> ScriptFileEntry:

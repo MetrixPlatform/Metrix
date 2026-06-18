@@ -33,46 +33,68 @@
             <n-button size="tiny" quaternary circle :title="t('script.upload')" @click="triggerUpload">
               <template #icon><n-icon :component="ArrowUpload20Regular" /></template>
             </n-button>
-            <n-button size="tiny" quaternary circle :title="t('common.refresh')" @click="reloadTree">
+            <n-button size="tiny" quaternary circle :title="t('common.refresh')" @click="reloadTreePreservingExpansion">
               <template #icon><n-icon :component="ArrowSync20Regular" /></template>
             </n-button>
           </div>
         </div>
         <n-tree
           block-line
+          draggable
           :data="treeData"
           :on-load="loadTreeChildren"
           :selected-keys="selectedKeys"
           :expanded-keys="expandedKeys"
           :render-prefix="renderTreePrefix"
+          :node-props="treeNodeProps"
           class="script-tree"
           @update:selected-keys="handleSelect"
           @update:expanded-keys="(keys) => (expandedKeys = keys as string[])"
+          @drop="handleTreeDrop"
         />
         <input ref="uploadInputRef" type="file" class="script-upload-input" @change="handleUpload" />
+        <n-dropdown
+          trigger="manual"
+          placement="bottom-start"
+          :show="treeMenu.show"
+          :options="treeMenuOptions"
+          :x="treeMenu.x"
+          :y="treeMenu.y"
+          @select="handleTreeMenuSelect"
+          @clickoutside="treeMenu.show = false"
+        />
       </div>
 
       <div class="script-main">
-        <div class="script-editor-bar">
-          <span class="script-editor-path">{{ currentPath || t("script.noFileSelected") }}</span>
+        <n-tabs
+          v-if="openFiles.length"
+          :value="activePath"
+          type="card"
+          size="small"
+          class="script-editor-tabs"
+          @update:value="(value) => setActive(String(value))"
+          @close="(name) => closeTab(String(name))"
+        >
+          <n-tab
+            v-for="file in openFiles"
+            :key="file.path"
+            :name="file.path"
+            :closable="true"
+            :tab="() => renderEditorTab(file)"
+          />
+        </n-tabs>
+
+        <div v-if="activeFile" class="script-editor-bar">
+          <span class="script-editor-path">{{ activeFile.path }}</span>
           <div class="script-editor-actions">
-            <div v-if="currentPath" class="script-auto-save">
+            <div class="script-auto-save">
               <span>{{ t("script.autoSave") }}</span>
               <n-switch v-model:value="autoSaveEnabled" size="small" @update:value="setAutoSave" />
             </div>
-            <n-button
-              v-if="currentPath"
-              size="small"
-              quaternary
-              circle
-              type="error"
-              :title="t('common.delete')"
-              @click="deleteCurrent"
-            >
+            <n-button size="small" quaternary circle type="error" :title="t('common.delete')" @click="deleteActive">
               <template #icon><n-icon :component="Delete20Regular" /></template>
             </n-button>
             <permission-button
-              v-if="currentPath"
               :permission="SCRIPT_OPERATE"
               size="small"
               type="primary"
@@ -83,10 +105,22 @@
             </permission-button>
           </div>
         </div>
+
         <div class="script-editor-host">
-          <code-editor v-if="currentPath" v-model="currentContent" :language="currentLanguage" />
+          <code-editor v-if="activeFile" v-model="editorContent" :language="activeFile.language" />
           <div v-else class="script-editor-empty">{{ t("script.editorEmpty") }}</div>
         </div>
+
+        <n-dropdown
+          trigger="manual"
+          placement="bottom-start"
+          :show="tabMenu.show"
+          :options="tabMenuOptions"
+          :x="tabMenu.x"
+          :y="tabMenu.y"
+          @select="handleTabMenuSelect"
+          @clickoutside="tabMenu.show = false"
+        />
 
         <div class="script-panel">
           <n-tabs v-model:value="activeTab" type="line" size="small" @update:value="handleTabChange">
@@ -177,12 +211,26 @@
         <n-form-item :label="t('script.entryName')">
           <n-input v-model:value="newEntryName" :placeholder="t('script.entryNamePlaceholder')" @keyup.enter="confirmNewEntry" />
         </n-form-item>
-        <p class="script-modal-hint">{{ t("script.entryLocation", { dir: currentDir }) }}</p>
+        <p class="script-modal-hint">{{ t("script.entryLocation", { dir: selectedDir }) }}</p>
       </n-form>
       <template #action>
         <div class="form-actions modal-fixed-actions">
           <n-button @click="showNewEntry = false">{{ t("common.cancel") }}</n-button>
           <n-button type="primary" @click="confirmNewEntry">{{ t("common.create") }}</n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="renameModal.show" preset="card" class="modal-card" :title="t('script.rename')">
+      <n-form class="inline-form" label-placement="left" label-width="auto">
+        <n-form-item :label="t('script.entryName')">
+          <n-input v-model:value="renameModal.value" :placeholder="t('script.entryNamePlaceholder')" @keyup.enter="confirmRename" />
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <div class="form-actions modal-fixed-actions">
+          <n-button @click="renameModal.show = false">{{ t("common.cancel") }}</n-button>
+          <n-button type="primary" :loading="renameModal.saving" @click="confirmRename">{{ t("common.save") }}</n-button>
         </div>
       </template>
     </n-modal>
@@ -220,7 +268,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onBeforeUnmount, onMounted, reactive, ref, watch, type VNodeChild } from "vue";
+import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type VNodeChild } from "vue";
 import {
   Add20Regular,
   ArrowLeft20Regular,
@@ -237,6 +285,7 @@ import {
 import {
   NButton,
   NDataTable,
+  NDropdown,
   NForm,
   NFormItem,
   NIcon,
@@ -246,6 +295,7 @@ import {
   NRadioButton,
   NRadioGroup,
   NSwitch,
+  NTab,
   NTabPane,
   NTabs,
   NTag,
@@ -253,7 +303,7 @@ import {
   useDialog,
   useMessage
 } from "naive-ui";
-import type { DataTableColumns, TreeOption } from "naive-ui";
+import type { DataTableColumns, DropdownOption, TreeDropInfo, TreeOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
 import { appKey } from "../../../config/app";
@@ -261,6 +311,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { messageText, showError } from "../../../utils/message";
 import {
   cancelScriptRun,
+  copyScriptEntries,
   createScriptSchedule,
   deleteScriptEntry,
   deleteScriptSchedule,
@@ -270,7 +321,9 @@ import {
   listScriptRuns,
   listScriptSchedules,
   mkdirScript,
+  moveScriptEntries,
   readScriptFile,
+  renameScriptEntry,
   submitScriptRun,
   updateScriptSchedule,
   uploadScriptFile,
@@ -297,12 +350,27 @@ const dialog = useDialog();
 const treeData = ref<TreeOption[]>([]);
 const selectedKeys = ref<string[]>([]);
 const expandedKeys = ref<string[]>([]);
-const currentPath = ref("");
-const currentContent = ref("");
-const currentLanguage = ref("plaintext");
 const savingFile = ref(false);
 const autoSaveEnabled = ref(localStorage.getItem(AUTO_SAVE_KEY) === "1");
 const uploadInputRef = ref<HTMLInputElement | null>(null);
+
+interface OpenFile {
+  path: string;
+  name: string;
+  content: string;
+  savedContent: string;
+  language: string;
+  truncated: boolean;
+}
+const openFiles = ref<OpenFile[]>([]);
+const activePath = ref("");
+
+// Clipboard remembers the copied source path; paste is only enabled when it has content.
+const clipboard = ref<string | null>(null);
+
+const treeMenu = reactive({ show: false, x: 0, y: 0, target: null as TreeOption | null });
+const tabMenu = reactive({ show: false, x: 0, y: 0, path: "" });
+const renameModal = reactive({ show: false, path: "", value: "", saving: false });
 
 interface TerminalTab {
   id: string;
@@ -314,7 +382,7 @@ interface TerminalTab {
 const terminals = ref<TerminalTab[]>([{ id: "terminal-1", index: 1, closable: false }]);
 let terminalSeq = 1;
 
-const activeTab = ref<string>("log");
+const activeTab = ref<string>("terminal-1");
 const running = ref(false);
 const currentRunId = ref("");
 const runLog = ref("");
@@ -346,13 +414,37 @@ let autoSaveTimer: number | null = null;
 let skipNextContentWatch = false;
 
 const isActiveRun = computed(() => runStatus.value === "pending" || runStatus.value === "running");
-const currentDir = computed(() => {
-  if (!currentPath.value) return "/";
-  const node = findNode(treeData.value, currentPath.value);
-  if (node && !node.isLeaf) return currentPath.value;
-  const index = currentPath.value.lastIndexOf("/");
-  return index > 0 ? currentPath.value.slice(0, index) : "/";
+const activeFile = computed(() => openFiles.value.find((file) => file.path === activePath.value) ?? null);
+const editorContent = computed<string>({
+  get: () => activeFile.value?.content ?? "",
+  set: (value) => {
+    if (activeFile.value) activeFile.value.content = value;
+  }
 });
+// New files/folders/uploads land in the selected directory (or the selected file's directory).
+const selectedDir = computed(() => {
+  const key = selectedKeys.value[0];
+  if (!key) return "/";
+  const node = findNode(treeData.value, key);
+  if (!node) return "/";
+  if (!node.isLeaf) return key;
+  return parentPath(key);
+});
+const treeMenuOptions = computed<DropdownOption[]>(() => [
+  { label: t("common.copy"), key: "copy" },
+  { label: t("script.paste"), key: "paste", disabled: !clipboard.value },
+  { type: "divider", key: "divider" },
+  { label: t("script.rename"), key: "rename" },
+  { label: t("common.delete"), key: "delete" }
+]);
+const tabMenuOptions = computed<DropdownOption[]>(() => [
+  { label: t("script.editorTab.close"), key: "close" },
+  { label: t("script.editorTab.closeOthers"), key: "closeOthers", disabled: openFiles.value.length <= 1 },
+  { label: t("script.editorTab.closeLeft"), key: "closeLeft", disabled: !hasTabsToSide(tabMenu.path, "left") },
+  { label: t("script.editorTab.closeRight"), key: "closeRight", disabled: !hasTabsToSide(tabMenu.path, "right") },
+  { type: "divider", key: "divider" },
+  { label: t("script.editorTab.closeAll"), key: "closeAll" }
+]);
 
 const runColumns = computed<DataTableColumns<ScriptRun>>(() => [
   { title: t("script.field.trigger"), key: "trigger", width: 90, render: (row) => t(`script.trigger.${row.trigger}`) },
@@ -418,13 +510,14 @@ onBeforeUnmount(() => {
   clearAutoSaveTimer();
 });
 
-watch(currentContent, (value) => {
+watch(editorContent, (value) => {
   if (skipNextContentWatch) {
     skipNextContentWatch = false;
     return;
   }
-  if (autoSaveEnabled.value && currentPath.value) {
-    scheduleAutoSave(currentPath.value, value);
+  const file = activeFile.value;
+  if (autoSaveEnabled.value && file) {
+    scheduleAutoSave(file.path, value);
   }
 });
 
@@ -465,29 +558,94 @@ async function handleSelect(keys: Array<string | number>) {
   if (key === undefined) return;
   const node = findNode(treeData.value, String(key));
   if (!node || !node.isLeaf) return;
+  await openFile(String(key));
+}
+
+async function openFile(path: string) {
+  const existing = openFiles.value.find((file) => file.path === path);
+  if (existing) {
+    setActive(path);
+    return;
+  }
   try {
-    clearAutoSaveTimer();
-    const result = await readScriptFile(props.project.id, String(key));
-    currentPath.value = result.path;
-    skipNextContentWatch = true;
-    currentContent.value = result.content;
-    currentLanguage.value = languageForPath(result.path);
+    const result = await readScriptFile(props.project.id, path);
+    openFiles.value.push({
+      path: result.path,
+      name: baseName(result.path),
+      content: result.content,
+      savedContent: result.content,
+      language: languageForPath(result.path),
+      truncated: result.truncated
+    });
     if (result.truncated) message.warning(t("script.fileTruncated"));
+    setActive(result.path);
   } catch (error) {
     showError(message, error);
   }
 }
 
-async function saveFile() {
-  if (!currentPath.value) return;
+function setActive(path: string) {
+  if (activePath.value === path) {
+    if (selectedKeys.value[0] !== path) selectedKeys.value = [path];
+    return;
+  }
   clearAutoSaveTimer();
-  await saveFileContent(currentPath.value, currentContent.value, false);
+  skipNextContentWatch = true;
+  activePath.value = path;
+  selectedKeys.value = [path];
+}
+
+function closeTab(path: string) {
+  const index = openFiles.value.findIndex((file) => file.path === path);
+  if (index < 0) return;
+  openFiles.value.splice(index, 1);
+  if (activePath.value === path) {
+    const fallback = openFiles.value[index] || openFiles.value[index - 1] || null;
+    if (fallback) setActive(fallback.path);
+    else {
+      activePath.value = "";
+      clearAutoSaveTimer();
+    }
+  }
+}
+
+function closeOtherTabs(path: string) {
+  openFiles.value = openFiles.value.filter((file) => file.path === path);
+  setActive(path);
+}
+
+function closeTabsToSide(path: string, side: "left" | "right") {
+  const index = openFiles.value.findIndex((file) => file.path === path);
+  if (index < 0) return;
+  openFiles.value = side === "left" ? openFiles.value.slice(index) : openFiles.value.slice(0, index + 1);
+  if (!openFiles.value.some((file) => file.path === activePath.value)) setActive(path);
+}
+
+function hasTabsToSide(path: string, side: "left" | "right") {
+  const index = openFiles.value.findIndex((file) => file.path === path);
+  if (index < 0) return false;
+  return side === "left" ? index > 0 : index < openFiles.value.length - 1;
+}
+
+function closeAllTabs() {
+  openFiles.value = [];
+  activePath.value = "";
+  clearAutoSaveTimer();
+}
+
+async function saveFile() {
+  const file = activeFile.value;
+  if (!file) return;
+  clearAutoSaveTimer();
+  await saveFileContent(file.path, file.content, false);
 }
 
 async function saveFileContent(path: string, content: string, silent: boolean) {
   savingFile.value = true;
   try {
     await writeScriptFile(props.project.id, path, content);
+    const file = openFiles.value.find((item) => item.path === path);
+    if (file) file.savedContent = content;
     if (!silent) message.success(t("script.fileSaved"));
   } catch (error) {
     showError(message, error);
@@ -498,11 +656,50 @@ async function saveFileContent(path: string, content: string, silent: boolean) {
 
 function setAutoSave(value: boolean) {
   localStorage.setItem(AUTO_SAVE_KEY, value ? "1" : "0");
-  if (value && currentPath.value) {
-    scheduleAutoSave(currentPath.value, currentContent.value);
+  const file = activeFile.value;
+  if (value && file) {
+    scheduleAutoSave(file.path, file.content);
   } else {
     clearAutoSaveTimer();
   }
+}
+
+function renderEditorTab(file: OpenFile): VNodeChild {
+  const dirty = file.content !== file.savedContent;
+  return h(
+    "span",
+    {
+      class: "script-editor-tab",
+      title: file.path,
+      onContextmenu: (event: MouseEvent) => openTabMenu(event, file.path)
+    },
+    [
+      h(getFileIcon(file.name), { width: 15, height: 15, class: "script-file-icon" }),
+      h("span", { class: "script-editor-tab-name" }, file.name),
+      dirty ? h("span", { class: "script-editor-tab-dot", title: t("script.autoSave") }) : null
+    ]
+  );
+}
+
+function openTabMenu(event: MouseEvent, path: string) {
+  event.preventDefault();
+  event.stopPropagation();
+  tabMenu.path = path;
+  tabMenu.x = event.clientX;
+  tabMenu.y = event.clientY;
+  tabMenu.show = false;
+  void nextTick(() => (tabMenu.show = true));
+}
+
+function handleTabMenuSelect(key: string) {
+  tabMenu.show = false;
+  const path = tabMenu.path;
+  if (!path) return;
+  if (key === "close") closeTab(path);
+  else if (key === "closeOthers") closeOtherTabs(path);
+  else if (key === "closeLeft") closeTabsToSide(path, "left");
+  else if (key === "closeRight") closeTabsToSide(path, "right");
+  else if (key === "closeAll") closeAllTabs();
 }
 
 function scheduleAutoSave(path: string, content: string) {
@@ -520,8 +717,11 @@ function clearAutoSaveTimer() {
   }
 }
 
-function deleteCurrent() {
-  const path = currentPath.value;
+function deleteActive() {
+  if (activeFile.value) deletePath(activeFile.value.path);
+}
+
+function deletePath(path: string) {
   if (!path) return;
   dialog.warning({
     title: t("common.delete"),
@@ -531,16 +731,209 @@ function deleteCurrent() {
     onPositiveClick: async () => {
       try {
         await deleteScriptEntry(props.project.id, path);
-        clearAutoSaveTimer();
-        currentPath.value = "";
-        currentContent.value = "";
-        await reloadTree();
+        closeTabsUnder(path);
+        await refreshDir(parentPath(path));
         message.success(t("script.fileDeleted"));
       } catch (error) {
         showError(message, error);
       }
     }
   });
+}
+
+// --- tree context menu (copy / paste / rename / delete) ---------------
+
+function treeNodeProps({ option }: { option: TreeOption }) {
+  return {
+    onContextmenu(event: MouseEvent) {
+      event.preventDefault();
+      event.stopPropagation();
+      treeMenu.target = option;
+      selectedKeys.value = [String(option.key)];
+      treeMenu.x = event.clientX;
+      treeMenu.y = event.clientY;
+      treeMenu.show = false;
+      void nextTick(() => (treeMenu.show = true));
+    }
+  };
+}
+
+function handleTreeMenuSelect(key: string) {
+  treeMenu.show = false;
+  const node = treeMenu.target;
+  if (!node) return;
+  if (key === "copy") setClipboard(String(node.key));
+  else if (key === "paste") void pasteTo(node);
+  else if (key === "rename") openRename(node);
+  else if (key === "delete") deletePath(String(node.key));
+}
+
+function setClipboard(path: string) {
+  clipboard.value = path;
+  message.success(t("script.copyPrepared"));
+}
+
+async function pasteTo(node: TreeOption) {
+  if (!clipboard.value) return;
+  const targetDir = nodeDir(node);
+  try {
+    await copyScriptEntries(props.project.id, {
+      paths: [clipboard.value],
+      target_dir: targetDir,
+      conflict_policy: "rename"
+    });
+    await refreshDir(targetDir);
+    expandDir(targetDir);
+    message.success(t("script.pasted"));
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+function openRename(node: TreeOption) {
+  renameModal.path = String(node.key);
+  renameModal.value = String(node.label ?? baseName(String(node.key)));
+  renameModal.show = true;
+}
+
+async function confirmRename() {
+  const name = renameModal.value.trim();
+  const oldPath = renameModal.path;
+  if (!name || !oldPath) return;
+  renameModal.saving = true;
+  try {
+    const entry = await renameScriptEntry(props.project.id, oldPath, name);
+    renameModal.show = false;
+    syncPathsAfterMove(oldPath, entry.path);
+    await refreshDir(parentPath(oldPath));
+    message.success(t("script.renamed"));
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    renameModal.saving = false;
+  }
+}
+
+// --- drag & drop move --------------------------------------------------
+
+async function handleTreeDrop({ node, dragNode, dropPosition }: TreeDropInfo) {
+  const sourcePath = String(dragNode.key);
+  const targetDir = dropPosition === "inside" && !node.isLeaf ? String(node.key) : nodeDir(node);
+  if (parentPath(sourcePath) === targetDir) return;
+  if (!dragNode.isLeaf && (targetDir === sourcePath || targetDir.startsWith(sourcePath.replace(/\/+$/, "") + "/"))) {
+    message.warning(t("script.moveInvalidTarget"));
+    return;
+  }
+  try {
+    const moved = await moveScriptEntries(props.project.id, {
+      paths: [sourcePath],
+      target_dir: targetDir,
+      conflict_policy: "error"
+    });
+    const newPath = moved[0]?.path ?? joinPath(targetDir, baseName(sourcePath));
+    syncPathsAfterMove(sourcePath, newPath);
+    const sourceDir = parentPath(sourcePath);
+    await refreshDir(sourceDir);
+    if (targetDir !== sourceDir) await refreshDir(targetDir);
+    expandDir(targetDir);
+    message.success(t("script.moved"));
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+function syncPathsAfterMove(oldPath: string, newPath: string) {
+  if (oldPath === newPath) return;
+  const prefix = oldPath + "/";
+  for (const file of openFiles.value) {
+    if (file.path === oldPath) {
+      file.path = newPath;
+      file.name = baseName(newPath);
+      file.language = languageForPath(newPath);
+    } else if (file.path.startsWith(prefix)) {
+      const next = newPath + file.path.slice(oldPath.length);
+      file.path = next;
+      file.name = baseName(next);
+      file.language = languageForPath(next);
+    }
+  }
+  if (activePath.value === oldPath) activePath.value = newPath;
+  else if (activePath.value.startsWith(prefix)) activePath.value = newPath + activePath.value.slice(oldPath.length);
+}
+
+function closeTabsUnder(path: string) {
+  const prefix = path + "/";
+  openFiles.value
+    .filter((file) => file.path === path || file.path.startsWith(prefix))
+    .forEach((file) => closeTab(file.path));
+}
+
+// --- tree refresh helpers (preserve expansion) -------------------------
+
+async function refreshDir(dirPath: string) {
+  const dir = dirPath || "/";
+  const node = dir === "/" ? null : findNode(treeData.value, dir);
+  if (dir === "/" || !node || node.isLeaf) {
+    await reloadTreePreservingExpansion();
+    return;
+  }
+  try {
+    const result = await listScriptFiles(props.project.id, dir);
+    node.children = toNodes(result.entries);
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+async function reloadTreePreservingExpansion() {
+  const expanded = [...expandedKeys.value];
+  try {
+    const result = await listScriptFiles(props.project.id, "/");
+    const data = toNodes(result.entries);
+    await loadExpandedChildren(data, expanded);
+    treeData.value = data;
+    expandedKeys.value = expanded.filter((key) => findNode(data, key) !== null);
+  } catch (error) {
+    showError(message, error);
+  }
+}
+
+async function loadExpandedChildren(nodes: TreeOption[], expanded: string[]) {
+  for (const node of nodes) {
+    if (node.isLeaf || !expanded.includes(String(node.key))) continue;
+    try {
+      const result = await listScriptFiles(props.project.id, String(node.key));
+      node.children = toNodes(result.entries);
+      await loadExpandedChildren(node.children, expanded);
+    } catch {
+      /* ignore subtree reload errors */
+    }
+  }
+}
+
+function expandDir(dir: string) {
+  if (dir !== "/" && !expandedKeys.value.includes(dir)) {
+    expandedKeys.value = [...expandedKeys.value, dir];
+  }
+}
+
+function nodeDir(node: TreeOption): string {
+  const key = String(node.key);
+  return node.isLeaf ? parentPath(key) : key;
+}
+
+function parentPath(value: string): string {
+  const index = value.lastIndexOf("/");
+  return index > 0 ? value.slice(0, index) : "/";
+}
+
+function baseName(value: string): string {
+  const parts = value.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "";
+}
+
+function joinPath(dir: string, name: string): string {
+  return dir === "/" ? `/${name}` : `${dir}/${name}`;
 }
 
 function openNewEntry(isDir: boolean) {
@@ -552,8 +945,8 @@ function openNewEntry(isDir: boolean) {
 async function confirmNewEntry() {
   const name = newEntryName.value.trim();
   if (!name) return;
-  const base = currentDir.value === "/" ? "" : currentDir.value;
-  const path = `${base}/${name}`;
+  const dir = selectedDir.value;
+  const path = joinPath(dir, name);
   try {
     if (newEntryIsDir.value) {
       await mkdirScript(props.project.id, path);
@@ -561,7 +954,8 @@ async function confirmNewEntry() {
       await writeScriptFile(props.project.id, path, "");
     }
     showNewEntry.value = false;
-    await reloadTree();
+    await refreshDir(dir);
+    expandDir(dir);
     message.success(t("script.created"));
   } catch (error) {
     showError(message, error);
@@ -577,9 +971,11 @@ async function handleUpload(event: Event) {
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
+  const dir = selectedDir.value;
   try {
-    await uploadScriptFile(props.project.id, currentDir.value, file);
-    await reloadTree();
+    await uploadScriptFile(props.project.id, dir, file);
+    await refreshDir(dir);
+    expandDir(dir);
     message.success(t("script.uploaded"));
   } catch (error) {
     showError(message, error);
@@ -972,6 +1368,46 @@ function languageForPath(path: string): string {
   color: var(--text-color-3);
   font-size: 12px;
   white-space: nowrap;
+}
+
+.script-editor-tabs {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.script-editor-tabs :deep(.n-tabs-nav) {
+  padding: 4px 6px 0;
+}
+
+.script-editor-tabs :deep(.n-tabs-tab) {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.script-editor-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+}
+
+.script-editor-tab :deep(.script-file-icon),
+.script-editor-tab .script-file-icon {
+  flex: none;
+}
+
+.script-editor-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.script-editor-tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-color-3);
+  flex: none;
 }
 
 .script-editor-host {
