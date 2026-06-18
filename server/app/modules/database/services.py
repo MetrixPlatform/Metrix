@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import secrets
+from contextlib import nullcontext
 from typing import Any
 
 from sqlalchemy import text
@@ -298,19 +299,31 @@ class DatabaseService:
         results: list[ScriptStatementResult] = []
         stopped = False
         with self._runtime(connection, database) as runtime:
-            for index, statement in enumerate(statements, start=1):
-                try:
-                    if classify_sql(statement) == "read":
-                        columns, rows, _, _ = runtime.execute_sql(statement, 1, 200)
-                        results.append(ScriptStatementResult(index=index, sql=statement, ok=True, columns=columns, rows=rows))
-                    else:
-                        affected = runtime.execute_write(statement)
-                        results.append(ScriptStatementResult(index=index, sql=statement, ok=True, affected_rows=affected))
-                except SQLAlchemyError as exc:
-                    results.append(ScriptStatementResult(index=index, sql=statement, ok=False, message=str(exc)))
-                    if payload.stop_on_error:
-                        stopped = True
-                        break
+            # single_session keeps one connection for the whole script so TEMPORARY
+            # tables / session vars survive across statements; default path opens a
+            # fresh connection per statement (NullPool) and cannot keep that state.
+            session_cm = runtime.session_connection() if payload.single_session else nullcontext(None)
+            with session_cm as conn:
+                for index, statement in enumerate(statements, start=1):
+                    try:
+                        if classify_sql(statement) == "read":
+                            if conn is not None:
+                                columns, rows, _, _ = runtime.execute_sql_on(conn, statement, 1, 200)
+                            else:
+                                columns, rows, _, _ = runtime.execute_sql(statement, 1, 200)
+                            results.append(ScriptStatementResult(index=index, sql=statement, ok=True, columns=columns, rows=rows))
+                        else:
+                            affected = (
+                                runtime.execute_write_on(conn, statement)
+                                if conn is not None
+                                else runtime.execute_write(statement)
+                            )
+                            results.append(ScriptStatementResult(index=index, sql=statement, ok=True, affected_rows=affected))
+                    except SQLAlchemyError as exc:
+                        results.append(ScriptStatementResult(index=index, sql=statement, ok=False, message=str(exc)))
+                        if payload.stop_on_error:
+                            stopped = True
+                            break
         record_audit(
             self.db,
             actor.id,

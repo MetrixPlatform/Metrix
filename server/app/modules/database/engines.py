@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote_plus
@@ -157,6 +158,36 @@ class ExternalDatabase:
         with self.engine.begin() as conn:
             result = conn.execute(text(sql), rows)
             return result.rowcount if result.rowcount and result.rowcount > 0 else len(rows)
+
+    @contextmanager
+    def session_connection(self):
+        """Yield one AUTOCOMMIT connection reused for a whole script run so that
+        session state (TEMPORARY tables, session variables) survives across
+        statements. The default per-statement path opens a fresh connection each
+        time and cannot keep such state because of NullPool."""
+        conn = self.engine.connect().execution_options(isolation_level="AUTOCOMMIT")
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    def execute_sql_on(self, conn: Any, sql: str, page: int = 1, page_size: int = 100) -> tuple[list[str], list[dict[str, Any]], int, int]:
+        statement = sql.strip().rstrip(";")
+        page_size = clamp_page_size(page_size)
+        keyword = first_keyword(statement)
+        if keyword in PAGEABLE_READ_KEYWORDS:
+            offset = max(page - 1, 0) * page_size
+            result = conn.execute(text(f"{statement} LIMIT :limit OFFSET :offset"), {"limit": page_size, "offset": offset})
+            total = _query_total(conn, statement)
+        else:
+            result = conn.execute(text(statement))
+            total = -1
+        rows = rows_to_dicts(result.mappings().all())
+        return list(result.keys()), rows, total if total >= 0 else len(rows), result.rowcount if result.rowcount > 0 else 0
+
+    def execute_write_on(self, conn: Any, sql: str) -> int:
+        result = conn.execute(text(sql))
+        return result.rowcount if result.rowcount and result.rowcount > 0 else 0
 
     def qualified_table(self, table: str, database: str = "") -> str:
         name = self.quote_identifier(clean_identifier(table, "table"))

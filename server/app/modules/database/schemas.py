@@ -174,6 +174,7 @@ class RunScriptRequest(BaseModel):
     script_id: int | None = None
     database: str = Field(default="", max_length=128)
     stop_on_error: bool = True
+    single_session: bool = False
 
     @field_validator("database")
     @classmethod

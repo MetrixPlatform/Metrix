@@ -957,3 +957,14 @@
 - 开启后监听 `currentContent`，内容变化 800ms 防抖调用 `writeScriptFile` 保存当前文件；自动保存不弹成功提示，只在失败时沿用 `showError` 提示。手动「保存」仍保留成功提示。
 - 切换文件、删除当前文件、组件卸载时会清理待执行的自动保存定时器；读取文件时用 `skipNextContentWatch` 跳过首次内容回填，避免刚打开文件就误触发保存。
 - 补充脚本模块中英文 `script.autoSave` 文案。本轮按用户要求只修改并提交，不运行测试。
+
+## 2026-06-18：数据库 run-script 增加可选单连接会话模式
+
+- 背景：`run-script` 默认逐语句执行——`ExternalDatabase.execute_write` 每条都 `engine.begin()` 新开连接，且引擎用 `NullPool`（连接用完即弃），所以 `CREATE TEMPORARY TABLE`、`SET SESSION/GLOBAL` 等会话状态跨不了语句。带临时表的脚本（如 CapacityReport 报表）因此无法整段跑通。
+- 改动（向后兼容，默认行为不变）：
+  - `schemas.py`：`RunScriptRequest` 新增 `single_session: bool = False`。
+  - `engines.py`：`ExternalDatabase` 新增 `session_connection()`（开一条 `isolation_level="AUTOCOMMIT"` 的连接并在整段脚本复用）、`execute_sql_on(conn, ...)`、`execute_write_on(conn, ...)`。
+  - `services.py`：`run_script` 当 `single_session=True` 时用 `session_connection()` 取得单连接、所有语句在该连接上执行（`nullcontext(None)` 兜底保持默认逐语句路径）；逐语句结果/报错/`stop_on_error` 语义不变。
+- 选 AUTOCOMMIT 而非单事务：MySQL DDL 会隐式提交，整段「一个事务回滚」做不到也无意义；这里要的是「同一条连接」让临时表/会话变量存活，AUTOCOMMIT 下每条即时提交、连接不断开，临时表照常跨语句。临时表连接私有、会话结束自动清理、并发安全。
+- 配套（CapacityReport 平台脚本，位于 `temp/`，已被 `.gitignore`，不入库）：`report_script.sql` 改回临时表版本（仅 `SET GLOBAL`→`SET SESSION`）；`platform_client.run_script` 支持 `single_session`，`main.py` 调用报表 SQL 时传 `single_session=True`。
+- 本轮按用户要求只修改并提交，不运行测试。
