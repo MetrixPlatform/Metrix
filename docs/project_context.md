@@ -982,3 +982,12 @@
 - i18n：核心删 `permission.group.page` 与 `permission.route:*`，新增 `permission.group.dashboard` 与 `permission.action:dashboard:read`（查看首页/View dashboard）；各模块删 `permission.route:<x>` 标签（保留菜单标题 `route.<x>`）。
 - 脚手架/文档/测试：`scripts/create-module.mjs` 模板改为 read 即页面权限（index/init/生成测试/i18n 去 route）；`DEVELOPMENT_GUIDE.md` 更新前后端示例与「权限 code 规则」；`server/tests/test_auth_rbac.py` 全量改写 route 断言为新模型。
 - 生效：现有角色无需重勾——含模块操作权限的角色经 `expand_permissions` 自动获得对应 read（页面），刷新/重登即出现导航；旧 `route:*` 行在应用下次初始化时清理。验证：后端改动文件 `py_compile` 通过、`server/app` 内无残留 route 机制引用；前端 `npm run typecheck` 通过；i18n JSON 全部可解析；脚手架 `node --check` 通过。本轮按用户要求只修改并提交，不运行 pytest。
+
+## 2026-06-19：工作区文件树接入离线 vscode-icons 类型图标
+
+- 需求：脚本工作台「工作区文件」树像 VSCode 那样按文件类型显示图标、文件夹按类型显示（JetBrains 风格），且内网离线可用。
+- 方案：`unplugin-icons` + `@iconify-json/vscode-icons`（均 devDependencies，仅构建期）；按代码静态引用的图标名构建期 tree-shake，仅约 53 个 SVG 进入脚本模块分包（不打整套约 3.7MB）。未引入 `vscode-icons-js`/`@iconify/vue`，改用自维护映射表（`web/src/modules/scripts/utils/fileIcons.ts`，导出 `getFileIcon`/`getFolderIcon`）以便静态分析按需打包。
+- 覆盖：常见源码/配置扩展名（py/go/cpp/c/h/js/ts/tsx/jsx/vue/json/yaml/xml/ini/toml/md/sh/html/css/scss/less/sql/txt/dockerfile/env/gitignore 等）+ 无扩展名 `Dockerfile`，识别不到回退 `default-file`；文件夹 src/images/img/assets/test(s)/docs/dist/build/public/config/.git/node_modules/.vscode 分类图标，展开用 `-opened` 变体，其余回退 `default-folder(-opened)`。少量回退：`.lock`→默认文件、`.csv`→文本、`assets`→`folder-type-asset`、`build`→复用 `dist`。
+- 集成：`web/src/modules/scripts/views/ScriptWorkbenchView.vue` 给 `n-tree` 加 `:render-prefix`（`renderTreePrefix`）与对齐样式；`web/vite.config.ts` 接 `Icons({ compiler: "vue3", autoInstall: false })`（离线、不联网自动装）；`web/tsconfig.json` 的 `types` 增加 `unplugin-icons/types/vue` 让 `~icons/*` 通过类型检查。
+- 顺带修复：`web/src/vite-env.d.ts` 中 monaco `basic-languages/*/*.js` 用了 TS 不支持的双通配模块声明，导致 `CodeEditor.vue` 类型检查 TS7016、`npm run build` 阻断；改为单通配 `*` 后 `typecheck`/`build` 通过。
+- 验证：`npm run typecheck`、`npm run build` 通过，图标随脚本分包按需打包。本轮按用户要求只修改并提交，不推送。

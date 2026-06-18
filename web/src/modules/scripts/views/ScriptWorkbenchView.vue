@@ -44,6 +44,7 @@
           :on-load="loadTreeChildren"
           :selected-keys="selectedKeys"
           :expanded-keys="expandedKeys"
+          :render-prefix="renderTreePrefix"
           class="script-tree"
           @update:selected-keys="handleSelect"
           @update:expanded-keys="(keys) => (expandedKeys = keys as string[])"
@@ -283,6 +284,7 @@ import {
 import CodeEditor from "../components/CodeEditor.vue";
 import ScriptTerminalPanel from "../components/ScriptTerminalPanel.vue";
 import { SCRIPT_OPERATE } from "../permissions";
+import { getFileIcon, getFolderIcon } from "../utils/fileIcons";
 
 const props = defineProps<{ project: ScriptProject }>();
 const emit = defineEmits<{ close: [] }>();
@@ -428,6 +430,14 @@ watch(currentContent, (value) => {
 
 function toNodes(entries: { name: string; path: string; is_dir: boolean }[]): TreeOption[] {
   return entries.map((entry) => ({ key: entry.path, label: entry.name, isLeaf: !entry.is_dir }));
+}
+
+function renderTreePrefix({ option }: { option: TreeOption }): VNodeChild {
+  const name = String(option.label ?? "");
+  const icon = option.isLeaf
+    ? getFileIcon(name)
+    : getFolderIcon(name, expandedKeys.value.includes(String(option.key)));
+  return h(icon, { width: 16, height: 16, class: "script-file-icon" });
 }
 
 async function reloadTree() {
@@ -913,6 +923,11 @@ function languageForPath(path: string): string {
   flex: 1;
   overflow: auto;
   padding: 6px;
+}
+
+.script-tree :deep(.script-file-icon) {
+  display: block;
+  flex: none;
 }
 
 .script-upload-input {

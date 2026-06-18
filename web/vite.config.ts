@@ -1,4 +1,5 @@
 import vue from "@vitejs/plugin-vue";
+import Icons from "unplugin-icons/vite";
 import { defineConfig } from "vite";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +14,9 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    // Bundle only the icons actually imported (offline, no CDN); data comes from
+    // the installed @iconify-json/vscode-icons set, so autoInstall stays off.
+    Icons({ compiler: "vue3", autoInstall: false }),
     {
       name: "app-config-html",
       transformIndexHtml(html) {

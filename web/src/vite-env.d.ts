@@ -24,7 +24,7 @@ declare module "monaco-editor/esm/vs/basic-languages/sql/sql.js" {
   };
 }
 
-declare module "monaco-editor/esm/vs/basic-languages/*/*.js" {
+declare module "monaco-editor/esm/vs/basic-languages/*" {
   export const conf: unknown;
   export const language: {
     keywords?: string[];
