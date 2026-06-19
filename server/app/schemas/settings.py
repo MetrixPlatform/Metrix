@@ -28,6 +28,7 @@ class PublicSettings(BaseModel):
 
 class SystemSettings(PublicSettings):
     log_retention_days: LogRetentionDays
+    session_token_expire_hours: int = Field(default=12, ge=0, le=8760)
     data_job_max_workers: int = Field(default=2, ge=1, le=16)
     data_job_retention_hours: int = Field(default=168, ge=1, le=8760)
     data_job_retention_days: int = Field(default=7, ge=1, le=365)
@@ -51,6 +52,7 @@ class SystemSettingsUpdate(BaseModel):
     default_locale: LocaleCode
     api_enabled: bool
     api_token_reveal_enabled: bool
+    session_token_expire_hours: int = Field(default=12, ge=0, le=8760)
     data_job_max_workers: int = Field(default=2, ge=1, le=16)
     data_job_retention_hours: int | None = Field(default=None, ge=1, le=8760)
     data_job_retention_days: int | None = Field(default=None, ge=1, le=365)

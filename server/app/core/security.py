@@ -40,10 +40,14 @@ def verify_password(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(_b64encode(expected), digest)
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, expire_minutes: int | None = None) -> str:
     settings = get_settings()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.token_expire_minutes)
-    payload = {"sub": subject, "exp": int(expires_at.timestamp())}
+    minutes = settings.token_expire_minutes if expire_minutes is None else expire_minutes
+    payload: dict[str, object] = {"sub": subject}
+    # minutes <= 0 means the session never expires (no exp claim is written).
+    if minutes > 0:
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+        payload["exp"] = int(expires_at.timestamp())
     payload_part = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     signature = _sign(payload_part, settings)
     return f"{payload_part}.{signature}"
@@ -61,7 +65,8 @@ def decode_access_token(token: str) -> str | None:
         payload = json.loads(_b64decode(payload_part))
     except (ValueError, json.JSONDecodeError):
         return None
-    if int(payload.get("exp", 0)) < int(datetime.now(timezone.utc).timestamp()):
+    exp = payload.get("exp")
+    if exp is not None and int(exp) < int(datetime.now(timezone.utc).timestamp()):
         return None
     subject = str(payload.get("sub") or "")
     return subject if subject.isdigit() else None

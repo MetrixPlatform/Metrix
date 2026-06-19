@@ -15,7 +15,11 @@
               <n-form-item :label="t('field.defaultLocale')" path="default_locale">
                 <n-select v-model:value="form.default_locale" :options="localeSelectOptions" placeholder="" />
               </n-form-item>
+              <n-form-item :label="t('field.sessionTokenExpireHours')" path="session_token_expire_hours">
+                <n-input-number v-model:value="form.session_token_expire_hours" :min="0" :max="8760" :show-button="false" />
+              </n-form-item>
             </div>
+            <p class="settings-field-hint">{{ t("settings.sessionExpireHelp") }}</p>
           </section>
         </n-tab-pane>
 
@@ -302,6 +306,7 @@ const form = reactive<SystemSettings>({
   default_locale: "zh-CN",
   api_enabled: true,
   api_token_reveal_enabled: true,
+  session_token_expire_hours: 12,
   data_job_max_workers: 2,
   data_job_retention_hours: 168,
   data_job_retention_days: 7,
@@ -366,6 +371,7 @@ async function saveSettings() {
       default_locale: form.default_locale,
       api_enabled: form.api_enabled,
       api_token_reveal_enabled: form.api_token_reveal_enabled,
+      session_token_expire_hours: form.session_token_expire_hours,
       data_job_max_workers: form.data_job_max_workers,
       data_job_retention_hours: form.data_job_retention_hours,
       navigation_order: form.navigation_order,
@@ -412,6 +418,7 @@ function assignSettings(settings: SystemSettings) {
   form.default_locale = settings.default_locale;
   form.api_enabled = settings.api_enabled;
   form.api_token_reveal_enabled = settings.api_token_reveal_enabled;
+  form.session_token_expire_hours = settings.session_token_expire_hours ?? 12;
   form.data_job_max_workers = settings.data_job_max_workers;
   form.data_job_retention_hours = settings.data_job_retention_hours ?? settings.data_job_retention_days * 24;
   form.data_job_retention_days = settings.data_job_retention_days;

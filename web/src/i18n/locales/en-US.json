@@ -113,6 +113,7 @@
     "newName": "New name",
     "dockerConnectionMode": "Docker connection mode",
     "dockerHost": "Docker Host",
+    "sessionTokenExpireHours": "Session lifetime (hours)",
     "scriptRunMaxWorkers": "Script run concurrency",
     "scriptRunRetentionHours": "Run history retention (hours)",
     "scriptWorkspaceQuotaMb": "Workspace quota (MB)",
@@ -497,7 +498,8 @@
     "scriptsDesc": "Configure script run concurrency, run history retention, workspace quota and offline/internal package sources.",
     "scriptSourcePlaceholder": "Leave empty to use the public source when online",
     "scriptZeroUnlimited": "Script run concurrency, run history retention hours, and workspace quota can be set to 0 for no limit.",
-    "scriptSourceHelp": "Empty + bridge network: use the public source when online, or wheels/prebuilt images when offline; once set, the internal source is used."
+    "scriptSourceHelp": "Empty + bridge network: use the public source when online, or wheels/prebuilt images when offline; once set, the internal source is used.",
+    "sessionExpireHelp": "Login session lifetime in hours; 0 means never expire. Changes apply to new logins; existing sessions are unaffected."
   },
   "token": {
     "title": "API tokens",

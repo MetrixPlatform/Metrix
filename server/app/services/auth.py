@@ -107,7 +107,8 @@ class AuthService:
         if not user.is_active:
             raise bad_request("error.accountDisabled", "Account is disabled")
         user.last_login_at = utc_now()
-        token = create_access_token(str(user.id))
+        expire_minutes = SettingService(self.db).get_settings().session_token_expire_hours * 60
+        token = create_access_token(str(user.id), expire_minutes)
         permissions = sorted(get_user_permission_codes(user))
         record_audit(self.db, user.id, "auth.login", "user", str(user.id), user.username, audit_detail(user.username))
         self.db.commit()

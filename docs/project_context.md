@@ -1039,3 +1039,15 @@
 - 关闭未保存文件提示：仅在「自动保存关闭」时生效。脏判定复用既有 `content !== savedContent`（抽出 `isDirty`）。新增 `requestCloseTab`（单标签）与 `requestCloseTabs`（关闭其他/左/右/全部的批量场景）；关闭含未保存修改的文件时弹 `dialog.warning`：保存并关闭 / 不保存 / 取消（点 X 或遮罩=取消、不关闭）。编辑器标签 `@close` 与右键菜单各关闭项均改走 request 版本；删除文件仍走原有删除确认、不重复提示。
 - i18n：新增 `script.unsavedTitle/unsavedConfirm/unsavedConfirmMulti/saveAndClose/closeWithoutSaving`（中英文同步）。
 - 验证：改动文件 ReadLints 无报错。只修改并提交，不推送；无关的权限文件与 `dev.bat` 不纳入提交。
+
+## 2026-06-19：登录会话有效期改为系统设置可配（默认12小时，0=永不过期）
+
+- 背景：登录 token 有效期原写死在 `core/config.py` 的 `token_expire_minutes = 12*60`。改为系统设置项 `session_token_expire_hours`，默认 12，`0` 表示永不过期。
+- 后端：
+  - `schemas/settings.py`：`SystemSettings` 与 `SystemSettingsUpdate` 新增 `session_token_expire_hours: int = Field(default=12, ge=0, le=8760)`。
+  - `services/settings.py`：新增 `SETTING_SESSION_TOKEN_EXPIRE_HOURS`、`DEFAULT_SESSION_TOKEN_EXPIRE_HOURS=12`，并在 `_default_settings`/`_merged_settings`(`_parse_int` min=0,max=8760)/`update_settings.set_many`/`_settings_snapshot` 全链路接入。
+  - `core/security.py`：`create_access_token(subject, expire_minutes=None)`——`minutes<=0` 时不写 `exp`（永不过期）；`decode_access_token` 改为「无 `exp` 声明则跳过过期校验」。`config.token_expire_minutes` 仅作 `expire_minutes=None` 时的兜底默认。
+  - `services/auth.py` 登录：`expire_minutes = SettingService(db).get_settings().session_token_expire_hours * 60`，传入 `create_access_token`。
+  - 仅影响新签发的 token；已签发带 `exp` 的旧 token 不受影响。无需数据库迁移（键值设置缺省回退默认）。
+- 前端：`api/types.ts` 的 `SystemSettings` 加 `session_token_expire_hours`（`SystemSettingsUpdate` 由 `Omit<...>` 自动包含）；`SystemSettingsView`「基础」tab 新增「登录有效期(小时)」`n-input-number`(min0/max8760) + 提示，并接入 form 默认值/`buildPayload`/`applySettings`；中英文新增 `field.sessionTokenExpireHours`、`settings.sessionExpireHelp`。
+- 验证：改动文件 ReadLints 无报错。只修改并提交，不推送。

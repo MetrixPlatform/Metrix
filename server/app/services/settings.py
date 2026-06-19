@@ -22,6 +22,7 @@ SETTING_LOG_RETENTION_DAYS = "log_retention_days"
 SETTING_DEFAULT_LOCALE = "default_locale"
 SETTING_API_ENABLED = "api_enabled"
 SETTING_API_TOKEN_REVEAL_ENABLED = "api_token_reveal_enabled"
+SETTING_SESSION_TOKEN_EXPIRE_HOURS = "session_token_expire_hours"
 SETTING_DATA_JOB_MAX_WORKERS = "data_job_max_workers"
 SETTING_DATA_JOB_RETENTION_HOURS = "data_job_retention_hours"
 SETTING_DATA_JOB_RETENTION_DAYS = "data_job_retention_days"
@@ -36,6 +37,7 @@ SETTING_SCRIPT_RUN_MAX_WORKERS = "script_run_max_workers"
 SETTING_SCRIPT_RUN_RETENTION_HOURS = "script_run_retention_hours"
 SETTING_SCRIPT_WORKSPACE_QUOTA_MB = "script_workspace_quota_mb"
 DEFAULT_LOG_RETENTION_DAYS = 90
+DEFAULT_SESSION_TOKEN_EXPIRE_HOURS = 12
 DEFAULT_DATA_JOB_MAX_WORKERS = 2
 DEFAULT_DATA_JOB_RETENTION_HOURS = 168
 DEFAULT_SCRIPT_RUN_MAX_WORKERS = 2
@@ -78,6 +80,7 @@ class SettingService:
                 SETTING_DEFAULT_LOCALE: payload.default_locale,
                 SETTING_API_ENABLED: _dump_bool(payload.api_enabled),
                 SETTING_API_TOKEN_REVEAL_ENABLED: _dump_bool(payload.api_token_reveal_enabled),
+                SETTING_SESSION_TOKEN_EXPIRE_HOURS: str(payload.session_token_expire_hours),
                 SETTING_DATA_JOB_MAX_WORKERS: str(payload.data_job_max_workers),
                 SETTING_DATA_JOB_RETENTION_HOURS: str(data_job_retention_hours),
                 SETTING_DATA_JOB_RETENTION_DAYS: str(_hours_to_days(data_job_retention_hours)),
@@ -151,6 +154,12 @@ class SettingService:
             default_locale=_parse_locale(raw.get(SETTING_DEFAULT_LOCALE), defaults.default_locale),
             api_enabled=_parse_bool(raw.get(SETTING_API_ENABLED), defaults.api_enabled),
             api_token_reveal_enabled=_parse_bool(raw.get(SETTING_API_TOKEN_REVEAL_ENABLED), defaults.api_token_reveal_enabled),
+            session_token_expire_hours=_parse_int(
+                raw.get(SETTING_SESSION_TOKEN_EXPIRE_HOURS),
+                defaults.session_token_expire_hours,
+                minimum=0,
+                maximum=8760,
+            ),
             data_job_max_workers=_parse_int(
                 raw.get(SETTING_DATA_JOB_MAX_WORKERS),
                 defaults.data_job_max_workers,
@@ -213,6 +222,7 @@ def _default_settings() -> SystemSettings:
         default_locale="zh-CN",
         api_enabled=True,
         api_token_reveal_enabled=True,
+        session_token_expire_hours=DEFAULT_SESSION_TOKEN_EXPIRE_HOURS,
         data_job_max_workers=DEFAULT_DATA_JOB_MAX_WORKERS,
         data_job_retention_hours=DEFAULT_DATA_JOB_RETENTION_HOURS,
         data_job_retention_days=_hours_to_days(DEFAULT_DATA_JOB_RETENTION_HOURS),
@@ -239,6 +249,7 @@ def _settings_snapshot(settings: SystemSettings) -> dict[str, object]:
         "default_locale": settings.default_locale,
         "api_enabled": settings.api_enabled,
         "api_token_reveal_enabled": settings.api_token_reveal_enabled,
+        "session_token_expire_hours": settings.session_token_expire_hours,
         "data_job_max_workers": settings.data_job_max_workers,
         "data_job_retention_hours": settings.data_job_retention_hours,
         "data_job_retention_days": settings.data_job_retention_days,
