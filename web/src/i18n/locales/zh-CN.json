@@ -314,7 +314,7 @@
     "edit": "编辑公告",
     "batchDelete": "批量删除",
     "batchDeleteCount": "批量删除 ({count})",
-    "permissionTargetPlaceholder": "多个权限用逗号分隔，如 route:users",
+    "permissionTargetPlaceholder": "多个权限用逗号分隔，如 action:user:read",
     "userTargetPlaceholder": "多个账号用逗号或换行分隔",
     "targetAll": "全平台",
     "targetAuthenticated": "全部用户",
@@ -570,47 +570,47 @@
       "audit": "操作日志"
     },
     "operation": {
-      "summary_api_dashboard_summary_get": {
+      "dashboard.summary": {
         "summary": "获取首页摘要",
         "description": "读取首页需要的简要统计数据。"
       },
-      "public_announcements_api_announcements_public_get": {
+      "announcements.public_announcements": {
         "summary": "获取公开公告",
         "description": "获取面向所有访客展示的公开公告。"
       },
-      "my_announcements_api_announcements_mine_get": {
+      "announcements.my_announcements": {
         "summary": "获取我的公告",
         "description": "按当前用户资料、权限和公告目标规则返回可见公告。"
       },
-      "mark_announcement_read_api_announcements__announcement_id__read_post": {
+      "announcements.mark_announcement_read": {
         "summary": "标记公告已读",
         "description": "将当前用户可见的一条公告标记为已读。"
       },
-      "list_announcements_api_announcements_get": {
+      "announcements.list_announcements": {
         "summary": "查询公告列表",
         "description": "分页查询公告，支持关键字、推送范围、展示方式、启用状态、创建人范围和创建时间筛选。"
       },
-      "create_announcement_api_announcements_post": {
+      "announcements.create_announcement": {
         "summary": "创建公告",
         "description": "创建一条公告，并按推送范围控制后续可见用户。"
       },
-      "batch_delete_announcements_api_announcements_batch_delete_post": {
+      "announcements.batch_delete_announcements": {
         "summary": "批量删除公告",
         "description": "按公告 ID 批量删除公告；没有操作他人公告权限时只能删除自己创建的公告。"
       },
-      "update_announcement_api_announcements__announcement_id__put": {
+      "announcements.update_announcement": {
         "summary": "修改公告",
         "description": "修改指定公告内容、推送范围、展示方式和启用状态。"
       },
-      "delete_announcement_api_announcements__announcement_id__delete": {
+      "announcements.delete_announcement": {
         "summary": "删除公告",
         "description": "删除指定公告。"
       },
-      "list_audit_logs_api_audit_logs_get": {
+      "audit.list_audit_logs": {
         "summary": "查询操作日志",
-        "description": "分页查询操作日志，可区分 Web 页面操作和 API Token 调用。"
+        "description": "分页查询操作日志，支持关键字、操作类型、目标类型、来源、时间范围和账号范围筛选，可区分 Web 页面操作和 API Token 调用。"
       },
-      "export_audit_logs_api_audit_logs_export_get": {
+      "audit.export_audit_logs": {
         "summary": "导出操作日志 CSV",
         "description": "按当前筛选条件导出完整操作日志 CSV，不受当前分页限制。"
       }
@@ -629,12 +629,22 @@
         "sort_order": "创建时间排序。descend 为倒序，ascend 为正序。",
         "start_time": "开始时间，ISO 8601 格式。",
         "target_type": "目标类型或推送范围。",
+        "source": "操作来源。web 表示网页操作，api 表示 API Token 调用。",
         "action": "操作类型编码，例如 auth.login、user.create。",
         "announcement_id": "公告 ID。"
       }
     },
     "schema": {
       "property": {
+        "id": "记录 ID。",
+        "items": "当前页数据列表。",
+        "total": "匹配条件的总数。",
+        "page": "当前页码。",
+        "page_size": "每页数量。",
+        "user_count": "已通过审核的用户数量。",
+        "pending_user_count": "待审核用户数量。",
+        "role_count": "角色数量。",
+        "permission_count": "权限数量。",
         "username": "账号，登录和权限审计使用的唯一标识。",
         "password": "密码。",
         "old_password": "当前旧密码。",
@@ -648,12 +658,26 @@
         "reason": "驳回原因。",
         "title": "标题。",
         "content": "内容。",
-        "target_type": "推送范围。",
-        "target_value": "推送目标，多个值用逗号或换行分隔。",
+        "target_type": "推送范围：all、authenticated、permission、company、company_department 或 user。",
+        "target_value": "推送目标，多个值用逗号或换行分隔；全平台和全部用户范围会自动置空。",
         "show_popup": "是否弹窗展示。",
         "show_ticker": "是否在公告滚动条展示。",
         "show_sidebar": "是否在首页侧栏展示。",
         "is_active": "是否启用。",
+        "created_by": "创建人用户 ID。",
+        "created_by_username": "创建人账号。",
+        "is_read": "当前用户是否已读该公告。",
+        "read_at": "当前用户阅读时间。",
+        "actor_user_id": "操作账号用户 ID。",
+        "actor_username": "操作账号。",
+        "action": "操作类型编码。",
+        "target_id": "操作目标 ID。",
+        "detail": "操作摘要。",
+        "detail_data": "结构化详情，包含操作对象、变更字段和附加信息。",
+        "source": "操作来源。",
+        "api_token_prefix": "触发该操作的 API Token 前缀；网页操作为空。",
+        "created_at": "创建时间。",
+        "updated_at": "更新时间。",
         "ids": "要操作的 ID 列表。",
         "code": "稳定编码。",
         "name": "名称。",

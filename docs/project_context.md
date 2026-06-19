@@ -1051,3 +1051,10 @@
   - 仅影响新签发的 token；已签发带 `exp` 的旧 token 不受影响。无需数据库迁移（键值设置缺省回退默认）。
 - 前端：`api/types.ts` 的 `SystemSettings` 加 `session_token_expire_hours`（`SystemSettingsUpdate` 由 `Omit<...>` 自动包含）；`SystemSettingsView`「基础」tab 新增「登录有效期(小时)」`n-input-number`(min0/max8760) + 提示，并接入 form 默认值/`buildPayload`/`applySettings`；中英文新增 `field.sessionTokenExpireHours`、`settings.sessionExpireHelp`。
 - 验证：改动文件 ReadLints 无报错。只修改并提交，不推送。
+
+## 2026-06-20：修复核心 OpenAPI 文档翻译回退
+
+- 背景：API 文档页通过 `openapi.operation.<operationId>.summary/description` 覆盖后端 OpenAPI 文案；后端已统一使用短 operationId（如 `audit.list_audit_logs`），但核心公共语言包仍保留旧 FastAPI 自动 ID（如 `list_audit_logs_api_audit_logs_get`），导致首页、公告、操作日志接口回退显示英文 summary。
+- 前端：更新 `web/src/i18n/locales/{zh-CN,en-US}.json` 的核心 OpenAPI operation key，覆盖 `dashboard.summary`、`announcements.*`、`audit.*`；补充日志来源参数说明和首页/公告/日志常见响应字段说明；公告“指定权限”输入提示从旧 `route:users` 改为 `action:user:read`。
+- 约定：后续新增或调整 API 文档翻译时，以运行时 `/openapi.json` 中的短 `operationId` 为准；模块语言包继续把 OpenAPI 文案放在各自 `openapi.operation`、`openapi.parameter`、`openapi.schema.property` 下，避免使用旧的路径拼接式 operationId。
+- 验证：公共中英文 JSON 均可解析；旧 OpenAPI ID 与旧 `route:users` 示例扫描无残留；`npm run test:smoke`、`npm run typecheck` 通过。

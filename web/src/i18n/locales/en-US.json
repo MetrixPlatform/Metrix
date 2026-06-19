@@ -314,7 +314,7 @@
     "edit": "Edit announcement",
     "batchDelete": "Batch delete",
     "batchDeleteCount": "Batch delete ({count})",
-    "permissionTargetPlaceholder": "Separate permissions with commas, e.g. route:users",
+    "permissionTargetPlaceholder": "Separate permissions with commas, e.g. action:user:read",
     "userTargetPlaceholder": "Separate usernames with commas or new lines",
     "targetAll": "Whole platform",
     "targetAuthenticated": "All users",
@@ -570,47 +570,47 @@
       "audit": "Audit logs"
     },
     "operation": {
-      "summary_api_dashboard_summary_get": {
+      "dashboard.summary": {
         "summary": "Get dashboard summary",
         "description": "Read concise statistics used by the dashboard."
       },
-      "public_announcements_api_announcements_public_get": {
+      "announcements.public_announcements": {
         "summary": "List public announcements",
         "description": "Read public announcements visible to visitors."
       },
-      "my_announcements_api_announcements_mine_get": {
+      "announcements.my_announcements": {
         "summary": "List my announcements",
         "description": "Return announcements visible to the current user by profile, permissions, and targeting rules."
       },
-      "mark_announcement_read_api_announcements__announcement_id__read_post": {
+      "announcements.mark_announcement_read": {
         "summary": "Mark announcement as read",
         "description": "Mark one visible announcement as read for the current user."
       },
-      "list_announcements_api_announcements_get": {
+      "announcements.list_announcements": {
         "summary": "List announcements",
         "description": "Query announcements with pagination and filters."
       },
-      "create_announcement_api_announcements_post": {
+      "announcements.create_announcement": {
         "summary": "Create announcement",
         "description": "Create an announcement and configure its audience."
       },
-      "batch_delete_announcements_api_announcements_batch_delete_post": {
+      "announcements.batch_delete_announcements": {
         "summary": "Batch delete announcements",
         "description": "Delete announcements by ID. Without manage-others permission, users can only delete their own announcements."
       },
-      "update_announcement_api_announcements__announcement_id__put": {
+      "announcements.update_announcement": {
         "summary": "Update announcement",
         "description": "Update announcement content, audience, display modes, and status."
       },
-      "delete_announcement_api_announcements__announcement_id__delete": {
+      "announcements.delete_announcement": {
         "summary": "Delete announcement",
         "description": "Delete one announcement."
       },
-      "list_audit_logs_api_audit_logs_get": {
+      "audit.list_audit_logs": {
         "summary": "List audit logs",
-        "description": "Query audit logs and distinguish web operations from API token calls."
+        "description": "Query audit logs with keyword, action, target type, source, time range, and actor scope filters, distinguishing web operations from API token calls."
       },
-      "export_audit_logs_api_audit_logs_export_get": {
+      "audit.export_audit_logs": {
         "summary": "Export audit logs as CSV",
         "description": "Export all audit logs matching the current filters."
       }
@@ -629,12 +629,22 @@
         "sort_order": "Creation time order. descend or ascend.",
         "start_time": "Start time in ISO 8601 format.",
         "target_type": "Target type or audience.",
+        "source": "Operation source. web means web UI operation; api means API token call.",
         "action": "Audit action code, such as auth.login or user.create.",
         "announcement_id": "Announcement ID."
       }
     },
     "schema": {
       "property": {
+        "id": "Record ID.",
+        "items": "Current page item list.",
+        "total": "Total number of matching records.",
+        "page": "Current page number.",
+        "page_size": "Items per page.",
+        "user_count": "Number of approved users.",
+        "pending_user_count": "Number of pending users.",
+        "role_count": "Number of roles.",
+        "permission_count": "Number of permissions.",
         "username": "Unique username used for login and audit.",
         "password": "Password.",
         "old_password": "Current password.",
@@ -648,12 +658,26 @@
         "reason": "Reject reason.",
         "title": "Title.",
         "content": "Content.",
-        "target_type": "Audience type.",
-        "target_value": "Audience target value.",
+        "target_type": "Audience type: all, authenticated, permission, company, company_department, or user.",
+        "target_value": "Audience target value. Multiple values can be separated by commas or new lines; whole-platform and all-user audiences are cleared automatically.",
         "show_popup": "Show as popup.",
         "show_ticker": "Show in ticker.",
         "show_sidebar": "Show in dashboard sidebar.",
         "is_active": "Whether it is enabled.",
+        "created_by": "Creator user ID.",
+        "created_by_username": "Creator username.",
+        "is_read": "Whether the current user has read the announcement.",
+        "read_at": "Read time for the current user.",
+        "actor_user_id": "Operator user ID.",
+        "actor_username": "Operator username.",
+        "action": "Audit action code.",
+        "target_id": "Audit target ID.",
+        "detail": "Operation summary.",
+        "detail_data": "Structured detail including target name, changed fields, and metadata.",
+        "source": "Operation source.",
+        "api_token_prefix": "API token prefix that triggered the operation; empty for web UI operations.",
+        "created_at": "Creation time.",
+        "updated_at": "Update time.",
         "ids": "ID list.",
         "code": "Stable code.",
         "name": "Name.",
