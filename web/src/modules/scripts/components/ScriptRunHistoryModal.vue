@@ -18,8 +18,9 @@
         :data="runs"
         :loading="loading"
         :row-key="(row) => row.run_id"
-        :scroll-x="610"
+        :scroll-x="tableScrollX"
         :max-height="240"
+        @unstable-column-resize="handleColumnResize"
       />
       <div v-if="selectedRunId" class="script-history-log">
         <div class="script-history-log-bar">
@@ -33,13 +34,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onBeforeUnmount, ref, watch } from "vue";
+import { computed, h, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { NButton, NDataTable, NIcon, NModal, NTag, useMessage } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { ArrowClockwise20Regular, Dismiss20Regular, Document20Regular } from "@vicons/fluent";
 
 import { formatDateTime, t } from "../../../i18n";
 import { showError } from "../../../utils/message";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import {
   cancelScriptRun,
   getScriptRunLog,
@@ -61,20 +63,35 @@ const selectedLog = ref("");
 let pollTimer: number | null = null;
 
 const title = computed(() => t("script.historyTitle", { name: props.project?.name || "" }));
+const columnWidths = reactive<Record<string, number>>({
+  trigger: 110,
+  status: 120,
+  exitCode: 110,
+  createdAt: 220,
+  actions: 80
+});
+const columnWidthKeys: Record<string, string> = {
+  trigger: "trigger",
+  status: "status",
+  exit_code: "exitCode",
+  created_at: "createdAt"
+};
+const tableScrollX = computed(() => sumColumnWidths(columnWidths));
 
-const columns = computed<DataTableColumns<ScriptRun>>(() => [
-  { title: t("script.field.trigger"), key: "trigger", width: 100, render: (row) => t(`script.trigger.${row.trigger}`) },
+const columns = computed<DataTableColumns<ScriptRun>>(() =>
+  withResizableColumns([
+  { title: t("script.field.trigger"), key: "trigger", width: columnWidths.trigger, render: (row) => t(`script.trigger.${row.trigger}`) },
   {
     title: t("field.status"),
     key: "status",
-    width: 110,
+    width: columnWidths.status,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => statusLabel(row.status))
   },
-  { title: t("script.field.exitCode"), key: "exit_code", width: 100, render: (row) => (row.exit_code === null ? "-" : String(row.exit_code)) },
+  { title: t("script.field.exitCode"), key: "exit_code", width: columnWidths.exitCode, render: (row) => (row.exit_code === null ? "-" : String(row.exit_code)) },
   {
     title: t("field.createdAt"),
     key: "created_at",
-    width: 220,
+    width: columnWidths.createdAt,
     sorter: (a, b) => a.created_at.localeCompare(b.created_at),
     defaultSortOrder: "descend",
     render: (row) => formatDateTime(row.created_at)
@@ -82,7 +99,7 @@ const columns = computed<DataTableColumns<ScriptRun>>(() => [
   {
     title: t("common.actions"),
     key: "actions",
-    width: 80,
+    width: columnWidths.actions,
     fixed: "right",
     render: (row) =>
       h("div", { class: "table-action-group" }, [
@@ -100,7 +117,8 @@ const columns = computed<DataTableColumns<ScriptRun>>(() => [
           : null
       ].filter(Boolean))
   }
-]);
+])
+);
 
 watch(
   () => props.show,
@@ -170,6 +188,10 @@ async function cancel(runId: string) {
   } catch (error) {
     showError(message, error);
   }
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(columnWidths, column.key, columnWidthKeys, limitedWidth);
 }
 
 function resetLog() {

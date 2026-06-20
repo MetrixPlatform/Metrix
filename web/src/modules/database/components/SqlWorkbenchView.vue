@@ -105,7 +105,8 @@
                 :data="tab.rows"
                 :loading="tab.loading"
                 :pagination="tab.pagination"
-                :scroll-x="Math.max(960, dataColumns(tab).length * 180 + TABLE_SCROLL_END_BUFFER)"
+                :scroll-x="dataTableScrollX(tab)"
+                @unstable-column-resize="(_, limitedWidth, column) => handleDataColumnResize(limitedWidth, column, tab)"
                 @update:sorter="(sorter) => handleDataSorter(sorter, tab)"
                 @update:page="(page) => handleDataPage(page, tab)"
                 @update:page-size="(pageSize) => handleDataPageSize(pageSize, tab)"
@@ -144,7 +145,8 @@
                 :columns="queryColumns(tab)"
                 :data="queryRows(tab)"
                 :loading="tab.executing"
-                :scroll-x="Math.max(960, queryColumns(tab).length * 180 + TABLE_SCROLL_END_BUFFER)"
+                :scroll-x="queryTableScrollX(tab)"
+                @unstable-column-resize="(_, limitedWidth, column) => handleQueryColumnResize(limitedWidth, column, tab)"
               />
             </template>
 
@@ -358,7 +360,9 @@ import {
   ChevronDown20Regular,
   ChevronUp20Regular,
   Database20Regular,
+  Delete20Regular,
   DocumentText20Regular,
+  Edit20Regular,
   Folder20Regular,
   MoreHorizontal20Regular,
   Table20Regular
@@ -393,7 +397,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { copyText } from "../../../utils/clipboard";
 import { showError } from "../../../utils/message";
-import { withResizableColumns } from "../../../utils/table";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import {
   createRow,
   createSchema,
@@ -549,6 +553,7 @@ interface TableDataTab {
   rows: Record<string, unknown>[];
   primaryKeys: string[];
   totalExact: boolean;
+  columnWidths: Record<string, number>;
   sort: { columnKey: string | null; order: "ascend" | "descend" | false };
   loading: boolean;
   requestId: number;
@@ -562,6 +567,7 @@ interface SqlEditorTab {
   script: SqlScript | null;
   sql: string;
   queryResult: QueryResult | null;
+  resultColumnWidths: Record<string, number>;
   executing: boolean;
   resultCollapsed: boolean;
 }
@@ -657,7 +663,9 @@ const PREFIX_ICONS: Record<string, Component> = {
   table: Table20Regular,
   script: DocumentText20Regular
 };
-const TABLE_SCROLL_END_BUFFER = 64;
+const TABLE_MIN_SCROLL_X = 960;
+const TABLE_DYNAMIC_COLUMN_WIDTH = 180;
+const TABLE_DATA_ACTION_WIDTH = 150;
 
 function scriptSavePermission(tab: SqlEditorTab) {
   return tab.script ? SQL_SCRIPT_UPDATE : SQL_SCRIPT_CREATE;
@@ -672,7 +680,7 @@ function dataColumns(tab: TableDataTab): DataTableColumns<Record<string, unknown
     ...tab.columns.map((column) => ({
       title: column.name,
       key: column.name,
-      width: 180,
+      width: columnWidth(tab.columnWidths, column.name),
       minWidth: 80,
       resizable: true,
       sorter: true,
@@ -684,12 +692,20 @@ function dataColumns(tab: TableDataTab): DataTableColumns<Record<string, unknown
       title: t("common.actions"),
       key: "actions",
       fixed: "right" as const,
-      width: 150,
+      width: TABLE_DATA_ACTION_WIDTH,
       resizable: false,
       render: (row: Record<string, unknown>) =>
-        h("div", { class: "table-actions" }, [
-          h(NButton, { size: "tiny", quaternary: true, onClick: () => openEditRow(row, tab) }, () => t("common.edit")),
-          h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDeleteRow(row, tab) }, () => t("common.delete"))
+        h("div", { class: "table-action-group" }, [
+          h(
+            NButton,
+            { size: "tiny", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEditRow(row, tab) },
+            { icon: () => h(NIcon, { component: Edit20Regular }) }
+          ),
+          h(
+            NButton,
+            { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDeleteRow(row, tab) },
+            { icon: () => h(NIcon, { component: Delete20Regular }) }
+          )
         ])
     }
   ]);
@@ -698,13 +714,21 @@ function dataColumns(tab: TableDataTab): DataTableColumns<Record<string, unknown
 function queryColumns(tab: SqlEditorTab): DataTableColumns<Record<string, unknown>> {
   const columns = tab.queryResult?.columns || [];
   if (!columns.length && tab.queryResult?.statement_type === "write") {
-    return [{ title: t("database.sql.affectedRows"), key: "affected_rows", render: () => tab.queryResult?.affected_rows ?? 0 }];
+    return withResizableColumns([
+      {
+        title: t("database.sql.affectedRows"),
+        key: "affected_rows",
+        width: columnWidth(tab.resultColumnWidths, "affected_rows"),
+        minWidth: 120,
+        render: () => tab.queryResult?.affected_rows ?? 0
+      }
+    ]);
   }
   return withResizableColumns(
     columns.map((column) => ({
       title: column,
       key: column,
-      width: 180,
+      width: columnWidth(tab.resultColumnWidths, column),
       minWidth: 80,
       resizable: true,
       sorter: "default" as const,
@@ -716,6 +740,47 @@ function queryColumns(tab: SqlEditorTab): DataTableColumns<Record<string, unknow
 
 function queryRows(tab: SqlEditorTab) {
   return tab.queryResult?.rows || [];
+}
+
+function dataTableScrollX(tab: TableDataTab) {
+  return Math.max(TABLE_MIN_SCROLL_X, sumColumnWidths({ ...columnWidthSnapshot(tab.columnWidths, tab.columns.map((column) => column.name)), actions: TABLE_DATA_ACTION_WIDTH }));
+}
+
+function queryTableScrollX(tab: SqlEditorTab) {
+  const keys = tab.queryResult?.columns.length ? tab.queryResult.columns : tab.queryResult?.statement_type === "write" ? ["affected_rows"] : [];
+  if (!keys.length) return TABLE_MIN_SCROLL_X;
+  return Math.max(TABLE_MIN_SCROLL_X, sumColumnWidths(columnWidthSnapshot(tab.resultColumnWidths, keys)));
+}
+
+function columnWidth(widths: Record<string, number>, key: string) {
+  return widths[key] ?? TABLE_DYNAMIC_COLUMN_WIDTH;
+}
+
+function columnWidthSnapshot(widths: Record<string, number>, keys: string[]) {
+  return Object.fromEntries(keys.map((key) => [key, columnWidth(widths, key)]));
+}
+
+function nextColumnWidths(widths: Record<string, number>, keys: string[]) {
+  const next = { ...widths };
+  for (const key of keys) {
+    next[key] ??= TABLE_DYNAMIC_COLUMN_WIDTH;
+  }
+  for (const key of Object.keys(next)) {
+    if (!keys.includes(key)) delete next[key];
+  }
+  return next;
+}
+
+function handleDataColumnResize(limitedWidth: number, column: { key?: string | number }, tab: TableDataTab) {
+  updateColumnWidth(tab.columnWidths, column.key, columnWidthKeys(tab.columnWidths), limitedWidth);
+}
+
+function handleQueryColumnResize(limitedWidth: number, column: { key?: string | number }, tab: SqlEditorTab) {
+  updateColumnWidth(tab.resultColumnWidths, column.key, columnWidthKeys(tab.resultColumnWidths), limitedWidth);
+}
+
+function columnWidthKeys(widths: Record<string, number>) {
+  return Object.fromEntries(Object.keys(widths).map((key) => [key, key]));
 }
 
 onMounted(async () => {
@@ -790,6 +855,7 @@ function createTableDataTab(database: string, table: string): TableDataTab {
     rows: [],
     primaryKeys: [],
     totalExact: true,
+    columnWidths: {},
     sort: { columnKey: null, order: false },
     loading: false,
     requestId: 0,
@@ -820,6 +886,7 @@ function createSqlTab(database: string, script: SqlScript | null, sqlText: strin
     script,
     sql: sqlText,
     queryResult: null,
+    resultColumnWidths: {},
     executing: false,
     resultCollapsed: false
   };
@@ -1244,6 +1311,7 @@ async function loadTableData(tab: TableDataTab, options: TableDataLoadOptions = 
       rows: result.rows,
       primaryKeys: result.primary_keys,
       totalExact: result.total_exact,
+      columnWidths: nextColumnWidths(latest.columnWidths, result.columns.map((column) => column.name)),
       loading: false,
       pagination: {
         ...latest.pagination,
@@ -1263,7 +1331,9 @@ async function loadTableData(tab: TableDataTab, options: TableDataLoadOptions = 
 async function executeSql(tab: SqlEditorTab) {
   tab.executing = true;
   try {
-    tab.queryResult = await queryDatabase(props.connection.conn_id, { sql: tab.sql, database: tab.database || "" });
+    const result = await queryDatabase(props.connection.conn_id, { sql: tab.sql, database: tab.database || "" });
+    tab.queryResult = result;
+    tab.resultColumnWidths = nextColumnWidths(tab.resultColumnWidths, result.columns.length ? result.columns : result.statement_type === "write" ? ["affected_rows"] : []);
     tab.resultCollapsed = false;
     message.success(t("database.sql.executed"));
   } catch (error) {

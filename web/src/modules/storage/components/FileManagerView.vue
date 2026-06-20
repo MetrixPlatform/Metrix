@@ -52,7 +52,9 @@
       :data="tableData"
       :loading="loading"
       :row-key="(row) => row.path"
+      :scroll-x="tableScrollX"
       size="small"
+      @unstable-column-resize="handleColumnResize"
       @update:sorter="handleSorter"
     />
 
@@ -161,7 +163,7 @@ import { authStore } from "../../../stores/auth";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { messageText, showError } from "../../../utils/message";
-import { withResizableColumns } from "../../../utils/table";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import {
   deleteStorageEntry,
   downloadStorageArchive,
@@ -301,6 +303,20 @@ const uploadSummaryText = computed(() => {
   }
   return t("storage.files.uploadProgressCount", { done: finished, total });
 });
+const fileColumnWidths = reactive<Record<string, number>>({
+  name: 260,
+  path: 280,
+  size: 110,
+  modifiedAt: 170,
+  actions: 88
+});
+const fileColumnWidthKeys: Record<string, string> = {
+  name: "name",
+  path: "path",
+  size: "size",
+  modified_at: "modifiedAt"
+};
+const tableScrollX = computed(() => sumColumnWidths(fileColumnWidths) + (canOperate.value ? 48 : 0));
 const columns = computed<DataTableColumns<StorageEntry>>(() => {
   const list: DataTableColumns<StorageEntry> = [
     ...(canOperate.value
@@ -314,6 +330,8 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     {
       title: t("storage.files.name"),
       key: "name",
+      width: fileColumnWidths.name,
+      minWidth: 160,
       ellipsis: { tooltip: true },
       render: (row) => {
         if (row.path === PARENT_ROW_PATH) {
@@ -342,7 +360,8 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     {
       title: t("storage.files.size"),
       key: "size",
-      width: 96,
+      width: fileColumnWidths.size,
+      minWidth: 90,
       sorter: true,
       sortOrder: sortState.value?.columnKey === "size" ? sortState.value.order : false,
       render: (row) => (row.path === PARENT_ROW_PATH || row.is_dir ? "-" : formatSize(row.size))
@@ -350,7 +369,8 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     {
       title: t("storage.files.modifiedAt"),
       key: "modified_at",
-      width: 160,
+      width: fileColumnWidths.modifiedAt,
+      minWidth: 140,
       sorter: true,
       sortOrder: sortState.value?.columnKey === "modified_at" ? sortState.value.order : false,
       render: (row) => (row.modified_at ? formatDateTime(row.modified_at) : "-")
@@ -358,7 +378,7 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     {
       title: t("common.actions"),
       key: "actions",
-      width: 88,
+      width: fileColumnWidths.actions,
       align: "center",
       render: (row) => {
         if (row.path === PARENT_ROW_PATH) return null;
@@ -382,6 +402,8 @@ const columns = computed<DataTableColumns<StorageEntry>>(() => {
     list.splice(1, 0, {
       title: t("storage.files.location"),
       key: "path",
+      width: fileColumnWidths.path,
+      minWidth: 180,
       ellipsis: { tooltip: true },
       render: (row) => parentPath(row.path)
     });
@@ -450,6 +472,10 @@ function handleSorter(options: DataTableSortState | DataTableSortState[] | null)
     return;
   }
   sortState.value = { columnKey: String(state.columnKey), order: state.order };
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(fileColumnWidths, column.key, fileColumnWidthKeys, limitedWidth);
 }
 
 function rowActionOptions(): DropdownOption[] {

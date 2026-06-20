@@ -34,6 +34,7 @@
       :pagination="pagination"
       :row-key="(row) => row.id"
       :scroll-x="tableScrollX"
+      @unstable-column-resize="handleColumnResize"
       @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
@@ -121,7 +122,7 @@ import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { copyText } from "../../../utils/clipboard";
 import { messageText, showError } from "../../../utils/message";
-import { singleFilterValue, sumColumnWidths, withResizableColumns } from "../../../utils/table";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from "../../../utils/validation";
 import {
   createDatabaseConnection,
@@ -194,7 +195,7 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
-const connectionColumnWidths = {
+const connectionColumnWidths = reactive<Record<string, number>>({
   name: 160,
   connId: 180,
   dbType: 90,
@@ -205,6 +206,17 @@ const connectionColumnWidths = {
   creator: 120,
   createdAt: 180,
   actions: 190
+});
+const connectionColumnWidthKeys: Record<string, string> = {
+  name: "name",
+  conn_id: "connId",
+  db_type: "dbType",
+  host: "host",
+  default_database: "database",
+  shared: "shared",
+  is_active: "status",
+  created_by: "creator",
+  created_at: "createdAt"
 };
 const tableScrollX = computed(() => sumColumnWidths(connectionColumnWidths));
 const rules = computed<FormRules>(() => ({
@@ -425,6 +437,10 @@ function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize;
   pagination.page = 1;
   void loadConnections();
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(connectionColumnWidths, column.key, connectionColumnWidthKeys, limitedWidth);
 }
 
 function openCreate() {

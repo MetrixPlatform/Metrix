@@ -9,7 +9,7 @@ Metrix 是一个轻量后台 Web 框架，当前提供登录、注册、RBAC 权
 - 前端：Vue 3、TypeScript、Vite、Naive UI、vue-i18n、Monaco Editor
 - 后端：Python、FastAPI、SQLAlchemy、Pydantic
 - 数据库：SQLite 或 MySQL
-- 权限：账号密码登录、RBAC 路由权限、功能权限、本人/他人数据范围权限
+- 权限：账号密码登录、RBAC 资源动作权限、页面访问权限、本人/他人数据范围权限
 
 ## 目录结构
 
@@ -60,7 +60,7 @@ npm install
 python dev.py
 ```
 
-`dev.py` 会在同一个终端窗口启动后端（uvicorn 自动重载，`http://127.0.0.1:8000`）和前端（Vite HMR，`http://127.0.0.1:5173`），并把两边日志以 `[backend]` / `[web]` 前缀合并输出；按一次 `Ctrl+C` 即可关闭两个服务及其子进程。Windows 也可双击 `dev.bat`（同样是单窗口）。
+`dev.py` 会在同一个终端窗口启动后端（uvicorn 自动重载，`http://127.0.0.1:8000`）和前端（Vite HMR，`http://127.0.0.1:5173`），并把两边日志以 `[backend]` / `[web]` 前缀合并输出；按一次 `Ctrl+C` 即可关闭两个服务及其子进程。
 
 如需分开手动启动，后端 `cd server && python main.py`，前端 `cd web && npm run dev`。开发时访问 `http://127.0.0.1:5173/install` 初始化系统。
 
@@ -183,7 +183,7 @@ server/app/modules/<module>/
   services.py
 ```
 
-模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。后端模块依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束；前端模块依赖使用精确模块 key。权限 code 统一使用 `route:<page>` 和 `action:<resource>:<action>`。如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。侧边栏默认把 `系统管理` 分组放在底部，新增业务模块和脚手架生成的导航菜单默认放在 `系统管理` 上方。
+模块入口负责声明版本、依赖、页面、菜单、权限、API router、模型、迁移脚本、生命周期钩子和开发期字段同步。后端模块依赖可以写 `core`，也可以写 `core>=0.1.0` 这类版本约束；前端模块依赖使用精确模块 key。权限 code 统一使用 `action:<resource>:<action>`，页面和导航访问由对应资源的 `action:<resource>:read` 充当；如果涉及本人/他人数据边界，默认只能操作本人数据，需要额外声明 `action:<resource>:manage_others`。侧边栏默认把 `系统管理` 分组放在底部，新增业务模块和脚手架生成的导航菜单默认放在 `系统管理` 上方。
 
 脚手架会生成前端 API/权限/CRUD 页面/i18n、后端 API/model/schema/repository/service/权限/审计和 pytest 模板；复杂业务字段继续在生成骨架上扩展。标准实现参考 `demo-crud`，开发规范见 `DEVELOPMENT_GUIDE.md`。
 
@@ -213,7 +213,7 @@ npm run build
 
 pytest 已在 `pytest.ini` 中配置临时目录；通常直接运行 `python -m pytest` 即可。
 
-前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、路由权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
+前端 smoke 会校验模块入口、模块 key、版本格式、依赖、菜单分组引用、页面路径、页面访问权限和模块语言包 key。首次运行 Playwright 回归前执行 `npm run test:regression:install` 下载 Chromium；当前回归覆盖安装守卫、匿名登录页、登录态恢复、模块页面和 404。新增模块后先跑 smoke 和回归测试，再做类型检查和构建。
 
 ## License
 

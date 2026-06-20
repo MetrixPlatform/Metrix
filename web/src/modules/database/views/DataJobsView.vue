@@ -30,6 +30,7 @@
       :pagination="pagination"
       :row-key="(row) => row.job_id"
       :scroll-x="tableScrollX"
+      @unstable-column-resize="handleColumnResize"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
@@ -40,14 +41,14 @@
 <script setup lang="ts">
 import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ArrowDownload20Regular, ArrowLeft20Regular, Delete20Regular } from "@vicons/fluent";
-import { NButton, NDataTable, NIcon, NInput, NSpace, NTag, useDialog, useMessage } from "naive-ui";
+import { NButton, NDataTable, NIcon, NInput, NTag, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, DataTableSortState } from "naive-ui";
 
 import { formatDateTime, t } from "../../../i18n";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
-import { sumColumnWidths, withResizableColumns } from "../../../utils/table";
+import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
@@ -71,7 +72,7 @@ const pagination = reactive({
   showSizePicker: true,
   prefix: ({ itemCount }: { itemCount: number | undefined }) => t("common.total", { count: itemCount ?? 0 })
 });
-const dataJobColumnWidths = {
+const dataJobColumnWidths = reactive<Record<string, number>>({
   jobId: 260,
   connection: 180,
   creator: 130,
@@ -84,6 +85,19 @@ const dataJobColumnWidths = {
   expiresAt: 180,
   error: 180,
   actions: 130
+});
+const dataJobColumnWidthKeys: Record<string, string> = {
+  job_id: "jobId",
+  connection_name: "connection",
+  created_by: "creator",
+  kind: "kind",
+  format: "format",
+  status: "status",
+  row_count: "rows",
+  file_size: "size",
+  created_at: "createdAt",
+  expires_at: "expiresAt",
+  error_code: "error"
 };
 const tableScrollX = computed(() => sumColumnWidths(dataJobColumnWidths));
 const columns = computed<DataTableColumns<DataJob>>(() =>
@@ -150,11 +164,19 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     fixed: "right",
     width: dataJobColumnWidths.actions,
     render: (row) =>
-      h(NSpace, { size: 4, justify: "center" }, () => [
+      h("div", { class: "table-action-group" }, [
         row.kind === "export" && row.status === "success"
-          ? h(NButton, { size: "tiny", quaternary: true, onClick: () => void downloadJob(row) }, () => h(NIcon, { component: ArrowDownload20Regular }))
+          ? h(
+              NButton,
+              { size: "tiny", quaternary: true, circle: true, title: t("common.download"), onClick: () => void downloadJob(row) },
+              { icon: () => h(NIcon, { component: ArrowDownload20Regular }) }
+            )
           : null,
-        h(NButton, { size: "tiny", quaternary: true, type: "error", onClick: () => confirmDelete(row) }, () => h(NIcon, { component: Delete20Regular }))
+        h(
+          NButton,
+          { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
+          { icon: () => h(NIcon, { component: Delete20Regular }) }
+        )
       ])
   }
   ])
@@ -249,6 +271,10 @@ function handlePageSizeChange(pageSize: number) {
   pagination.pageSize = pageSize;
   pagination.page = 1;
   void loadJobs();
+}
+
+function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(dataJobColumnWidths, column.key, dataJobColumnWidthKeys, limitedWidth);
 }
 
 function statusType(status: string) {

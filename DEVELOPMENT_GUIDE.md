@@ -63,7 +63,7 @@ export default defineModule({
 - 工具栏必须一行放完，不允许因为类型、状态、查询按钮等控件换行撑乱页面；左侧 `<page>-filter-row`（grid 布局）只放关键字输入、可选时间范围和查询按钮；右侧放批量操作、新增、刷新等动作按钮。
 - 枚举类筛选（状态、类型、范围、创建人等）禁止放工具栏，统一放列头筛选：受控写法 `filter` + `filterMultiple: false` + `filterOptionValue` + `filterOptions`，在 `@update:filters` 中转成后端查询参数并重新加载。
 - 时间列用列头排序：`sorter: true` + 受控 `sortOrder`，在 `@update:sorter` 中转成后端 `sort_order`。
-- 表格统一 `remote` + 后端分页（`page`/`page_size`/`total`），`flex-height` + `page-data-table`，列宽可拖拽（`withResizableColumns` + `columnWidths` + `@unstable-column-resize`）。
+- 表格统一 `remote` + 后端分页（`page`/`page_size`/`total`），`flex-height` + `page-data-table`，列宽可拖拽（`withResizableColumns` + 响应式 `columnWidths` + `sumColumnWidths` + `@unstable-column-resize` + `updateColumnWidth`）；操作列不参与拖拽。
 - 操作列 `fixed: "right"`，使用 `table-action-group` 包裹圆形 `quaternary` 图标按钮（`circle` + `NIcon` + `title` 提示），不用文字按钮。
 - 对应后端列表接口要支持这些筛选与排序参数，筛选在数据库层完成，不在前端内存过滤。
 - 弹窗表单较长需要滚动时，操作按钮放 `n-modal` 的 `#action` 插槽（`form-actions modal-fixed-actions`），按钮固定在弹窗底部，只有表单内容滚动。

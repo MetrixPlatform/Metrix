@@ -1066,3 +1066,9 @@
 - 前端：容器管理页新增“储存卷”标签，包含关键字搜索、使用状态筛选、创建卷、清理未使用卷、列表列宽拖拽、使用容器展示和删除操作；创建容器弹窗的重启策略下拉改为 i18n 文案（不自动重启/始终重启/除非手动停止/失败时重启），提交值仍保持 Docker 原始枚举。
 - i18n/OpenAPI：容器模块中英文语言包补齐储存卷 UI 文案、错误、审计动作、OpenAPI tag/operation/parameter/schema 字段说明；权限描述扩展为容器、镜像与储存卷。
 - 验证：容器模块中英文 JSON 可解析；`.venv\Scripts\python.exe -m compileall -q server/app/modules/containers server/tests/test_containers.py` 通过；`.venv\Scripts\python.exe -m pytest server/tests/test_containers.py` 通过；`npm run test:smoke`、`npm run typecheck`、`npm run build` 通过（Vite 仅有既有大 chunk 提示）。
+
+## 2026-06-21：补齐列表列宽规则并清理旧开发文档
+
+- 前端：补齐数据库连接列表、数据任务列表、储存文件列表、脚本运行历史弹窗和 SQL 工作台动态结果表的列宽拖拽链路，统一使用响应式 `columnWidths`、`sumColumnWidths`、`@unstable-column-resize` 与 `updateColumnWidth`；SQL 工作台按标签页分别保存表数据列宽和查询结果列宽，避免不同表或结果互相影响。
+- 清理：示例 CRUD、数据任务和 SQL 工作台行操作列改为 `table-action-group` + 圆形图标按钮；容器管理列宽 key 映射改为初始化时生成，避免每次拖拽重复构造。
+- 文档：`README.md` 去掉已退役的 `route:<page>` 和 `dev.bat` 说法，改为当前 `action:<resource>:read` 页面/导航网关；`DEVELOPMENT_GUIDE.md` 明确后续列表列宽实现规则，操作列不参与拖拽。

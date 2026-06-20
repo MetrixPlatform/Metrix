@@ -251,11 +251,15 @@ const imagePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSize
 const volumePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const containerWidths = reactive({ name: 200, id: 160, image: 200, status: 110, usage: 120, ports: 220, owner: 130, created_at: 170, actions: 88 });
+const containerColumnWidthKeys = columnWidthKeys(containerWidths);
 const expandedPorts = ref<string[]>([]);
 const PORT_PREVIEW_COUNT = 2;
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
+const imageColumnWidthKeys = columnWidthKeys(imageWidths);
 const volumeWidths = reactive({ name: 220, driver: 110, scope: 100, mountpoint: 280, used_by: 220, owner: 140, created_at: 180, actions: 100 });
+const volumeColumnWidthKeys = columnWidthKeys(volumeWidths);
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
+const jobColumnWidthKeys = columnWidthKeys(jobWidths);
 const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
 const volumeUsageOptions = computed(() => [
   { label: t("container.volumeUsageUsed"), value: "used" },
@@ -662,19 +666,23 @@ function imageRef(row: ImageItem) {
 }
 
 function handleContainerColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
-  updateColumnWidth(containerWidths, column.key, Object.fromEntries(Object.keys(containerWidths).map((key) => [key, key])), limitedWidth);
+  updateColumnWidth(containerWidths, column.key, containerColumnWidthKeys, limitedWidth);
 }
 
 function handleImageColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
-  updateColumnWidth(imageWidths, column.key, Object.fromEntries(Object.keys(imageWidths).map((key) => [key, key])), limitedWidth);
+  updateColumnWidth(imageWidths, column.key, imageColumnWidthKeys, limitedWidth);
 }
 
 function handleVolumeColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
-  updateColumnWidth(volumeWidths, column.key, Object.fromEntries(Object.keys(volumeWidths).map((key) => [key, key])), limitedWidth);
+  updateColumnWidth(volumeWidths, column.key, volumeColumnWidthKeys, limitedWidth);
 }
 
 function handleJobColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
-  updateColumnWidth(jobWidths, column.key, Object.fromEntries(Object.keys(jobWidths).map((key) => [key, key])), limitedWidth);
+  updateColumnWidth(jobWidths, column.key, jobColumnWidthKeys, limitedWidth);
+}
+
+function columnWidthKeys(widths: Record<string, number>) {
+  return Object.fromEntries(Object.keys(widths).map((key) => [key, key]));
 }
 </script>
 
