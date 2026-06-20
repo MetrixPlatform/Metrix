@@ -90,6 +90,48 @@
         />
       </n-tab-pane>
 
+      <n-tab-pane name="volumes" :tab="t('container.tabVolumes')">
+        <div class="toolbar">
+          <div class="table-filter-row">
+            <n-input
+              v-model:value="volumeFilters.keyword"
+              class="filter-keyword"
+              clearable
+              :placeholder="t('container.searchVolume')"
+              @clear="() => void loadVolumes()"
+              @keyup.enter="() => void loadVolumes()"
+            />
+            <n-select
+              v-model:value="volumeFilters.usage"
+              class="container-filter-select"
+              clearable
+              :placeholder="t('container.volumeUsageAll')"
+              :options="volumeUsageOptions"
+              @update:value="() => void loadVolumes()"
+            />
+            <n-button @click="() => void loadVolumes()">{{ t("common.search") }}</n-button>
+          </div>
+          <div class="toolbar-group">
+            <permission-button :permission="CONTAINER_DELETE" @click="confirmPruneVolumes">{{ t("container.pruneVolumes") }}</permission-button>
+            <permission-button :permission="CONTAINER_CREATE" type="primary" @click="showVolumeCreate = true">{{ t("container.createVolume") }}</permission-button>
+          </div>
+        </div>
+        <n-data-table
+          class="page-data-table"
+          flex-height
+          remote
+          :columns="volumeColumns"
+          :data="volumes"
+          :loading="volumesLoading"
+          :pagination="volumePagination"
+          :row-key="(row) => row.name"
+          :scroll-x="volumeTableScrollX"
+          @unstable-column-resize="handleVolumeColumnResize"
+          @update:page="(page) => loadVolumes(page)"
+          @update:page-size="handleVolumePageSize"
+        />
+      </n-tab-pane>
+
       <n-tab-pane name="jobs" :tab="t('container.tabJobs')">
         <div class="toolbar">
           <div class="table-filter-row">
@@ -124,6 +166,7 @@
     <container-create-modal v-model:show="showCreate" :images="images" @saved="handleContainerSaved" />
     <container-log-modal v-model:show="showLogs" :container="logContainer" />
     <container-terminal-modal v-model:show="showTerminal" :container="terminalContainer" />
+    <container-volume-create-modal v-model:show="showVolumeCreate" @saved="handleVolumeSaved" />
     <image-import-modal v-model:show="showImport" @submitted="handleJobSubmitted" />
   </section>
 </template>
@@ -144,12 +187,15 @@ import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../
 import {
   deleteContainer,
   deleteImage,
+  deleteVolume,
   downloadContainerJob,
   exportImage,
   getContainerEngineStatus,
   listContainerJobs,
   listContainers,
   listImages,
+  listVolumes,
+  pruneVolumes,
   restartContainer,
   startContainer,
   stopContainer,
@@ -157,11 +203,13 @@ import {
   type ContainerEngineStatus,
   type ContainerItem,
   type ContainerJobItem,
-  type ImageItem
+  type ImageItem,
+  type VolumeItem
 } from "../api";
 import ContainerCreateModal from "../components/ContainerCreateModal.vue";
 import ContainerLogModal from "../components/ContainerLogModal.vue";
 import ContainerTerminalModal from "../components/ContainerTerminalModal.vue";
+import ContainerVolumeCreateModal from "../components/ContainerVolumeCreateModal.vue";
 import ImageImportModal from "../components/ImageImportModal.vue";
 import { CONTAINER_CREATE, CONTAINER_DELETE, CONTAINER_MANAGE_OTHERS, CONTAINER_OPERATE, CONTAINER_UPDATE } from "../permissions";
 
@@ -171,9 +219,11 @@ const activeTab = ref("containers");
 const statusLoading = ref(false);
 const containersLoading = ref(false);
 const imagesLoading = ref(false);
+const volumesLoading = ref(false);
 const jobsLoading = ref(false);
 const showCreate = ref(false);
 const showImport = ref(false);
+const showVolumeCreate = ref(false);
 const showLogs = ref(false);
 const showTerminal = ref(false);
 const logContainer = ref<ContainerItem | null>(null);
@@ -190,22 +240,31 @@ const engineStatus = reactive<ContainerEngineStatus>({
 });
 const containers = ref<ContainerItem[]>([]);
 const images = ref<ImageItem[]>([]);
+const volumes = ref<VolumeItem[]>([]);
 const jobs = ref<ContainerJobItem[]>([]);
 const containerFilters = reactive<{ keyword: string; status: string | null; pageSize: number }>({ keyword: "", status: null, pageSize: 20 });
 const imageFilters = reactive({ keyword: "", pageSize: 20 });
+const volumeFilters = reactive<{ keyword: string; usage: string | null; pageSize: number }>({ keyword: "", usage: null, pageSize: 20 });
 const jobFilters = reactive({ keyword: "", pageSize: 20 });
 const containerPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const imagePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
+const volumePagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const jobPagination = reactive({ page: 1, pageSize: 20, itemCount: 0, showSizePicker: true, pageSizes: [20, 50, 100, 500] });
 const containerWidths = reactive({ name: 200, id: 160, image: 200, status: 110, usage: 120, ports: 220, owner: 130, created_at: 170, actions: 88 });
 const expandedPorts = ref<string[]>([]);
 const PORT_PREVIEW_COUNT = 2;
 const imageWidths = reactive({ repo_tags: 280, id: 180, size: 120, visibility: 120, owner: 140, created_at: 180, actions: 160 });
+const volumeWidths = reactive({ name: 220, driver: 110, scope: 100, mountpoint: 280, used_by: 220, owner: 140, created_at: 180, actions: 100 });
 const jobWidths = reactive({ job_id: 180, kind: 100, image_ref: 220, status: 120, file_name: 220, file_size: 120, created_at: 180, actions: 120 });
 const statusOptions = computed(() => ["created", "running", "paused", "restarting", "exited", "dead"].map((value) => ({ label: containerStatus(value), value })));
+const volumeUsageOptions = computed(() => [
+  { label: t("container.volumeUsageUsed"), value: "used" },
+  { label: t("container.volumeUsageUnused"), value: "unused" }
+]);
 const canManageOthers = computed(() => authStore.has(CONTAINER_MANAGE_OTHERS));
 const containerTableScrollX = computed(() => sumColumnWidths(containerWidths));
 const imageTableScrollX = computed(() => sumColumnWidths(imageWidths));
+const volumeTableScrollX = computed(() => sumColumnWidths(volumeWidths));
 const jobTableScrollX = computed(() => sumColumnWidths(jobWidths));
 
 const containerColumns = computed<DataTableColumns<ContainerItem>>(() =>
@@ -237,6 +296,27 @@ const imageColumns = computed<DataTableColumns<ImageItem>>(() =>
     { title: t("common.actions"), key: "actions", width: imageWidths.actions, fixed: "right", render: (row) => actionDropdown(imageActionOptions(row), (key) => handleImageAction(String(key), row)) }
   ])
 );
+const volumeColumns = computed<DataTableColumns<VolumeItem>>(() =>
+  withResizableColumns([
+    { title: t("container.field.volumeName"), key: "name", width: volumeWidths.name, ellipsis: { tooltip: true } },
+    { title: t("container.field.driver"), key: "driver", width: volumeWidths.driver, render: (row) => row.driver || "-" },
+    { title: t("container.field.scope"), key: "scope", width: volumeWidths.scope, render: (row) => row.scope || "-" },
+    { title: t("container.field.mountpoint"), key: "mountpoint", width: volumeWidths.mountpoint, ellipsis: { tooltip: true } },
+    { title: t("container.field.usedBy"), key: "used_by", width: volumeWidths.used_by, render: (row) => renderUsedBy(row) },
+    { title: t("container.field.owner"), key: "owner", width: volumeWidths.owner, render: (row) => row.owner_username || row.owner_user_id || t("container.externalVolume") },
+    { title: t("container.field.createdAt"), key: "created_at", width: volumeWidths.created_at, render: (row) => safeDate(row.created_at) },
+    {
+      title: t("common.actions"),
+      key: "actions",
+      width: volumeWidths.actions,
+      fixed: "right",
+      render: (row) => {
+        const options = volumeActionOptions(row);
+        return options.length ? actionDropdown(options, (key) => handleVolumeAction(String(key), row)) : "-";
+      }
+    }
+  ])
+);
 const jobColumns = computed<DataTableColumns<ContainerJobItem>>(() =>
   withResizableColumns([
     { title: t("container.field.jobId"), key: "job_id", width: jobWidths.job_id, ellipsis: { tooltip: true } },
@@ -256,7 +336,7 @@ onMounted(() => {
 
 async function refreshAll() {
   await loadStatus();
-  await Promise.all([loadContainers(), loadImages(), loadJobs()]);
+  await Promise.all([loadContainers(), loadImages(), loadVolumes(), loadJobs()]);
 }
 
 async function loadStatus() {
@@ -300,6 +380,21 @@ async function loadImages(page = 1) {
   }
 }
 
+async function loadVolumes(page = 1) {
+  volumesLoading.value = true;
+  try {
+    const result = await listVolumes({ keyword: volumeFilters.keyword, usage: volumeFilters.usage ?? "", page, page_size: volumeFilters.pageSize });
+    volumes.value = result.items;
+    volumePagination.page = result.page;
+    volumePagination.pageSize = result.page_size;
+    volumePagination.itemCount = result.total;
+  } catch (error) {
+    showError(message, error);
+  } finally {
+    volumesLoading.value = false;
+  }
+}
+
 async function loadJobs(page = 1) {
   jobsLoading.value = true;
   try {
@@ -323,6 +418,11 @@ function handleContainerPageSize(pageSize: number) {
 function handleImagePageSize(pageSize: number) {
   imageFilters.pageSize = pageSize;
   void loadImages(1);
+}
+
+function handleVolumePageSize(pageSize: number) {
+  volumeFilters.pageSize = pageSize;
+  void loadVolumes(1);
 }
 
 function handleJobPageSize(pageSize: number) {
@@ -388,6 +488,31 @@ async function handleImageAction(key: string, row: ImageItem) {
   }
 }
 
+async function handleVolumeAction(key: string, row: VolumeItem) {
+  if (key !== "delete") return;
+  confirm(t("container.deleteVolumeConfirm", { name: row.name }), async () => {
+    try {
+      await deleteVolume(row.name);
+      message.success(t("container.volumeDeleted"));
+      await loadVolumes(volumePagination.page);
+    } catch (error) {
+      showError(message, error);
+    }
+  });
+}
+
+function confirmPruneVolumes() {
+  confirm(t("container.pruneVolumesConfirm"), async () => {
+    try {
+      const result = await pruneVolumes();
+      message.success(t("container.volumePruned", { count: result.deleted.length }));
+      await loadVolumes(1);
+    } catch (error) {
+      showError(message, error);
+    }
+  });
+}
+
 async function downloadJob(row: ContainerJobItem) {
   try {
     saveBlob(await downloadContainerJob(row.job_id), row.file_name || `${row.job_id}.tar`);
@@ -404,6 +529,11 @@ function handleJobSubmitted() {
   activeTab.value = "jobs";
   void loadJobs(1);
   void loadImages(1);
+}
+
+function handleVolumeSaved() {
+  activeTab.value = "volumes";
+  void loadVolumes(1);
 }
 
 function actionDropdown(options: DropdownOption[], onSelect: (key: string | number) => void) {
@@ -430,6 +560,12 @@ function imageActionOptions(row: ImageItem): DropdownOption[] {
   }
   if (canDeleteImage(row)) options.push({ label: t("container.deleteImage"), key: "delete" });
   return options;
+}
+
+function volumeActionOptions(row: VolumeItem): DropdownOption[] {
+  if (!authStore.has(CONTAINER_DELETE)) return [];
+  if (!canManageOthers.value && row.owner_user_id !== authStore.user?.id) return [];
+  return [{ label: row.used_by.length ? t("container.volumeInUse") : t("container.deleteVolume"), key: "delete", disabled: row.used_by.length > 0 }];
 }
 
 function canDeleteImage(row: ImageItem) {
@@ -510,6 +646,11 @@ function renderPorts(row: ContainerItem) {
   return h("div", { class: "container-port-list" }, nodes);
 }
 
+function renderUsedBy(row: VolumeItem) {
+  if (!row.used_by.length) return t("container.volumeUnused");
+  return h("div", { class: "container-port-list" }, row.used_by.map((name) => h(NTag, { size: "small", bordered: false }, () => name)));
+}
+
 function togglePorts(id: string) {
   expandedPorts.value = expandedPorts.value.includes(id)
     ? expandedPorts.value.filter((item) => item !== id)
@@ -526,6 +667,10 @@ function handleContainerColumnResize(_: number, limitedWidth: number, column: { 
 
 function handleImageColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
   updateColumnWidth(imageWidths, column.key, Object.fromEntries(Object.keys(imageWidths).map((key) => [key, key])), limitedWidth);
+}
+
+function handleVolumeColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
+  updateColumnWidth(volumeWidths, column.key, Object.fromEntries(Object.keys(volumeWidths).map((key) => [key, key])), limitedWidth);
 }
 
 function handleJobColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {

@@ -34,6 +34,10 @@ from app.modules.containers.schemas import (
     ImageItem,
     ImageListResponse,
     JobSubmitResponse,
+    VolumeCreatePayload,
+    VolumeItem,
+    VolumeListResponse,
+    VolumePruneResponse,
 )
 from app.services.audit import audit_detail, record_audit
 from app.services.permissions import has_permission
@@ -108,7 +112,7 @@ class ContainerService:
         volumes = {}
         for mapping in payload.volumes:
             volume_name = mapping.volume_name or f"metrix-u{actor.id}-{uuid.uuid4().hex[:8]}"
-            client.ensure_volume(volume_name)
+            self._ensure_manageable_volume(actor, volume_name, client)
             volumes[volume_name] = {"bind": mapping.container_path, "mode": "ro" if mapping.read_only else "rw"}
         container = client.create_container(
             safe_name,
@@ -140,6 +144,100 @@ class ContainerService:
         )
         self.db.commit()
         return self._with_container_usernames([item])[0]
+
+    def list_volumes(
+        self,
+        actor: User,
+        keyword: str = "",
+        usage: str = "",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> VolumeListResponse:
+        client = self._client()
+        usage_map = _volume_usage(client.list_containers())
+        items = [_volume_item(volume, usage_map) for volume in client.list_volumes()]
+        if not has_permission(actor, CONTAINER_MANAGE_OTHERS):
+            items = [item for item in items if item.owner_user_id == actor.id]
+        if keyword:
+            needle = keyword.lower()
+            items = [
+                item
+                for item in items
+                if needle in item.name.lower()
+                or needle in item.driver.lower()
+                or needle in item.mountpoint.lower()
+                or any(needle in value.lower() for value in item.labels.values())
+            ]
+        if usage == "used":
+            items = [item for item in items if item.used_by]
+        elif usage == "unused":
+            items = [item for item in items if not item.used_by]
+        items.sort(key=lambda item: item.name.lower())
+        total = len(items)
+        page_items = items[(page - 1) * page_size : page * page_size]
+        return VolumeListResponse(items=self._with_volume_usernames(page_items), total=total, page=page, page_size=page_size)
+
+    def create_volume(self, actor: User, payload: VolumeCreatePayload) -> VolumeItem:
+        self._validate_volume_name(payload.name)
+        client = self._client()
+        try:
+            client.get_volume(payload.name)
+        except Exception:
+            volume = client.create_volume(payload.name, payload.driver, _volume_labels(actor.id))
+        else:
+            raise bad_request("error.containerVolumeExists", "Volume already exists")
+        item = _volume_item(volume, _volume_usage(client.list_containers()))
+        record_audit(
+            self.db,
+            actor.id,
+            "container.volume_create",
+            "container_volume",
+            item.name,
+            item.name,
+            audit_detail(item.name, meta={"driver": item.driver}),
+        )
+        self.db.commit()
+        return self._with_volume_usernames([item])[0]
+
+    def delete_volume(self, actor: User, name: str, force: bool = False) -> None:
+        client = self._client()
+        volume = self._get_visible_volume(actor, name, client)
+        item = _volume_item(volume, _volume_usage(client.list_containers()))
+        if item.used_by:
+            raise bad_request("error.containerVolumeInUse", "Volume is in use")
+        try:
+            client.remove_volume(name, force)
+        except Exception as exc:
+            raise bad_request("error.containerVolumeDeleteFailed", "Failed to delete volume") from exc
+        record_audit(self.db, actor.id, "container.volume_delete", "container_volume", name, name)
+        self.db.commit()
+
+    def prune_volumes(self, actor: User) -> VolumePruneResponse:
+        client = self._client()
+        usage_map = _volume_usage(client.list_containers())
+        candidates = [_volume_item(volume, usage_map) for volume in client.list_volumes()]
+        candidates = [item for item in candidates if item.labels.get(METRIX_LABEL_CREATED_BY) == METRIX_LABEL_VALUE and not item.used_by]
+        if not has_permission(actor, CONTAINER_MANAGE_OTHERS):
+            candidates = [item for item in candidates if item.owner_user_id == actor.id]
+        deleted: list[str] = []
+        for item in candidates:
+            try:
+                client.remove_volume(item.name)
+            except Exception:
+                continue
+            deleted.append(item.name)
+        if deleted:
+            record_audit(
+                self.db,
+                actor.id,
+                "container.volume_prune",
+                "container_volume",
+                "",
+                ",".join(deleted),
+                audit_detail("container_volume", meta={"deleted": deleted}),
+            )
+            self.db.commit()
+        return VolumePruneResponse(deleted=deleted, space_reclaimed=0)
 
     def operate_container(self, actor: User, container_id: str, action: str) -> None:
         container = self._get_visible_container(actor, container_id)
@@ -390,6 +488,10 @@ class ContainerService:
         usernames = self.images.creator_usernames({item.owner_user_id for item in items if item.owner_user_id is not None})
         return [item.model_copy(update={"owner_username": usernames.get(item.owner_user_id, "")}) for item in items]
 
+    def _with_volume_usernames(self, items: list[VolumeItem]) -> list[VolumeItem]:
+        usernames = self.images.creator_usernames({item.owner_user_id for item in items if item.owner_user_id is not None})
+        return [item.model_copy(update={"owner_username": usernames.get(item.owner_user_id, "")}) for item in items]
+
     def _validate_container_payload(self, payload: ContainerCreatePayload) -> None:
         if not CONTAINER_NAME_RE.fullmatch(payload.name):
             raise bad_request("error.containerNameInvalid", "Invalid container name")
@@ -398,6 +500,33 @@ class ContainerService:
                 raise bad_request("error.containerVolumeInvalid", "Invalid volume name")
             if not mapping.container_path.startswith("/"):
                 raise bad_request("error.containerPathInvalid", "Invalid container path")
+
+    def _validate_volume_name(self, name: str) -> None:
+        if not VOLUME_NAME_RE.fullmatch(name):
+            raise bad_request("error.containerVolumeInvalid", "Invalid volume name")
+
+    def _ensure_manageable_volume(self, actor: User, name: str, client) -> None:
+        self._validate_volume_name(name)
+        try:
+            volume = client.get_volume(name)
+        except Exception:
+            client.create_volume(name, labels=_volume_labels(actor.id))
+            return
+        item = _volume_item(volume, {})
+        if item.owner_user_id == actor.id or has_permission(actor, CONTAINER_MANAGE_OTHERS):
+            return
+        raise forbidden()
+
+    def _get_visible_volume(self, actor: User, name: str, client):
+        self._validate_volume_name(name)
+        try:
+            volume = client.get_volume(name)
+        except Exception:
+            raise not_found("error.containerVolumeNotFound", "Volume not found")
+        item = _volume_item(volume, {})
+        if item.owner_user_id == actor.id or has_permission(actor, CONTAINER_MANAGE_OTHERS):
+            return volume
+        raise forbidden()
 
 
 def _run_job(job_id: str) -> None:
@@ -531,6 +660,46 @@ def _image_item(image) -> ImageItem:
     )
 
 
+def _volume_item(volume, usage_map: dict[str, list[str]]) -> VolumeItem:
+    attrs = getattr(volume, "attrs", {}) or {}
+    name = str(getattr(volume, "name", attrs.get("Name", "")))
+    labels = {str(key): str(value) for key, value in (attrs.get("Labels") or {}).items()}
+    options = {str(key): str(value) for key, value in (attrs.get("Options") or {}).items()}
+    return VolumeItem(
+        name=name,
+        driver=str(attrs.get("Driver", "")),
+        scope=str(attrs.get("Scope", "")),
+        mountpoint=str(attrs.get("Mountpoint", "")),
+        labels=labels,
+        options=options,
+        created_at=str(attrs.get("CreatedAt", "")),
+        owner_user_id=_owner_from_labels(labels),
+        used_by=usage_map.get(name, []),
+    )
+
+
+def _volume_usage(containers: list) -> dict[str, list[str]]:
+    usage: dict[str, list[str]] = {}
+    for container in containers:
+        name = _container_name(container)
+        attrs = getattr(container, "attrs", {}) or {}
+        for mount in attrs.get("Mounts", []) or []:
+            if mount.get("Type") != "volume":
+                continue
+            volume_name = str(mount.get("Name") or "")
+            if volume_name:
+                usage.setdefault(volume_name, []).append(name)
+    return usage
+
+
+def _volume_labels(owner_user_id: int) -> dict[str, str]:
+    return {
+        METRIX_LABEL_CREATED_BY: METRIX_LABEL_VALUE,
+        METRIX_LABEL_OWNER: str(owner_user_id),
+        METRIX_LABEL_RESOURCE: "volume",
+    }
+
+
 def _container_name(container) -> str:
     return str(getattr(container, "name", "")).lstrip("/")
 
@@ -538,6 +707,10 @@ def _container_name(container) -> str:
 def _container_owner(container) -> int | None:
     attrs = getattr(container, "attrs", {}) or {}
     labels = (attrs.get("Config", {}) or {}).get("Labels") or {}
+    return _owner_from_labels(labels)
+
+
+def _owner_from_labels(labels: dict) -> int | None:
     value = labels.get(METRIX_LABEL_OWNER)
     if value is None:
         return None

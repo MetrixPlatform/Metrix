@@ -6,12 +6,12 @@
     "group": {
       "container": "容器管理"
     },
-    "action:container:create": "创建容器/镜像任务",
-    "action:container:read": "查看容器与镜像",
+    "action:container:create": "创建容器/镜像任务/储存卷",
+    "action:container:read": "查看容器、镜像与储存卷",
     "action:container:update": "修改容器/镜像配置",
-    "action:container:delete": "删除容器/镜像",
+    "action:container:delete": "删除容器/镜像/储存卷",
     "action:container:operate": "运行控制容器",
-    "action:container:manage_others": "管理他人容器与镜像"
+    "action:container:manage_others": "管理他人容器、镜像与储存卷"
   },
   "error": {
     "containerDockerUnavailable": "Docker 不可用，请检查 Docker 服务、DOCKER_HOST 或 socket 挂载",
@@ -21,6 +21,10 @@
     "containerActionInvalid": "容器操作不合法",
     "containerNameInvalid": "容器名称不合法",
     "containerVolumeInvalid": "卷名称不合法",
+    "containerVolumeExists": "储存卷已存在",
+    "containerVolumeNotFound": "储存卷不存在",
+    "containerVolumeInUse": "储存卷正在被容器使用，无法删除",
+    "containerVolumeDeleteFailed": "删除储存卷失败，请确认卷未被占用",
     "containerPathInvalid": "容器路径不合法",
     "containerJobFailed": "容器任务执行失败",
     "containerJobNotDownloadable": "任务不可下载",
@@ -40,15 +44,27 @@
     "images": "镜像",
     "tabContainers": "容器",
     "tabImages": "镜像",
+    "tabVolumes": "储存卷",
     "tabJobs": "任务",
     "searchContainer": "搜索容器名称、ID、镜像",
     "searchImage": "搜索镜像 ID 或标签",
+    "searchVolume": "搜索卷名称、驱动、挂载点或标签",
     "searchJob": "搜索任务镜像或文件",
     "statusAll": "全部状态",
+    "volumeUsageAll": "全部使用状态",
+    "volumeUsageUsed": "使用中",
+    "volumeUsageUnused": "未使用",
     "create": "创建容器",
     "importImage": "导入镜像",
+    "createVolume": "创建储存卷",
+    "pruneVolumes": "清理未使用卷",
     "field": {
       "name": "名称",
+      "volumeName": "卷名称",
+      "driver": "驱动",
+      "scope": "范围",
+      "mountpoint": "挂载点",
+      "usedBy": "使用容器",
       "containerId": "容器 ID",
       "image": "镜像",
       "status": "状态",
@@ -86,6 +102,10 @@
     "statusRestarting": "重启中",
     "statusExited": "已退出",
     "statusDead": "异常",
+    "restartPolicyNo": "不自动重启",
+    "restartPolicyAlways": "始终重启",
+    "restartPolicyUnlessStopped": "除非手动停止",
+    "restartPolicyOnFailure": "失败时重启",
     "start": "启动",
     "stop": "停止",
     "restart": "重启",
@@ -99,18 +119,27 @@
     "terminalDisconnect": "断开",
     "deleteContainer": "删除容器",
     "deleteImage": "删除镜像",
+    "deleteVolume": "删除储存卷",
     "exportImage": "导出镜像",
     "setPublic": "设为公共",
     "setPrivate": "设为私有",
     "download": "下载",
     "deleteContainerConfirm": "确认删除容器 {name}？",
     "deleteImageConfirm": "确认删除镜像 {name}？",
+    "deleteVolumeConfirm": "确认删除储存卷 {name}？删除后卷内数据不可恢复。",
+    "pruneVolumesConfirm": "确认清理当前权限范围内未被容器使用的平台储存卷？",
     "created": "容器已创建",
     "started": "容器已启动",
     "stopped": "容器已停止",
     "restarted": "容器已重启",
     "deleted": "容器已删除",
     "imageDeleted": "镜像已删除",
+    "volumeCreated": "储存卷已创建",
+    "volumeDeleted": "储存卷已删除",
+    "volumePruned": "已清理 {count} 个储存卷",
+    "volumeUnused": "未使用",
+    "volumeInUse": "使用中，无法删除",
+    "externalVolume": "外部卷",
     "submitted": "任务已提交",
     "visibilityUpdated": "可见性已更新",
     "logTitle": "容器日志 - {name}",
@@ -143,6 +172,9 @@
         "stop": "停止容器",
         "restart": "重启容器",
         "delete": "删除容器",
+        "volume_create": "创建储存卷",
+        "volume_delete": "删除储存卷",
+        "volume_prune": "清理未使用储存卷",
         "image_delete": "删除镜像",
         "image_visibility": "修改镜像可见性",
         "image_import_submit": "提交镜像导入",
@@ -152,6 +184,7 @@
     "target": {
       "container": "容器",
       "container_image": "容器镜像",
+      "container_volume": "容器储存卷",
       "container_job": "容器任务"
     },
     "field": {
@@ -164,6 +197,7 @@
     "tag": {
       "container-images": "容器镜像",
       "container-instances": "容器实例",
+      "container-volumes": "容器储存卷",
       "container-jobs": "容器任务"
     },
     "operation": {
@@ -195,6 +229,22 @@
         "summary": "读取容器日志",
         "description": "按 tail 行数读取指定容器日志。"
       },
+      "container_volumes.list_container_volumes": {
+        "summary": "查询储存卷列表",
+        "description": "查询当前用户可见的 Docker named volumes；普通用户仅能查看自己创建的卷。"
+      },
+      "container_volumes.create_container_volume": {
+        "summary": "创建储存卷",
+        "description": "创建一个平台归属的 Docker named volume，用于后续容器挂载。"
+      },
+      "container_volumes.delete_container_volume": {
+        "summary": "删除储存卷",
+        "description": "删除当前用户可管理且未被容器使用的储存卷。"
+      },
+      "container_volumes.prune_container_volumes": {
+        "summary": "清理未使用储存卷",
+        "description": "清理当前权限范围内未被容器使用的平台储存卷；不会清理外部未打平台标签的卷。"
+      },
       "container_jobs.list_container_jobs": {
         "summary": "查询容器任务",
         "description": "查询镜像导入、导出后台任务。"
@@ -202,6 +252,30 @@
       "container_jobs.download_container_job": {
         "summary": "下载任务文件",
         "description": "下载成功的镜像导出任务文件。"
+      }
+    },
+    "parameter": {
+      "common": {
+        "usage": "储存卷使用状态筛选：used 表示使用中，unused 表示未使用。",
+        "name": "Docker 储存卷名称。",
+        "force": "是否强制删除；默认 false。",
+        "keyword": "搜索关键字。",
+        "page": "页码，从 1 开始。",
+        "page_size": "每页数量。"
+      }
+    },
+    "schema": {
+      "property": {
+        "driver": "储存卷驱动，默认 local。",
+        "scope": "Docker 返回的卷范围。",
+        "mountpoint": "Docker Engine 内部挂载点；Docker Desktop 下通常位于虚拟机内。",
+        "labels": "储存卷标签，平台用 metrix.* 标签记录归属。",
+        "options": "储存卷驱动选项。",
+        "owner_user_id": "归属用户 ID。",
+        "owner_username": "归属用户账号。",
+        "used_by": "正在使用该卷的容器名称列表。",
+        "deleted": "本次清理删除的储存卷名称列表。",
+        "space_reclaimed": "Docker 返回的回收空间字节数；当前平台清理模式下通常为 0。"
       }
     }
   }

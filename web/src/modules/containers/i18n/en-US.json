@@ -6,12 +6,12 @@
     "group": {
       "container": "Containers"
     },
-    "action:container:create": "Create containers/image jobs",
-    "action:container:read": "Read containers and images",
+    "action:container:create": "Create containers/image jobs/volumes",
+    "action:container:read": "Read containers, images, and volumes",
     "action:container:update": "Update container/image settings",
-    "action:container:delete": "Delete containers/images",
+    "action:container:delete": "Delete containers/images/volumes",
     "action:container:operate": "Operate containers",
-    "action:container:manage_others": "Manage others' containers and images"
+    "action:container:manage_others": "Manage others' containers, images, and volumes"
   },
   "error": {
     "containerDockerUnavailable": "Docker is unavailable. Check Docker service, DOCKER_HOST, or socket mount",
@@ -21,6 +21,10 @@
     "containerActionInvalid": "Invalid container action",
     "containerNameInvalid": "Invalid container name",
     "containerVolumeInvalid": "Invalid volume name",
+    "containerVolumeExists": "Volume already exists",
+    "containerVolumeNotFound": "Volume not found",
+    "containerVolumeInUse": "The volume is in use by containers and cannot be deleted",
+    "containerVolumeDeleteFailed": "Failed to delete volume. Ensure it is not in use",
     "containerPathInvalid": "Invalid container path",
     "containerJobFailed": "Container job failed",
     "containerJobNotDownloadable": "Job is not downloadable",
@@ -40,15 +44,27 @@
     "images": "Images",
     "tabContainers": "Containers",
     "tabImages": "Images",
+    "tabVolumes": "Volumes",
     "tabJobs": "Jobs",
     "searchContainer": "Search container name, ID, or image",
     "searchImage": "Search image ID or tag",
+    "searchVolume": "Search volume name, driver, mountpoint, or labels",
     "searchJob": "Search job image or file",
     "statusAll": "All statuses",
+    "volumeUsageAll": "All usage states",
+    "volumeUsageUsed": "Used",
+    "volumeUsageUnused": "Unused",
     "create": "Create container",
     "importImage": "Import image",
+    "createVolume": "Create volume",
+    "pruneVolumes": "Prune unused",
     "field": {
       "name": "Name",
+      "volumeName": "Volume name",
+      "driver": "Driver",
+      "scope": "Scope",
+      "mountpoint": "Mountpoint",
+      "usedBy": "Used by",
       "containerId": "Container ID",
       "image": "Image",
       "status": "Status",
@@ -86,6 +102,10 @@
     "statusRestarting": "Restarting",
     "statusExited": "Exited",
     "statusDead": "Dead",
+    "restartPolicyNo": "Do not restart",
+    "restartPolicyAlways": "Always restart",
+    "restartPolicyUnlessStopped": "Unless manually stopped",
+    "restartPolicyOnFailure": "Restart on failure",
     "start": "Start",
     "stop": "Stop",
     "restart": "Restart",
@@ -99,18 +119,27 @@
     "terminalDisconnect": "Disconnect",
     "deleteContainer": "Delete container",
     "deleteImage": "Delete image",
+    "deleteVolume": "Delete volume",
     "exportImage": "Export image",
     "setPublic": "Set public",
     "setPrivate": "Set private",
     "download": "Download",
     "deleteContainerConfirm": "Delete container {name}?",
     "deleteImageConfirm": "Delete image {name}?",
+    "deleteVolumeConfirm": "Delete volume {name}? Data in the volume cannot be recovered after deletion.",
+    "pruneVolumesConfirm": "Prune unused platform volumes within your permission scope?",
     "created": "Container created",
     "started": "Container started",
     "stopped": "Container stopped",
     "restarted": "Container restarted",
     "deleted": "Container deleted",
     "imageDeleted": "Image deleted",
+    "volumeCreated": "Volume created",
+    "volumeDeleted": "Volume deleted",
+    "volumePruned": "{count} volumes pruned",
+    "volumeUnused": "Unused",
+    "volumeInUse": "In use; cannot delete",
+    "externalVolume": "External volume",
     "submitted": "Job submitted",
     "visibilityUpdated": "Visibility updated",
     "logTitle": "Container logs - {name}",
@@ -143,6 +172,9 @@
         "stop": "Stop container",
         "restart": "Restart container",
         "delete": "Delete container",
+        "volume_create": "Create volume",
+        "volume_delete": "Delete volume",
+        "volume_prune": "Prune unused volumes",
         "image_delete": "Delete image",
         "image_visibility": "Update image visibility",
         "image_import_submit": "Submit image import",
@@ -152,6 +184,7 @@
     "target": {
       "container": "Container",
       "container_image": "Container image",
+      "container_volume": "Container volume",
       "container_job": "Container job"
     },
     "field": {
@@ -164,6 +197,7 @@
     "tag": {
       "container-images": "Container images",
       "container-instances": "Container instances",
+      "container-volumes": "Container volumes",
       "container-jobs": "Container jobs"
     },
     "operation": {
@@ -195,6 +229,22 @@
         "summary": "Read container logs",
         "description": "Read logs from the selected container with a tail limit."
       },
+      "container_volumes.list_container_volumes": {
+        "summary": "List volumes",
+        "description": "List Docker named volumes visible to the current user. Normal users only see volumes they created."
+      },
+      "container_volumes.create_container_volume": {
+        "summary": "Create volume",
+        "description": "Create a platform-owned Docker named volume for later container mounts."
+      },
+      "container_volumes.delete_container_volume": {
+        "summary": "Delete volume",
+        "description": "Delete a manageable volume that is not currently used by any container."
+      },
+      "container_volumes.prune_container_volumes": {
+        "summary": "Prune unused volumes",
+        "description": "Prune unused platform-owned volumes within the current permission scope. External volumes without platform labels are not pruned."
+      },
       "container_jobs.list_container_jobs": {
         "summary": "List container jobs",
         "description": "List image import and export background jobs."
@@ -202,6 +252,30 @@
       "container_jobs.download_container_job": {
         "summary": "Download job file",
         "description": "Download the file generated by a successful image export job."
+      }
+    },
+    "parameter": {
+      "common": {
+        "usage": "Volume usage filter: used or unused.",
+        "name": "Docker volume name.",
+        "force": "Whether to force deletion; defaults to false.",
+        "keyword": "Search keyword.",
+        "page": "Page number, starting from 1.",
+        "page_size": "Items per page."
+      }
+    },
+    "schema": {
+      "property": {
+        "driver": "Volume driver. Defaults to local.",
+        "scope": "Volume scope returned by Docker.",
+        "mountpoint": "Internal mountpoint inside Docker Engine. On Docker Desktop it usually lives inside the VM.",
+        "labels": "Volume labels. The platform uses metrix.* labels to record ownership.",
+        "options": "Volume driver options.",
+        "owner_user_id": "Owner user ID.",
+        "owner_username": "Owner username.",
+        "used_by": "Names of containers currently using this volume.",
+        "deleted": "Volume names deleted by this prune operation.",
+        "space_reclaimed": "Reclaimed bytes returned by Docker. Usually 0 in the platform-owned prune mode."
       }
     }
   }

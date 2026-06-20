@@ -17,6 +17,7 @@ APP_MODULE = define_module(
             "app.modules.containers.api:engine_router",
             "app.modules.containers.api:images_router",
             "app.modules.containers.api:instances_router",
+            "app.modules.containers.api:volumes_router",
             "app.modules.containers.api:jobs_router",
         ),
         model_paths=("app.modules.containers.models",),

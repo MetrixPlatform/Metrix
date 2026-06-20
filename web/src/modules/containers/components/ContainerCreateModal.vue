@@ -79,12 +79,12 @@ const rules: FormRules = {
 const imageOptions = computed(() =>
   props.images.flatMap((image) => (image.repo_tags.length ? image.repo_tags : [image.id]).map((tag) => ({ label: tag, value: tag })))
 );
-const restartPolicyOptions = [
-  { label: "no", value: "no" },
-  { label: "always", value: "always" },
-  { label: "unless-stopped", value: "unless-stopped" },
-  { label: "on-failure", value: "on-failure" }
-];
+const restartPolicyOptions = computed(() => [
+  { label: t("container.restartPolicyNo"), value: "no" },
+  { label: t("container.restartPolicyAlways"), value: "always" },
+  { label: t("container.restartPolicyUnlessStopped"), value: "unless-stopped" },
+  { label: t("container.restartPolicyOnFailure"), value: "on-failure" }
+]);
 
 watch(
   () => props.show,

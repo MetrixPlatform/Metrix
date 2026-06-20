@@ -112,6 +112,41 @@ class ImageVisibilityPayload(BaseModel):
     is_public: bool
 
 
+class VolumeCreatePayload(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    driver: str = Field(default="local", min_length=1, max_length=80)
+
+    @field_validator("name", "driver")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class VolumeItem(BaseModel):
+    name: str
+    driver: str = ""
+    scope: str = ""
+    mountpoint: str = ""
+    labels: dict[str, str] = Field(default_factory=dict)
+    options: dict[str, str] = Field(default_factory=dict)
+    created_at: str = ""
+    owner_user_id: int | None = None
+    owner_username: str = ""
+    used_by: list[str] = Field(default_factory=list)
+
+
+class VolumeListResponse(BaseModel):
+    items: list[VolumeItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class VolumePruneResponse(BaseModel):
+    deleted: list[str]
+    space_reclaimed: int = 0
+
+
 class JobSubmitResponse(BaseModel):
     job_id: str
     status: str

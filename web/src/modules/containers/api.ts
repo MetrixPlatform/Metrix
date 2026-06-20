@@ -48,6 +48,29 @@ export interface ImageItem {
   source: string;
 }
 
+export interface VolumeItem {
+  name: string;
+  driver: string;
+  scope: string;
+  mountpoint: string;
+  labels: Record<string, string>;
+  options: Record<string, string>;
+  created_at: string;
+  owner_user_id: number | null;
+  owner_username: string;
+  used_by: string[];
+}
+
+export interface VolumeCreatePayload {
+  name: string;
+  driver: string;
+}
+
+export interface VolumePruneResponse {
+  deleted: string[];
+  space_reclaimed: number;
+}
+
 export interface ContainerPortMapping {
   container_port: string;
   host_port: number | null;
@@ -106,6 +129,13 @@ export interface ContainerFilters {
 
 export interface ImageFilters {
   keyword?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface VolumeFilters {
+  keyword?: string;
+  usage?: string;
   page?: number;
   page_size?: number;
 }
@@ -175,6 +205,22 @@ export function deleteImage(imageRef: string) {
 
 export function updateImageVisibility(imageRef: string, isPublic: boolean) {
   return put<ImageItem>(`/container-images/${encodeURIComponent(imageRef)}/visibility`, { is_public: isPublic });
+}
+
+export function listVolumes(filters: VolumeFilters = {}) {
+  return request<PageResult<VolumeItem>>(`/container-volumes${queryString(filters)}`);
+}
+
+export function createVolume(payload: VolumeCreatePayload) {
+  return post<VolumeItem>("/container-volumes", payload);
+}
+
+export function deleteVolume(name: string, force = false) {
+  return del<ServerMessage>(`/container-volumes/${encodeURIComponent(name)}${queryString({ force: force || "" })}`);
+}
+
+export function pruneVolumes() {
+  return post<VolumePruneResponse>("/container-volumes/prune");
 }
 
 export function listContainerJobs(filters: JobFilters = {}) {

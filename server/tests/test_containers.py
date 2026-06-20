@@ -40,6 +40,7 @@ class FakeContainer:
             "Config": {"Image": image, "Labels": labels},
             "State": {"Status": self.status},
             "NetworkSettings": {"Ports": {}},
+            "Mounts": [],
         }
         self.started = False
         self.removed = False
@@ -79,6 +80,10 @@ class FakeContainerCollection:
         owner = int(kwargs["labels"]["metrix.owner_user_id"])
         container_id = f"container-{len(self.engine.containers_by_id) + 1}"
         container = FakeContainer(container_id, kwargs["name"], kwargs["image"], owner)
+        container.attrs["Mounts"] = [
+            {"Type": "volume", "Name": name, "Destination": config["bind"]}
+            for name, config in (kwargs.get("volumes") or {}).items()
+        ]
         self.engine.containers_by_id[container_id] = container
         self.engine.last_create = kwargs
         return container
@@ -110,16 +115,40 @@ class FakeImageCollection:
 
 class FakeVolumeCollection:
     def __init__(self):
-        self.names = set()
+        self.volumes_by_name = {}
 
     def get(self, name):
-        if name not in self.names:
+        if name not in self.volumes_by_name:
             raise KeyError(name)
-        return name
+        return self.volumes_by_name[name]
 
-    def create(self, name, labels=None):
-        self.names.add(name)
-        return name
+    def list(self):
+        return list(self.volumes_by_name.values())
+
+    def create(self, name, driver="local", labels=None):
+        volume = FakeVolume(name, driver, labels or {}, self)
+        self.volumes_by_name[name] = volume
+        return volume
+
+
+class FakeVolume:
+    def __init__(self, name: str, driver: str, labels: dict, collection: FakeVolumeCollection):
+        self.name = name
+        self.collection = collection
+        self.removed = False
+        self.attrs = {
+            "Name": name,
+            "Driver": driver,
+            "Scope": "local",
+            "Mountpoint": f"/var/lib/docker/volumes/{name}/_data",
+            "Labels": labels,
+            "Options": {},
+            "CreatedAt": "2026-06-15T00:00:00Z",
+        }
+
+    def remove(self, force=False):
+        self.removed = True
+        self.collection.volumes_by_name.pop(self.name, None)
 
 
 class FakeDockerEngine:
@@ -275,6 +304,62 @@ def test_container_image_records_and_create_container(tmp_path, monkeypatch):
     assert body["name"] == f"metrix-u{user_id}-job"
     assert engine.last_create["labels"]["metrix.owner_user_id"] == str(user_id)
     assert "PASSWORD" not in engine.last_create["environment"]
+    assert engine.volumes.volumes_by_name["job_data"].attrs["Labels"]["metrix.owner_user_id"] == str(user_id)
+
+
+def test_container_volume_management_and_owner_isolation(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+    role_id = grant_container_role(client, admin_headers, "container_volume_user")
+    user_headers, user_id = create_container_user(client, admin_headers, "container_volume_user", role_id, "13800000043")
+
+    engine.volumes.create(
+        "foreign_volume",
+        labels={"metrix.created_by": "metrix", "metrix.owner_user_id": str(user_id + 1), "metrix.resource_type": "volume"},
+    )
+    engine.volumes.create("external_volume", labels={})
+    engine.volumes.create(
+        "used_volume",
+        labels={"metrix.created_by": "metrix", "metrix.owner_user_id": str(user_id), "metrix.resource_type": "volume"},
+    )
+    engine.containers_by_id["own-container"].attrs["Config"]["Labels"]["metrix.owner_user_id"] = str(user_id)
+    engine.containers_by_id["own-container"].attrs["Mounts"] = [{"Type": "volume", "Name": "used_volume"}]
+
+    visible = client.get("/api/container-volumes", headers=user_headers)
+    assert visible.status_code == 200
+    assert [item["name"] for item in visible.json()["items"]] == ["used_volume"]
+    assert visible.json()["items"][0]["used_by"] == ["metrix-u2-job"]
+
+    created = client.post("/api/container-volumes", json={"name": "user_volume", "driver": "local"}, headers=user_headers)
+    assert created.status_code == 200
+    assert created.json()["owner_user_id"] == user_id
+    assert engine.volumes.volumes_by_name["user_volume"].attrs["Labels"]["metrix.owner_user_id"] == str(user_id)
+
+    denied = client.delete("/api/container-volumes/foreign_volume", headers=user_headers)
+    assert denied.status_code == 403
+
+    in_use = client.delete("/api/container-volumes/used_volume", headers=user_headers)
+    assert in_use.status_code == 400
+
+    deleted = client.delete("/api/container-volumes/user_volume", headers=user_headers)
+    assert deleted.status_code == 200
+    assert "user_volume" not in engine.volumes.volumes_by_name
+
+    prune_target = client.post("/api/container-volumes", json={"name": "prune_me", "driver": "local"}, headers=user_headers)
+    assert prune_target.status_code == 200
+    pruned = client.post("/api/container-volumes/prune", headers=user_headers)
+    assert pruned.status_code == 200
+    assert pruned.json()["deleted"] == ["prune_me"]
+    assert "used_volume" in engine.volumes.volumes_by_name
+    assert "foreign_volume" in engine.volumes.volumes_by_name
+    assert "external_volume" in engine.volumes.volumes_by_name
+
+    admin_visible = client.get("/api/container-volumes?keyword=volume", headers=admin_headers)
+    assert admin_visible.status_code == 200
+    assert admin_visible.json()["total"] == 3
 
 
 def test_container_image_import_and_export_jobs(tmp_path, monkeypatch):

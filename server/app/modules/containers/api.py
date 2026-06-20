@@ -25,6 +25,10 @@ from app.modules.containers.schemas import (
     ImageListResponse,
     ImageVisibilityPayload,
     JobSubmitResponse,
+    VolumeCreatePayload,
+    VolumeItem,
+    VolumeListResponse,
+    VolumePruneResponse,
 )
 from app.modules.containers.services import ContainerService
 from app.schemas.common import MessageResponse, message_response
@@ -32,6 +36,7 @@ from app.schemas.common import MessageResponse, message_response
 engine_router = APIRouter(prefix="/api/container-engine", tags=["container-engine"])
 images_router = APIRouter(prefix="/api/container-images", tags=["container-images"])
 instances_router = APIRouter(prefix="/api/container-instances", tags=["container-instances"])
+volumes_router = APIRouter(prefix="/api/container-volumes", tags=["container-volumes"])
 jobs_router = APIRouter(prefix="/api/container-jobs", tags=["container-jobs"])
 
 
@@ -298,6 +303,46 @@ def delete_container_instance(
 ) -> MessageResponse:
     ContainerService(db).delete_container(actor, container_id, force)
     return message_response("container.deleted", "Container deleted")
+
+
+@volumes_router.get("", response_model=VolumeListResponse)
+def list_container_volumes(
+    keyword: str = "",
+    usage: str = "",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=500),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(CONTAINER_READ)),
+) -> VolumeListResponse:
+    return ContainerService(db).list_volumes(actor, keyword, usage, page, page_size)
+
+
+@volumes_router.post("", response_model=VolumeItem)
+def create_container_volume(
+    payload: VolumeCreatePayload,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(CONTAINER_CREATE)),
+) -> VolumeItem:
+    return ContainerService(db).create_volume(actor, payload)
+
+
+@volumes_router.delete("/{name}", response_model=MessageResponse)
+def delete_container_volume(
+    name: str,
+    force: bool = False,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(CONTAINER_DELETE)),
+) -> MessageResponse:
+    ContainerService(db).delete_volume(actor, name, force)
+    return message_response("container.volumeDeleted", "Volume deleted")
+
+
+@volumes_router.post("/prune", response_model=VolumePruneResponse)
+def prune_container_volumes(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(CONTAINER_DELETE)),
+) -> VolumePruneResponse:
+    return ContainerService(db).prune_volumes(actor)
 
 
 @jobs_router.get("", response_model=ContainerJobListResponse)

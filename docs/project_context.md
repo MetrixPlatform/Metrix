@@ -1058,3 +1058,11 @@
 - 前端：更新 `web/src/i18n/locales/{zh-CN,en-US}.json` 的核心 OpenAPI operation key，覆盖 `dashboard.summary`、`announcements.*`、`audit.*`；补充日志来源参数说明和首页/公告/日志常见响应字段说明；公告“指定权限”输入提示从旧 `route:users` 改为 `action:user:read`。
 - 约定：后续新增或调整 API 文档翻译时，以运行时 `/openapi.json` 中的短 `operationId` 为准；模块语言包继续把 OpenAPI 文案放在各自 `openapi.operation`、`openapi.parameter`、`openapi.schema.property` 下，避免使用旧的路径拼接式 operationId。
 - 验证：公共中英文 JSON 均可解析；旧 OpenAPI ID 与旧 `route:users` 示例扫描无残留；`npm run test:smoke`、`npm run typecheck` 通过。
+
+## 2026-06-20：容器管理新增 Docker 储存卷管理
+
+- 背景：容器管理已有容器、镜像、任务能力，但缺少 1Panel 等容器工具常见的 Docker volume 管理。跨平台边界统一采用 Docker Engine 的 named volume API，不扫描或直接操作宿主机目录；Windows/Linux/macOS 由 Docker Desktop/Engine 负责真实存储位置差异。
+- 后端：新增 `/api/container-volumes` router，支持分页查询、创建、删除未使用卷、清理当前权限范围内未使用的平台卷；卷创建和容器创建自动写入 `metrix.created_by/metrix.owner_user_id/metrix.resource_type=volume` labels。普通用户只能查看/删除自己创建的卷，`action:container:manage_others` 可管理全部；创建容器挂载已有卷时也校验卷归属，避免普通用户挂载他人或外部卷。删除使用中的卷会返回 `error.containerVolumeInUse`。
+- 前端：容器管理页新增“储存卷”标签，包含关键字搜索、使用状态筛选、创建卷、清理未使用卷、列表列宽拖拽、使用容器展示和删除操作；创建容器弹窗的重启策略下拉改为 i18n 文案（不自动重启/始终重启/除非手动停止/失败时重启），提交值仍保持 Docker 原始枚举。
+- i18n/OpenAPI：容器模块中英文语言包补齐储存卷 UI 文案、错误、审计动作、OpenAPI tag/operation/parameter/schema 字段说明；权限描述扩展为容器、镜像与储存卷。
+- 验证：容器模块中英文 JSON 可解析；`.venv\Scripts\python.exe -m compileall -q server/app/modules/containers server/tests/test_containers.py` 通过；`.venv\Scripts\python.exe -m pytest server/tests/test_containers.py` 通过；`npm run test:smoke`、`npm run typecheck`、`npm run build` 通过（Vite 仅有既有大 chunk 提示）。

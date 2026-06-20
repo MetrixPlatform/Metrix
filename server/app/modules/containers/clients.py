@@ -97,11 +97,26 @@ class DockerAdapter:
         image = self.get_image(image_ref)
         yield from image.save(named=True)
 
-    def ensure_volume(self, name: str) -> None:
+    def list_volumes(self) -> list[Any]:
+        return self.client.volumes.list()
+
+    def get_volume(self, name: str) -> Any:
+        return self.client.volumes.get(name)
+
+    def create_volume(self, name: str, driver: str = "local", labels: dict[str, str] | None = None) -> Any:
+        return self.client.volumes.create(name=name, driver=driver or "local", labels=labels or {})
+
+    def remove_volume(self, name: str, force: bool = False) -> None:
+        self.get_volume(name).remove(force=force)
+
+    def ensure_volume(self, name: str, labels: dict[str, str] | None = None) -> Any:
         try:
-            self.client.volumes.get(name)
+            return self.get_volume(name)
         except Exception:
-            self.client.volumes.create(name=name, labels={"metrix.created_by": "metrix", "metrix.resource_type": "volume"})
+            return self.create_volume(
+                name,
+                labels=labels or {"metrix.created_by": "metrix", "metrix.resource_type": "volume"},
+            )
 
     def create_exec(self, container: Any, command: list[str], user: str, cols: int, rows: int) -> tuple[str, Any, Any]:
         api = container.client.api
