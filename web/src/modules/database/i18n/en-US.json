@@ -53,6 +53,7 @@
     "databaseOptionInvalid": "Invalid option",
     "databaseExportFormatUnsupported": "Unsupported export format",
     "databaseImportFormatUnsupported": "Unsupported import format",
+    "databaseImportMappingInvalid": "Import field mapping is not valid JSON",
     "databaseCsvSingleOnly": "CSV export supports one table or one query",
     "databaseExportReadOnly": "Only read SQL can be exported",
     "databaseTargetTableRequired": "Target table is required",

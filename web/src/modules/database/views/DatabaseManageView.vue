@@ -137,7 +137,7 @@ import {
 } from "../api";
 import DataJobsView from "./DataJobsView.vue";
 import SqlWorkbenchView from "../components/SqlWorkbenchView.vue";
-import { DATABASE_CREATE, DATABASE_MANAGE_OTHERS } from "../permissions";
+import { DATABASE_CREATE, DATABASE_DELETE, DATABASE_MANAGE_OTHERS, DATABASE_UPDATE } from "../permissions";
 
 type SharedFilter = "shared" | "private";
 type ActiveFilter = "true" | "false";
@@ -349,19 +349,21 @@ const columns = computed<DataTableColumns<DatabaseConnection>>(() =>
           { size: "small", quaternary: true, circle: true, type: "primary", title: t("database.manage"), onClick: () => openWorkbench(row) },
           { icon: () => h(NIcon, { component: Table20Regular }) }
         ),
-        h(
-          NButton,
-          { size: "small", quaternary: true, circle: true, title: t("common.test"), loading: testingRowId.value === row.id, onClick: () => testExisting(row) },
-          { icon: () => h(NIcon, { component: PlugConnected20Regular }) }
-        ),
-        canManage(row)
+        canEdit(row)
+          ? h(
+              NButton,
+              { size: "small", quaternary: true, circle: true, title: t("common.test"), loading: testingRowId.value === row.id, onClick: () => testExisting(row) },
+              { icon: () => h(NIcon, { component: PlugConnected20Regular }) }
+            )
+          : null,
+        canEdit(row)
           ? h(
               NButton,
               { size: "small", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEdit(row) },
               { icon: () => h(NIcon, { component: Edit20Regular }) }
             )
           : null,
-        canManage(row)
+        canDelete(row)
           ? h(
               NButton,
               { size: "small", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
@@ -505,8 +507,12 @@ function confirmDelete(row: DatabaseConnection) {
     positiveText: t("common.delete"),
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
-      await deleteDatabaseConnection(row.id);
-      await loadConnections();
+      try {
+        await deleteDatabaseConnection(row.id);
+        await loadConnections();
+      } catch (error) {
+        showError(message, error);
+      }
     }
   });
 }
@@ -542,6 +548,14 @@ function handleTypeChange(value: DatabaseType) {
 
 function canManage(row: DatabaseConnection) {
   return authStore.has(DATABASE_MANAGE_OTHERS) || authStore.user?.id === row.created_by;
+}
+
+function canEdit(row: DatabaseConnection) {
+  return authStore.has(DATABASE_UPDATE) && canManage(row);
+}
+
+function canDelete(row: DatabaseConnection) {
+  return authStore.has(DATABASE_DELETE) && canManage(row);
 }
 
 function connIdRule(): FormItemRule {

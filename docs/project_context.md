@@ -1072,3 +1072,10 @@
 - 前端：补齐数据库连接列表、数据任务列表、储存文件列表、脚本运行历史弹窗和 SQL 工作台动态结果表的列宽拖拽链路，统一使用响应式 `columnWidths`、`sumColumnWidths`、`@unstable-column-resize` 与 `updateColumnWidth`；SQL 工作台按标签页分别保存表数据列宽和查询结果列宽，避免不同表或结果互相影响。
 - 清理：示例 CRUD、数据任务和 SQL 工作台行操作列改为 `table-action-group` + 圆形图标按钮；容器管理列宽 key 映射改为初始化时生成，避免每次拖拽重复构造。
 - 文档：`README.md` 去掉已退役的 `route:<page>` 和 `dev.bat` 说法，改为当前 `action:<resource>:read` 页面/导航网关；`DEVELOPMENT_GUIDE.md` 明确后续列表列宽实现规则，操作列不参与拖拽。
+
+## 2026-06-21：第一轮全量清理和错误修复
+
+- 后端：删除脚本预设模块中未使用的 `PRESET_LANGUAGES` 与 `preset_by_image`；数据库导入接口对非法 `mapping` JSON 返回稳定业务错误 `error.databaseImportMappingInvalid`，避免表单异常输入绕过校验变成 500，并补回归测试。
+- 前端：删除未使用的 `getDataJob`、`getScript` API 封装；数据库连接列表按 `DATABASE_UPDATE`/`DATABASE_DELETE` 拆分编辑、测试和删除入口；SQL 工作台行编辑/删除和 SQL 执行入口按 `DATABASE_OPERATE` 显示；数据库任务、数据库工作台和容器管理确认弹窗统一捕获异步失败并显示错误提示。
+- 容器：镜像导入弹窗打开、关闭和提交成功后清空文件列表与进度，避免重复打开残留上一次上传状态。
+- 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build` 均通过；构建仅保留既有大 chunk 提示，pytest 仅保留 Starlette TestClient 的 `httpx` 兼容提示。

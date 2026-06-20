@@ -169,10 +169,6 @@ export function createScript(payload: ScriptProjectPayload) {
   return post<ScriptProject>("/scripts", payload);
 }
 
-export function getScript(projectId: number) {
-  return request<ScriptProject>(`/scripts/${projectId}`);
-}
-
 export function updateScript(projectId: number, payload: ScriptProjectPayload) {
   return put<ScriptProject>(`/scripts/${projectId}`, payload);
 }

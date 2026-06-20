@@ -119,7 +119,7 @@
                   <template #icon><n-icon :component="Database20Regular" /></template>
                   {{ tab.database || t("database.allSchemas") }}
                 </n-tag>
-                <n-button type="primary" :loading="tab.executing" @click="executeSql(tab)">{{ t("database.sql.execute") }}</n-button>
+                <permission-button :permission="DATABASE_OPERATE" type="primary" :loading="tab.executing" @click="executeSql(tab)">{{ t("database.sql.execute") }}</permission-button>
                 <n-button @click="openResultExport(tab)">{{ t("database.export.result") }}</n-button>
                 <permission-button v-if="tab.script" :permission="SQL_SCRIPT_UPDATE" @click="openRenameScript(tab.script)">{{ t("database.script.rename") }}</permission-button>
                 <permission-button :permission="scriptSavePermission(tab)" @click="openSaveScript(tab)">{{ scriptSaveText(tab) }}</permission-button>
@@ -688,26 +688,30 @@ function dataColumns(tab: TableDataTab): DataTableColumns<Record<string, unknown
       ellipsis: { tooltip: true },
       render: (row: Record<string, unknown>) => formatCell(row[column.name])
     })),
-    {
-      title: t("common.actions"),
-      key: "actions",
-      fixed: "right" as const,
-      width: TABLE_DATA_ACTION_WIDTH,
-      resizable: false,
-      render: (row: Record<string, unknown>) =>
-        h("div", { class: "table-action-group" }, [
-          h(
-            NButton,
-            { size: "tiny", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEditRow(row, tab) },
-            { icon: () => h(NIcon, { component: Edit20Regular }) }
-          ),
-          h(
-            NButton,
-            { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDeleteRow(row, tab) },
-            { icon: () => h(NIcon, { component: Delete20Regular }) }
-          )
-        ])
-    }
+    ...(canOperate.value
+      ? [
+          {
+            title: t("common.actions"),
+            key: "actions",
+            fixed: "right" as const,
+            width: TABLE_DATA_ACTION_WIDTH,
+            resizable: false,
+            render: (row: Record<string, unknown>) =>
+              h("div", { class: "table-action-group" }, [
+                h(
+                  NButton,
+                  { size: "tiny", quaternary: true, circle: true, title: t("common.edit"), onClick: () => openEditRow(row, tab) },
+                  { icon: () => h(NIcon, { component: Edit20Regular }) }
+                ),
+                h(
+                  NButton,
+                  { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDeleteRow(row, tab) },
+                  { icon: () => h(NIcon, { component: Delete20Regular }) }
+                )
+              ])
+          }
+        ]
+      : [])
   ]);
 }
 
@@ -1390,7 +1394,13 @@ function confirmAction(content: string, onConfirm: () => Promise<void>, positive
     content,
     positiveText,
     negativeText: t("common.cancel"),
-    onPositiveClick: onConfirm
+    onPositiveClick: async () => {
+      try {
+        await onConfirm();
+      } catch (error) {
+        showError(message, error);
+      }
+    }
   });
 }
 

@@ -53,6 +53,7 @@
     "databaseOptionInvalid": "选项不合法",
     "databaseExportFormatUnsupported": "不支持该导出格式",
     "databaseImportFormatUnsupported": "不支持该导入格式",
+    "databaseImportMappingInvalid": "导入字段映射不是合法 JSON",
     "databaseCsvSingleOnly": "CSV 仅支持单表或单查询导出",
     "databaseExportReadOnly": "导出只支持查询语句",
     "databaseTargetTableRequired": "请选择目标表",

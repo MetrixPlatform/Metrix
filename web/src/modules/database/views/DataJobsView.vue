@@ -256,8 +256,12 @@ function confirmDelete(row: DataJob) {
     positiveText: t("common.delete"),
     negativeText: t("common.cancel"),
     onPositiveClick: async () => {
-      await deleteDataJob(row.job_id);
-      await loadJobs();
+      try {
+        await deleteDataJob(row.job_id);
+        await loadJobs();
+      } catch (error) {
+        showError(message, error);
+      }
     }
   });
 }

@@ -579,7 +579,19 @@ function canDeleteImage(row: ImageItem) {
 }
 
 function confirm(content: string, onConfirm: () => Promise<void>) {
-  dialog.warning({ title: t("common.confirm"), content, positiveText: t("common.delete"), negativeText: t("common.cancel"), onPositiveClick: onConfirm });
+  dialog.warning({
+    title: t("common.confirm"),
+    content,
+    positiveText: t("common.delete"),
+    negativeText: t("common.cancel"),
+    onPositiveClick: async () => {
+      try {
+        await onConfirm();
+      } catch (error) {
+        showError(message, error);
+      }
+    }
+  });
 }
 
 function statusTag(status: string) {

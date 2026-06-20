@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_any_permission, require_permission, require_web_session
+from app.core.exceptions import bad_request
 from app.db.session import get_db
 from app.models import User
 from app.modules.database import (
@@ -345,12 +346,16 @@ def submit_import(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(DATABASE_OPERATE)),
 ) -> JobSubmitResponse:
+    try:
+        parsed_mapping = json.loads(mapping or "{}")
+    except json.JSONDecodeError as exc:
+        raise bad_request("error.databaseImportMappingInvalid", "Invalid import mapping") from exc
     payload = ImportRequest(
         format=format,
         database=database,
         target_table=target_table,
         mode=mode,
-        mapping=json.loads(mapping or "{}"),
+        mapping=parsed_mapping,
         create_table=create_table,
     )
     return DataJobService(db).submit_import(actor, conn_id, payload, file)

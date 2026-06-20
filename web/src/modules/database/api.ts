@@ -356,10 +356,6 @@ export function getDataJobDownloadCount(filters: { connection_id?: number | null
   return request<{ count: number }>(`/database-transfer-jobs/download-count${queryString(filters)}`);
 }
 
-export function getDataJob(jobId: string) {
-  return request<DataJob>(`/database-transfer-jobs/${encodeURIComponent(jobId)}`);
-}
-
 export function downloadDataJob(jobId: string) {
   return download(`/database-transfer-jobs/${encodeURIComponent(jobId)}/download`);
 }

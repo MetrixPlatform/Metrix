@@ -282,6 +282,25 @@ def wait_job(client, headers, job_id: str):
     raise AssertionError("data job did not finish")
 
 
+def test_database_import_rejects_invalid_mapping_json(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    headers = login(client, payload["admin_username"], payload["admin_password"])
+    target_path = tmp_path / "import-invalid.db"
+    make_target_db(target_path)
+    create_sqlite_connection("db_import_invalid", target_path)
+
+    response = client.post(
+        "/api/databases/db_import_invalid/import",
+        data={"format": "csv", "mapping": "{"},
+        files={"file": ("people.csv", b"name,age\nAlice,20\n", "text/csv")},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "error.databaseImportMappingInvalid"
+
+
 def test_database_export_multiple_queries(tmp_path, monkeypatch):
     import io
 
