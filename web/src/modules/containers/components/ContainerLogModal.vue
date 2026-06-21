@@ -137,8 +137,12 @@ function stopAutoRefresh() {
 }
 
 async function copyLogs() {
-  await copyText(logs.value);
-  message.success(t("common.copied"));
+  try {
+    await copyText(logs.value);
+    message.success(t("common.copied"));
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 async function clearLogs() {

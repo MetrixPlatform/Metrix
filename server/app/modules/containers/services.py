@@ -356,12 +356,19 @@ class ContainerService:
         image = self._get_visible_image(actor, image_ref)
         if self._image_used_by_visible_containers(actor, image.id):
             raise bad_request("error.containerImageInUse", "Image is in use")
-        if not has_permission(actor, CONTAINER_MANAGE_OTHERS):
+        can_manage_all = has_permission(actor, CONTAINER_MANAGE_OTHERS)
+        if not can_manage_all:
             record = self.images.get_owned(image.id, actor.id)
             if record is None:
                 raise forbidden()
+            remaining_records = [item for item in self.images.list([image.id]) if item.created_by != actor.id]
+            if remaining_records:
+                self.images.delete_for_image(image.id, actor.id)
+                record_audit(self.db, actor.id, "container.image_delete", "container_image", image.id, image.repo_tags[0] if image.repo_tags else image.id)
+                self.db.commit()
+                return
         self._client().remove_image(image.id)
-        self.images.delete_for_image(image.id, None if has_permission(actor, CONTAINER_MANAGE_OTHERS) else actor.id)
+        self.images.delete_for_image(image.id, None if can_manage_all else actor.id)
         record_audit(self.db, actor.id, "container.image_delete", "container_image", image.id, image.repo_tags[0] if image.repo_tags else image.id)
         self.db.commit()
 

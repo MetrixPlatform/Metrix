@@ -1072,10 +1072,10 @@ function renderTreeSuffix({ option }: { option: TreeOption }) {
     const script = option.script as SqlScript;
     const options: DropdownOption[] = [
       { label: t("database.script.edit"), key: "load" },
-      { label: t("database.script.rename"), key: "rename" },
-      { label: t("database.script.detail"), key: "detail" },
-      { label: t("database.script.run"), key: "run" }
+      { label: t("database.script.detail"), key: "detail" }
     ];
+    if (authStore.has(SQL_SCRIPT_UPDATE)) options.push({ label: t("database.script.rename"), key: "rename" });
+    if (canOperate.value) options.push({ label: t("database.script.run"), key: "run" });
     if (canDeleteScript.value) options.push({ label: t("common.delete"), key: "delete" });
     return nodeActions([opsButton(options, (key) => handleScriptOp(key, script))]);
   }

@@ -1086,3 +1086,10 @@
 - 前端权限边界：容器行操作按本人/`CONTAINER_MANAGE_OTHERS` 控制启动、停止、重启、终端和删除；容器日志弹窗的“清空日志”仅在具备容器操作权限且有行级管理权时显示；数据库任务删除按钮只对本人或具备 `DATABASE_MANAGE_OTHERS` 的用户显示。
 - SQL 工作台：表数据导出、查询结果导出和复制当前页数据统一捕获异步失败并显示错误提示，避免网络或剪贴板失败产生未处理 Promise。
 - 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build`、`npm run test:regression` 均通过；Playwright 干净环境 7 passed，Vite 代理在无后端测试场景下仍有既有 ECONNREFUSED 噪声。
+
+## 2026-06-22：第三轮终审清理
+
+- SQL 工作台脚本树操作菜单按权限收口：载入和详情保持可见，重命名仅 `SQL_SCRIPT_UPDATE` 可见，执行仅 `DATABASE_OPERATE` 可见，删除继续按 `SQL_SCRIPT_DELETE` 控制。
+- 容器日志复制失败时统一走 `showError`，避免剪贴板拒绝权限时产生未处理 Promise。
+- 容器镜像删除逻辑修正：非管理员删除自己私有镜像记录时，如果同一 `image_id` 仍有其他用户或公共记录，只删除当前用户记录，不删除 Docker 全局镜像；补充多用户同 image_id 删除回归。
+- 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build`、`npm run test:regression` 均通过；Playwright 仍仅有测试环境下 Vite 代理 ECONNREFUSED 噪声。

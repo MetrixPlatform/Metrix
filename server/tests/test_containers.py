@@ -355,6 +355,41 @@ def test_private_container_image_is_hidden_from_other_users(tmp_path, monkeypatc
     assert client.post("/api/container-images/imported%3Alatest/export", headers=other_headers).status_code == 403
 
 
+def test_deleting_private_image_record_keeps_shared_docker_image(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+    owner_role_id = grant_container_role(client, admin_headers, "container_image_delete_owner")
+    other_role_id = grant_container_role(client, admin_headers, "container_image_delete_other")
+    owner_headers, _owner_id = create_container_user(client, admin_headers, "container_image_delete_owner", owner_role_id, "13800000046")
+    other_headers, other_id = create_container_user(client, admin_headers, "container_image_delete_other", other_role_id, "13800000047")
+
+    imported = client.post(
+        "/api/container-images/import",
+        files={"file": ("image.tar", b"fake", "application/octet-stream")},
+        headers=owner_headers,
+    )
+    assert imported.status_code == 200
+    _wait_job_success(client, owner_headers, imported.json()["job_id"])
+
+    from app.db.session import get_session_factory
+    from app.modules.containers.models import ContainerImageRecord
+
+    with get_session_factory()() as db:
+        db.add(ContainerImageRecord(image_id="sha256:imported", repo_tags='["imported:latest"]', created_by=other_id))
+        db.commit()
+
+    deleted = client.delete("/api/container-images/imported%3Alatest", headers=owner_headers)
+    assert deleted.status_code == 200
+    assert "sha256:imported" not in engine.removed_images
+
+    other_images = client.get("/api/container-images?keyword=imported", headers=other_headers)
+    assert other_images.status_code == 200
+    assert other_images.json()["total"] == 1
+
+
 def test_container_volume_management_and_owner_isolation(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     payload = install_sqlite(client, tmp_path)
