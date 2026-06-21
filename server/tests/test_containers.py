@@ -307,6 +307,54 @@ def test_container_image_records_and_create_container(tmp_path, monkeypatch):
     assert engine.volumes.volumes_by_name["job_data"].attrs["Labels"]["metrix.owner_user_id"] == str(user_id)
 
 
+def test_private_container_image_is_hidden_from_other_users(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+    owner_role_id = grant_container_role(client, admin_headers, "container_image_owner")
+    other_role_id = grant_container_role(client, admin_headers, "container_image_other")
+    owner_headers, _owner_id = create_container_user(client, admin_headers, "container_image_owner", owner_role_id, "13800000044")
+    other_headers, _other_id = create_container_user(client, admin_headers, "container_image_other", other_role_id, "13800000045")
+
+    imported = client.post(
+        "/api/container-images/import",
+        files={"file": ("image.tar", b"fake", "application/octet-stream")},
+        headers=owner_headers,
+    )
+    assert imported.status_code == 200
+    _wait_job_success(client, owner_headers, imported.json()["job_id"])
+
+    owner_images = client.get("/api/container-images?keyword=imported", headers=owner_headers)
+    assert owner_images.status_code == 200
+    assert owner_images.json()["total"] == 1
+    assert owner_images.json()["items"][0]["is_public"] is False
+
+    other_images = client.get("/api/container-images?keyword=imported", headers=other_headers)
+    assert other_images.status_code == 200
+    assert other_images.json()["total"] == 0
+
+    denied_create = client.post(
+        "/api/container-instances",
+        json={
+            "name": "private-image",
+            "image": "imported:latest",
+            "command": "sh",
+            "env": {},
+            "ports": [],
+            "volumes": [],
+            "restart_policy": "no",
+            "memory_limit_mb": None,
+            "cpu_limit": None,
+            "auto_start": False,
+        },
+        headers=other_headers,
+    )
+    assert denied_create.status_code == 403
+    assert client.post("/api/container-images/imported%3Alatest/export", headers=other_headers).status_code == 403
+
+
 def test_container_volume_management_and_owner_isolation(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     payload = install_sqlite(client, tmp_path)

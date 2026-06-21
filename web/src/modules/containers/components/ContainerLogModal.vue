@@ -6,7 +6,7 @@
         <n-input-number v-model:value="tailValue" :min="1" :max="5000" :show-button="false" />
         <n-button :loading="loading" @click="() => loadLogs()">{{ t("common.refresh") }}</n-button>
         <n-button :disabled="!logs" @click="copyLogs">{{ t("common.copy") }}</n-button>
-        <n-button :loading="clearing" @click="clearLogs">{{ t("container.clearLogs") }}</n-button>
+        <n-button v-if="canClear" :loading="clearing" @click="clearLogs">{{ t("container.clearLogs") }}</n-button>
         <div class="container-log-switches">
           <div class="container-log-switch">
             <span>{{ t("container.wrapLines") }}</span>
@@ -43,7 +43,7 @@ type LogLevel = "error" | "warn" | "success" | "info" | "debug" | "default";
 
 const AUTO_REFRESH_INTERVAL = 3000;
 
-const props = defineProps<{ show: boolean; container: ContainerItem | null }>();
+const props = defineProps<{ show: boolean; container: ContainerItem | null; canClear?: boolean }>();
 const emit = defineEmits<{ "update:show": [value: boolean] }>();
 
 const message = useMessage();
@@ -56,6 +56,7 @@ const autoRefresh = ref(false);
 const wrapLines = ref(false);
 const logViewRef = ref<HTMLElement | null>(null);
 const title = computed(() => t("container.logTitle", { name: props.container?.name || "" }));
+const canClear = computed(() => Boolean(props.canClear));
 const logLines = computed(() =>
   logs.value
     .replace(/\r/g, "")
@@ -142,7 +143,7 @@ async function copyLogs() {
 
 async function clearLogs() {
   const container = props.container;
-  if (!container) return;
+  if (!container || !canClear.value) return;
   clearing.value = true;
   try {
     const result = await clearContainerLogs(container.id, false);

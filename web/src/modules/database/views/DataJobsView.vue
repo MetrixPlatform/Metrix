@@ -45,11 +45,13 @@ import { NButton, NDataTable, NIcon, NInput, NTag, useDialog, useMessage } from 
 import type { DataTableColumns, DataTableSortState } from "naive-ui";
 
 import { formatDateTime, t } from "../../../i18n";
+import { authStore } from "../../../stores/auth";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
 import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
 import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
+import { DATABASE_MANAGE_OTHERS } from "../permissions";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
 const emit = defineEmits<{ (event: "close"): void }>();
@@ -172,11 +174,13 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
               { icon: () => h(NIcon, { component: ArrowDownload20Regular }) }
             )
           : null,
-        h(
-          NButton,
-          { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
-          { icon: () => h(NIcon, { component: Delete20Regular }) }
-        )
+        canDeleteJob(row)
+          ? h(
+              NButton,
+              { size: "tiny", quaternary: true, circle: true, type: "error", title: t("common.delete"), onClick: () => confirmDelete(row) },
+              { icon: () => h(NIcon, { component: Delete20Regular }) }
+            )
+          : null
       ])
   }
   ])
@@ -279,6 +283,10 @@ function handlePageSizeChange(pageSize: number) {
 
 function handleColumnResize(_: number, limitedWidth: number, column: { key?: string | number }) {
   updateColumnWidth(dataJobColumnWidths, column.key, dataJobColumnWidthKeys, limitedWidth);
+}
+
+function canDeleteJob(row: DataJob) {
+  return authStore.has(DATABASE_MANAGE_OTHERS) || row.created_by === authStore.user?.id;
 }
 
 function statusType(status: string) {

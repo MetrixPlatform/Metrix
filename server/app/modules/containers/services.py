@@ -305,19 +305,25 @@ class ContainerService:
     def list_images(self, actor: User, keyword: str = "", page: int = 1, page_size: int = 20) -> ImageListResponse:
         images = [_image_item(item) for item in self._client().list_images()]
         image_ids = [item.id for item in images]
-        visible_to = None if has_permission(actor, CONTAINER_MANAGE_OTHERS) else actor.id
-        records = self.images.list(image_ids, visible_to)
-        by_image: dict[str, list] = {}
-        for record in records:
-            by_image.setdefault(record.image_id, []).append(record)
+        can_manage_all = has_permission(actor, CONTAINER_MANAGE_OTHERS)
+        all_records = self.images.list(image_ids)
+        visible_records = all_records if can_manage_all else self.images.list(image_ids, actor.id)
+        all_by_image: dict[str, list] = {}
+        visible_by_image: dict[str, list] = {}
+        for record in all_records:
+            all_by_image.setdefault(record.image_id, []).append(record)
+        for record in visible_records:
+            visible_by_image.setdefault(record.image_id, []).append(record)
         visible_items: list[ImageItem] = []
         for item in images:
-            matched = by_image.get(item.id, [])
+            matched = visible_by_image.get(item.id, [])
             if matched:
                 owner = matched[0]
                 item.owner_user_id = owner.created_by
                 item.is_public = any(record.is_public for record in matched)
                 item.source = owner.source
+            elif item.id in all_by_image:
+                continue
             else:
                 item.is_public = True
                 item.source = "docker"
@@ -466,6 +472,8 @@ class ContainerService:
             return image
         record = self.images.get_for_image(image.id, actor.id)
         if record is None:
+            if self.images.get_for_image(image.id) is not None:
+                raise forbidden()
             image.is_public = True
             image.source = "docker"
             return image

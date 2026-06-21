@@ -1417,12 +1417,16 @@ function rowKeys(row: Record<string, unknown>, tab: TableDataTab) {
 }
 
 async function exportTable(format: string | number, tab: TableDataTab) {
-  const result = await submitExport(props.connection.conn_id, {
-    format: format as DataFormat,
-    database: tab.database,
-    tables: [tab.table]
-  });
-  handleJobSubmitted(result.job_id);
+  try {
+    const result = await submitExport(props.connection.conn_id, {
+      format: format as DataFormat,
+      database: tab.database,
+      tables: [tab.table]
+    });
+    handleJobSubmitted(result.job_id);
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 function openResultExport(tab: SqlEditorTab) {
@@ -1449,20 +1453,28 @@ async function submitResultExport() {
     .map((index) => exportModal.statements[index])
     .filter(Boolean);
   if (!picked.length) return;
-  const result = await submitExport(props.connection.conn_id, {
-    format: exportModal.format,
-    database: tab.database,
-    queries: picked.map((statement, index) => ({ name: `result_${index + 1}`, sql: statement }))
-  });
-  exportModal.show = false;
-  handleJobSubmitted(result.job_id);
+  try {
+    const result = await submitExport(props.connection.conn_id, {
+      format: exportModal.format,
+      database: tab.database,
+      queries: picked.map((statement, index) => ({ name: `result_${index + 1}`, sql: statement }))
+    });
+    exportModal.show = false;
+    handleJobSubmitted(result.job_id);
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 async function copyTableData(format: string | number, tab: TableDataTab) {
-  const copyFormat = String(format) as CopyDataFormat;
-  const text = copyFormat === "sql" ? tableDataToSql(tab) : tableDataToDelimited(tab, copyFormat === "csv" ? "," : "\t");
-  await copyText(text);
-  message.success(t("common.copied"));
+  try {
+    const copyFormat = String(format) as CopyDataFormat;
+    const text = copyFormat === "sql" ? tableDataToSql(tab) : tableDataToDelimited(tab, copyFormat === "csv" ? "," : "\t");
+    await copyText(text);
+    message.success(t("common.copied"));
+  } catch (error) {
+    showError(message, error);
+  }
 }
 
 function tableDataToDelimited(tab: TableDataTab, delimiter: "," | "\t") {

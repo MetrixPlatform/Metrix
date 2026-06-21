@@ -164,7 +164,7 @@
     </n-tabs>
 
     <container-create-modal v-model:show="showCreate" :images="images" @saved="handleContainerSaved" />
-    <container-log-modal v-model:show="showLogs" :container="logContainer" />
+    <container-log-modal v-model:show="showLogs" :container="logContainer" :can-clear="logContainer ? canOperateContainer(logContainer) : false" />
     <container-terminal-modal v-model:show="showTerminal" :container="terminalContainer" />
     <container-volume-create-modal v-model:show="showVolumeCreate" @saved="handleVolumeSaved" />
     <image-import-modal v-model:show="showImport" @submitted="handleJobSubmitted" />
@@ -546,13 +546,13 @@ function actionDropdown(options: DropdownOption[], onSelect: (key: string | numb
 
 function containerActionOptions(row: ContainerItem): DropdownOption[] {
   const options: DropdownOption[] = [{ label: t("container.logs"), key: "logs" }];
-  if (authStore.has(CONTAINER_OPERATE)) {
+  if (canOperateContainer(row)) {
     if (row.status === "running") options.push({ label: t("container.terminal"), key: "terminal" });
     if (row.status !== "running") options.push({ label: t("container.start"), key: "start" });
     if (row.status === "running") options.push({ label: t("container.stop"), key: "stop" });
     options.push({ label: t("container.restart"), key: "restart" });
   }
-  if (authStore.has(CONTAINER_DELETE)) options.push({ label: t("container.deleteContainer"), key: "delete" });
+  if (canDeleteContainer(row)) options.push({ label: t("container.deleteContainer"), key: "delete" });
   return options;
 }
 
@@ -576,6 +576,18 @@ function canDeleteImage(row: ImageItem) {
   if (!authStore.has(CONTAINER_DELETE)) return false;
   if (canManageOthers.value) return true;
   return row.owner_user_id !== null && row.owner_user_id === authStore.user?.id;
+}
+
+function ownsContainer(row: ContainerItem) {
+  return row.owner_user_id !== null && row.owner_user_id === authStore.user?.id;
+}
+
+function canOperateContainer(row: ContainerItem) {
+  return authStore.has(CONTAINER_OPERATE) && (canManageOthers.value || ownsContainer(row));
+}
+
+function canDeleteContainer(row: ContainerItem) {
+  return authStore.has(CONTAINER_DELETE) && (canManageOthers.value || ownsContainer(row));
 }
 
 function confirm(content: string, onConfirm: () => Promise<void>) {

@@ -1079,3 +1079,10 @@
 - 前端：删除未使用的 `getDataJob`、`getScript` API 封装；数据库连接列表按 `DATABASE_UPDATE`/`DATABASE_DELETE` 拆分编辑、测试和删除入口；SQL 工作台行编辑/删除和 SQL 执行入口按 `DATABASE_OPERATE` 显示；数据库任务、数据库工作台和容器管理确认弹窗统一捕获异步失败并显示错误提示。
 - 容器：镜像导入弹窗打开、关闭和提交成功后清空文件列表与进度，避免重复打开残留上一次上传状态。
 - 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build` 均通过；构建仅保留既有大 chunk 提示，pytest 仅保留 Starlette TestClient 的 `httpx` 兼容提示。
+
+## 2026-06-22：第二轮权限边界和异步错误清理
+
+- 后端容器镜像可见性修复：`list_images()` 区分“完全未登记的 Docker daemon 镜像”和“已登记但当前用户不可见的私有镜像”；普通用户不再把他人私有镜像误当公共镜像，也不能创建容器或导出该镜像。新增私有镜像隔离回归测试。
+- 前端权限边界：容器行操作按本人/`CONTAINER_MANAGE_OTHERS` 控制启动、停止、重启、终端和删除；容器日志弹窗的“清空日志”仅在具备容器操作权限且有行级管理权时显示；数据库任务删除按钮只对本人或具备 `DATABASE_MANAGE_OTHERS` 的用户显示。
+- SQL 工作台：表数据导出、查询结果导出和复制当前页数据统一捕获异步失败并显示错误提示，避免网络或剪贴板失败产生未处理 Promise。
+- 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build`、`npm run test:regression` 均通过；Playwright 干净环境 7 passed，Vite 代理在无后端测试场景下仍有既有 ECONNREFUSED 噪声。
