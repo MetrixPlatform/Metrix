@@ -483,3 +483,36 @@ def _wait_job_success(client, headers, job_id):
             return
         time.sleep(0.05)
     raise AssertionError(f"job {job_id} did not finish")
+
+
+def test_container_write_endpoints_reject_api_token(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    engine = FakeDockerEngine()
+    install_fake_docker(monkeypatch, engine)
+
+    created = client.post("/api/tokens", json={"name": "容器自动化", "expires_at": None}, headers=admin_headers)
+    assert created.status_code == 200
+    api_headers = {"Authorization": f"Bearer {created.json()['token']}"}
+
+    # Reads stay available to API tokens.
+    read = client.get("/api/container-volumes", headers=api_headers)
+    assert read.status_code == 200
+
+    # High-risk container writes are web-only: API tokens are rejected with error.webOnly,
+    # even though the token's user (admin) holds the container permissions.
+    write_calls = [
+        client.post("/api/container-volumes", json={"name": "api_volume", "driver": "local"}, headers=api_headers),
+        client.post("/api/container-volumes/prune", headers=api_headers),
+        client.delete("/api/container-instances/own-container", headers=api_headers),
+        client.post("/api/container-instances/own-container/start", headers=api_headers),
+        client.delete("/api/container-images/imported%3Alatest", headers=api_headers),
+    ]
+    for response in write_calls:
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "error.webOnly"
+
+    # The same write succeeds over a web session (not blocked by the web-only guard).
+    web_create = client.post("/api/container-volumes", json={"name": "web_volume", "driver": "local"}, headers=admin_headers)
+    assert web_create.status_code == 200

@@ -1100,4 +1100,5 @@
 - 修复：`containers/api.py` 给所有高危写端点加 `dependencies=[Depends(require_web_session)]`——镜像 import/visibility/delete、实例 create/start/stop/restart/clear-logs/delete、卷 create/delete/prune（共 12 个）。读接口（engine status、镜像/实例/卷/任务 list、logs、export、job download）保持 `require_permission` 不变，API Token 仍可读。
 - 容器 exec 终端 WS 经 `_ws_authenticate`→`decode_access_token` 鉴权，本就只认 Web 会话 token（API Token 前缀 `mtx_` 解不出 subject），无需改动。
 - 影响：API Token 不再能创建/删除/启停容器、导入/删除镜像、创建/删除/清理卷；网页 UI 全程 Web 会话不受影响；被拦截时返回 403 `error.webOnly`。
-- 验证：`python -m py_compile server/app/modules/containers/api.py` 通过；按约定未跑完整测试。
+- 验证：`python -m py_compile server/app/modules/containers/api.py` 通过。
+- 回归测试：补 `server/tests/test_containers.py::test_container_write_endpoints_reject_api_token`——验证 API Token 调容器写接口（卷 create/prune、实例 delete/start、镜像 delete）均返回 403 `error.webOnly`，而读接口与 Web 会话写入正常。该用例从仓库根用 `.venv\Scripts\python.exe -m pytest` 单测通过（测试 CWD 须为仓库根，临时目录为相对路径 `server/.pytest-temp`）。
