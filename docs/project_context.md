@@ -1102,3 +1102,11 @@
 - 影响：API Token 不再能创建/删除/启停容器、导入/删除镜像、创建/删除/清理卷；网页 UI 全程 Web 会话不受影响；被拦截时返回 403 `error.webOnly`。
 - 验证：`python -m py_compile server/app/modules/containers/api.py` 通过。
 - 回归测试：补 `server/tests/test_containers.py::test_container_write_endpoints_reject_api_token`——验证 API Token 调容器写接口（卷 create/prune、实例 delete/start、镜像 delete）均返回 403 `error.webOnly`，而读接口与 Web 会话写入正常。该用例从仓库根用 `.venv\Scripts\python.exe -m pytest` 单测通过（测试 CWD 须为仓库根，临时目录为相对路径 `server/.pytest-temp`）。
+
+## 2026-06-22：脚本运行(run_script)自动复用工作区 .venv（与终端一致，零配置）
+
+- 背景：每次「运行」脚本（手动/定时）都是独立容器，系统级 `pip install` 的包不会跨容器留存，只有工作区被挂载到 `/workspace`。此前 `run_script` 把 `run_command` 当 argv 直接交给系统 python 执行，工作区里的 venv/依赖对「运行」无效（只有终端默认 shell 会激活 `.venv`）。平台开发期、暂无用户，直接对齐终端行为，无需兼容。
+- 改动：`server/app/modules/scripts/runtime.py` 删除 `_split_command`，新增 `_run_command`——运行命令改为 `["/bin/sh","-c", "cd /workspace 2>/dev/null; [ -f .venv/bin/activate ] && . .venv/bin/activate 2>/dev/null; <run_command>"]`。即工作区存在 `.venv` 就先激活再执行 `run_command`，不存在则直接执行；与 `_DEFAULT_TERMINAL_SCRIPT` 的 venv 逻辑一致。`shlex` 仍由 `_terminal_shell_command` 使用，导入保留。
+- 效果：把依赖装进 `/workspace/.venv` 后，定时/手动运行零配置即可用，运行命令仍保持 `python main.py`，与 `pip install --target libs`+`sys.path` 一样省事且更干净。非 python 镜像（无 `.venv`）行为不变，仅多一层 `sh -c` 包装。
+- 注意：`run_command` 现由 `/bin/sh -c` 解释（支持 shell 语法），不再是纯 argv；所有预设镜像均含 `/bin/sh`。
+- 验证：`pytest server/tests/test_scripts.py` 9 passed（用例不依赖容器命令形态）。

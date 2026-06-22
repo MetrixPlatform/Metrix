@@ -258,7 +258,7 @@ def _run_kwargs(project: ScriptProject, host_workspace: Path, env: dict[str, str
         "environment": env,
         "labels": labels,
     }
-    command = _split_command(project.run_command)
+    command = _run_command(project.run_command)
     if command:
         kwargs["command"] = command
     if project.memory_limit_mb:
@@ -268,14 +268,19 @@ def _run_kwargs(project: ScriptProject, host_workspace: Path, env: dict[str, str
     return kwargs
 
 
-def _split_command(command: str) -> list[str]:
-    text = (command or "").strip()
+def _run_command(run_command: str) -> list[str] | None:
+    text = (run_command or "").strip()
     if not text:
-        return []
-    try:
-        return shlex.split(text)
-    except ValueError:
-        return text.split()
+        return None
+    # Auto-use a workspace virtualenv when present (mirrors the terminal default shell), so deps
+    # installed into /workspace/.venv are used for manual/scheduled runs without changing the run
+    # command. When there is no .venv it just runs the command directly with the image's python.
+    script = (
+        "cd /workspace 2>/dev/null; "
+        "[ -f .venv/bin/activate ] && . .venv/bin/activate 2>/dev/null; "
+        f"{text}"
+    )
+    return ["/bin/sh", "-c", script]
 
 
 def _stream_logs(container, log_path: Path) -> None:
