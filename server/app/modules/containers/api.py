@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_permission
+from app.core.deps import require_permission, require_web_session
 from app.core.security import decode_access_token
 from app.db.session import get_db, get_session_factory
 from app.models import User
@@ -59,7 +59,7 @@ def list_container_images(
     return ContainerService(db).list_images(actor, keyword, page, page_size)
 
 
-@images_router.post("/import", response_model=JobSubmitResponse)
+@images_router.post("/import", response_model=JobSubmitResponse, dependencies=[Depends(require_web_session)])
 def import_container_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -77,7 +77,7 @@ def export_container_image(
     return ContainerService(db).submit_export(actor, image_ref)
 
 
-@images_router.put("/{image_ref:path}/visibility", response_model=ImageItem)
+@images_router.put("/{image_ref:path}/visibility", response_model=ImageItem, dependencies=[Depends(require_web_session)])
 def update_container_image_visibility(
     image_ref: str,
     payload: ImageVisibilityPayload,
@@ -87,7 +87,7 @@ def update_container_image_visibility(
     return ContainerService(db).set_image_public(actor, image_ref, payload.is_public)
 
 
-@images_router.delete("/{image_ref:path}", response_model=MessageResponse)
+@images_router.delete("/{image_ref:path}", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def delete_container_image(
     image_ref: str,
     db: Session = Depends(get_db),
@@ -109,7 +109,7 @@ def list_container_instances(
     return ContainerService(db).list_containers(actor, keyword, status, page, page_size)
 
 
-@instances_router.post("", response_model=ContainerItem)
+@instances_router.post("", response_model=ContainerItem, dependencies=[Depends(require_web_session)])
 def create_container_instance(
     payload: ContainerCreatePayload,
     db: Session = Depends(get_db),
@@ -118,7 +118,7 @@ def create_container_instance(
     return ContainerService(db).create_container(actor, payload)
 
 
-@instances_router.post("/{container_id}/start", response_model=MessageResponse)
+@instances_router.post("/{container_id}/start", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def start_container_instance(
     container_id: str,
     db: Session = Depends(get_db),
@@ -128,7 +128,7 @@ def start_container_instance(
     return message_response("container.started", "Container started")
 
 
-@instances_router.post("/{container_id}/stop", response_model=MessageResponse)
+@instances_router.post("/{container_id}/stop", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def stop_container_instance(
     container_id: str,
     db: Session = Depends(get_db),
@@ -138,7 +138,7 @@ def stop_container_instance(
     return message_response("container.stopped", "Container stopped")
 
 
-@instances_router.post("/{container_id}/restart", response_model=MessageResponse)
+@instances_router.post("/{container_id}/restart", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def restart_container_instance(
     container_id: str,
     db: Session = Depends(get_db),
@@ -158,7 +158,7 @@ def get_container_logs(
     return ContainerLogsResponse(logs=ContainerService(db).logs(actor, container_id, tail))
 
 
-@instances_router.post("/{container_id}/clear-logs", response_model=ContainerLogClearResult)
+@instances_router.post("/{container_id}/clear-logs", response_model=ContainerLogClearResult, dependencies=[Depends(require_web_session)])
 def clear_container_logs(
     container_id: str,
     restart: bool = False,
@@ -294,7 +294,7 @@ def _ws_error_code(exc: HTTPException) -> str:
     return "error.requestFailed"
 
 
-@instances_router.delete("/{container_id}", response_model=MessageResponse)
+@instances_router.delete("/{container_id}", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def delete_container_instance(
     container_id: str,
     force: bool = False,
@@ -317,7 +317,7 @@ def list_container_volumes(
     return ContainerService(db).list_volumes(actor, keyword, usage, page, page_size)
 
 
-@volumes_router.post("", response_model=VolumeItem)
+@volumes_router.post("", response_model=VolumeItem, dependencies=[Depends(require_web_session)])
 def create_container_volume(
     payload: VolumeCreatePayload,
     db: Session = Depends(get_db),
@@ -326,7 +326,7 @@ def create_container_volume(
     return ContainerService(db).create_volume(actor, payload)
 
 
-@volumes_router.delete("/{name}", response_model=MessageResponse)
+@volumes_router.delete("/{name}", response_model=MessageResponse, dependencies=[Depends(require_web_session)])
 def delete_container_volume(
     name: str,
     force: bool = False,
@@ -337,7 +337,7 @@ def delete_container_volume(
     return message_response("container.volumeDeleted", "Volume deleted")
 
 
-@volumes_router.post("/prune", response_model=VolumePruneResponse)
+@volumes_router.post("/prune", response_model=VolumePruneResponse, dependencies=[Depends(require_web_session)])
 def prune_container_volumes(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permission(CONTAINER_DELETE)),

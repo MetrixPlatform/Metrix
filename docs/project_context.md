@@ -1093,3 +1093,11 @@
 - 容器日志复制失败时统一走 `showError`，避免剪贴板拒绝权限时产生未处理 Promise。
 - 容器镜像删除逻辑修正：非管理员删除自己私有镜像记录时，如果同一 `image_id` 仍有其他用户或公共记录，只删除当前用户记录，不删除 Docker 全局镜像；补充多用户同 image_id 删除回归。
 - 验证：`.venv\Scripts\python.exe -m compileall -q server/app server/tests`、`.venv\Scripts\python.exe -m pytest -q`、`npm run test:smoke`、`npm run typecheck`、`npm run build`、`npm run test:regression` 均通过；Playwright 仍仅有测试环境下 Vite 代理 ECONNREFUSED 噪声。
+
+## 2026-06-22：容器管理高危写操作收紧为仅 Web 登录
+
+- 背景：开发指南要求「容器管理接口必须保持 Web 登录、不默认给 API Token 开放高危操作」，但容器模块所有端点此前只用 `require_permission(CONTAINER_*)`（`get_current_user` 同时放行 Web 会话与 API Token），高危写操作实际可被 API Token 调用；新加的卷接口沿用同一模式，是该既有缺口的延续。
+- 修复：`containers/api.py` 给所有高危写端点加 `dependencies=[Depends(require_web_session)]`——镜像 import/visibility/delete、实例 create/start/stop/restart/clear-logs/delete、卷 create/delete/prune（共 12 个）。读接口（engine status、镜像/实例/卷/任务 list、logs、export、job download）保持 `require_permission` 不变，API Token 仍可读。
+- 容器 exec 终端 WS 经 `_ws_authenticate`→`decode_access_token` 鉴权，本就只认 Web 会话 token（API Token 前缀 `mtx_` 解不出 subject），无需改动。
+- 影响：API Token 不再能创建/删除/启停容器、导入/删除镜像、创建/删除/清理卷；网页 UI 全程 Web 会话不受影响；被拦截时返回 403 `error.webOnly`。
+- 验证：`python -m py_compile server/app/modules/containers/api.py` 通过；按约定未跑完整测试。
