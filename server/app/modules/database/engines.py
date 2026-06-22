@@ -18,6 +18,11 @@ READ_SQL_KEYWORDS = {"SELECT", "SHOW", "DESC", "DESCRIBE", "EXPLAIN", "WITH"}
 PAGEABLE_READ_KEYWORDS = {"SELECT", "WITH"}
 MAX_PAGE_SIZE = 1000
 DEFAULT_TIMEOUT_SECONDS = 30
+# Connecting to a dead server should fail fast, but reads/writes can be legitimately
+# long-running (imports and report SQL doing CREATE TABLE ... AS SELECT over millions of
+# rows). Capping read/write at 30s killed such statements ("Lost connection ... read
+# operation timed out"), so query timeouts are kept generous while connect stays short.
+DEFAULT_QUERY_TIMEOUT_SECONDS = 3600
 
 
 @dataclass(frozen=True)
@@ -228,8 +233,8 @@ def create_external_engine(connection: DatabaseConnection, password: str, databa
             pool_pre_ping=True,
             connect_args={
                 "connect_timeout": DEFAULT_TIMEOUT_SECONDS,
-                "read_timeout": DEFAULT_TIMEOUT_SECONDS,
-                "write_timeout": DEFAULT_TIMEOUT_SECONDS,
+                "read_timeout": DEFAULT_QUERY_TIMEOUT_SECONDS,
+                "write_timeout": DEFAULT_QUERY_TIMEOUT_SECONDS,
             },
         )
     except SQLAlchemyError as exc:

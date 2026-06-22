@@ -1110,3 +1110,10 @@
 - 效果：把依赖装进 `/workspace/.venv` 后，定时/手动运行零配置即可用，运行命令仍保持 `python main.py`，与 `pip install --target libs`+`sys.path` 一样省事且更干净。非 python 镜像（无 `.venv`）行为不变，仅多一层 `sh -c` 包装。
 - 注意：`run_command` 现由 `/bin/sh -c` 解释（支持 shell 语法），不再是纯 argv；所有预设镜像均含 `/bin/sh`。
 - 验证：`pytest server/tests/test_scripts.py` 9 passed（用例不依赖容器命令形态）。
+
+## 2026-06-22：数据库连接读写超时放宽（大数据量 run-script/导入不再被 30s 读超时打断）
+
+- 背景：CapacityReport 容器版端到端测试时，平台 `run-script(single_session)` 跑报表 SQL 的 `CREATE TABLE ... AS SELECT`（570 万行级）约 30s 处报 `(2013, 'Lost connection to MySQL server during query (read operation timed out)')`。根因：`server/app/modules/database/engines.py` 的 MySQL `connect_args` 把 `read_timeout`/`write_timeout` 都设成 `DEFAULT_TIMEOUT_SECONDS=30`，长语句被读超时打断。
+- 改动：新增 `DEFAULT_QUERY_TIMEOUT_SECONDS=3600`；`connect_timeout` 仍用 30s（连不上快速失败），`read_timeout`/`write_timeout` 改用 3600s（导入与报表 SQL 的大表长语句不再被打断）。
+- 影响：所有外部 MySQL/MariaDB 连接（浏览/执行/run-script/导入）共用此引擎；交互式查询仍走分页 LIMIT，长读超时主要让合法的大数据写/建表语句得以完成。
+- 验证：端到端测试中该报错消失，`CREATE TABLE 4g AS SELECT * FROM 4g_ud`（570 万行）成功执行，报表 SQL 继续产出中间表。
