@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.modules.database.models import DataJob, DatabaseConnection, SqlScript
+from app.modules.database.models import DataJob, DataJobView, DatabaseConnection, SqlScript
 
 
 class DatabaseConnectionRepository:
@@ -200,6 +202,29 @@ class DataJobRepository:
         )
         if connection_id is not None:
             query = query.filter(DataJob.connection_id == connection_id)
+        return query.count()
+
+    def get_seen_at(self, user_id: int) -> datetime | None:
+        row = self.db.get(DataJobView, user_id)
+        return row.seen_at if row else None
+
+    def mark_seen(self, user_id: int, now: datetime) -> None:
+        row = self.db.get(DataJobView, user_id)
+        if row is None:
+            self.db.add(DataJobView(user_id=user_id, seen_at=now))
+        else:
+            row.seen_at = now
+        self.db.flush()
+
+    def count_unseen(self, seen_at: datetime | None, visible_to_user_id: int | None) -> int:
+        query = self.db.query(DataJob).filter(
+            DataJob.status.in_(("success", "failed")),
+            DataJob.finished_at.is_not(None),
+        )
+        if seen_at is not None:
+            query = query.filter(DataJob.finished_at > seen_at)
+        if visible_to_user_id is not None:
+            query = query.filter(DataJob.created_by == visible_to_user_id)
         return query.count()
 
     def creator_usernames(self, user_ids: set[int]) -> dict[int, str]:

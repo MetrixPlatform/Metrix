@@ -75,6 +75,7 @@
     "private": "私有",
     "creatorAll": "全部人",
     "creatorMe": "仅自己",
+    "creatorOthers": "他人",
     "idPlaceholder": "留空自动生成",
     "passwordKeep": "留空保持不变",
     "defaultDatabaseHint": "留空可操作全部库",
@@ -87,6 +88,12 @@
     "tree": {
       "tables": "表",
       "scripts": "脚本"
+    },
+    "serverInfo": {
+      "version": "版本",
+      "loadData": "快速导入 (LOAD DATA)",
+      "loadDataOn": "可用",
+      "loadDataOff": "未启用"
     },
     "tabs": {
       "data": "数据",

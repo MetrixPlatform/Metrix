@@ -31,6 +31,7 @@
       :row-key="(row) => row.job_id"
       :scroll-x="tableScrollX"
       @unstable-column-resize="handleColumnResize"
+      @update:filters="handleTableFilters"
       @update:page="handlePageChange"
       @update:page-size="handlePageSizeChange"
       @update:sorter="handleSorter"
@@ -42,15 +43,15 @@
 import { computed, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ArrowDownload20Regular, ArrowLeft20Regular, Delete20Regular } from "@vicons/fluent";
 import { NButton, NDataTable, NIcon, NInput, NTag, useDialog, useMessage } from "naive-ui";
-import type { DataTableColumns, DataTableSortState } from "naive-ui";
+import type { DataTableColumns, DataTableFilterState, DataTableSortState } from "naive-ui";
 
 import { formatDateTime, t } from "../../../i18n";
 import { authStore } from "../../../stores/auth";
 import { saveBlob } from "../../../utils/download";
 import { formatFileSize } from "../../../utils/format";
 import { showError } from "../../../utils/message";
-import { sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
-import { deleteDataJob, downloadDataJob, listDataJobs, type DataJob } from "../api";
+import { singleFilterValue, sumColumnWidths, updateColumnWidth, withResizableColumns } from "../../../utils/table";
+import { deleteDataJob, downloadDataJob, listDataJobs, markDataJobsSeen, type DataJob, type DataJobStatus } from "../api";
 import { DATABASE_MANAGE_OTHERS } from "../permissions";
 
 const props = defineProps<{ embedded?: boolean; connectionId?: number | null; connectionName?: string }>();
@@ -64,6 +65,9 @@ const activeConnectionId = ref<number | null>(props.connectionId ?? null);
 const activeConnectionName = ref(props.connectionName || "");
 const filters = reactive({
   keyword: "",
+  kind: null as "import" | "export" | null,
+  status: null as DataJobStatus | null,
+  created_by: null as "me" | "others" | null,
   sort_order: "descend" as "ascend" | "descend"
 });
 const pagination = reactive({
@@ -102,6 +106,20 @@ const dataJobColumnWidthKeys: Record<string, string> = {
   error_code: "error"
 };
 const tableScrollX = computed(() => sumColumnWidths(dataJobColumnWidths));
+const kindOptions = computed(() => [
+  { label: t("database.jobs.import"), value: "import" },
+  { label: t("database.jobs.export"), value: "export" }
+]);
+const statusOptions = computed(() => [
+  { label: t("database.jobs.pending"), value: "pending" },
+  { label: t("database.jobs.running"), value: "running" },
+  { label: t("database.jobs.success"), value: "success" },
+  { label: t("database.jobs.failed"), value: "failed" }
+]);
+const creatorOptions = computed(() => [
+  { label: t("database.creatorMe"), value: "me" },
+  { label: t("database.creatorOthers"), value: "others" }
+]);
 const columns = computed<DataTableColumns<DataJob>>(() =>
   withResizableColumns([
   { title: t("database.jobs.id"), key: "job_id", width: dataJobColumnWidths.jobId, minWidth: 180, resizable: true, ellipsis: { tooltip: true } },
@@ -120,6 +138,10 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: dataJobColumnWidths.creator,
     minWidth: 110,
     resizable: true,
+    filterOptions: creatorOptions.value,
+    filterOptionValue: filters.created_by,
+    filterMultiple: false,
+    filter: true,
     render: (row) => row.created_by_username || "-"
   },
   {
@@ -128,6 +150,10 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: dataJobColumnWidths.kind,
     minWidth: 80,
     resizable: true,
+    filterOptions: kindOptions.value,
+    filterOptionValue: filters.kind,
+    filterMultiple: false,
+    filter: true,
     render: (row) => t(`database.jobs.${row.kind}`)
   },
   { title: t("field.format"), key: "format", width: dataJobColumnWidths.format, minWidth: 80, resizable: true, render: (row) => row.format.toUpperCase() },
@@ -137,6 +163,10 @@ const columns = computed<DataTableColumns<DataJob>>(() =>
     width: dataJobColumnWidths.status,
     minWidth: 90,
     resizable: true,
+    filterOptions: statusOptions.value,
+    filterOptionValue: filters.status,
+    filterMultiple: false,
+    filter: true,
     render: (row) => h(NTag, { size: "small", type: statusType(row.status) }, () => t(`database.jobs.${row.status}`))
   },
   { title: t("database.jobs.rows"), key: "row_count", width: dataJobColumnWidths.rows, minWidth: 90, resizable: true },
@@ -189,6 +219,7 @@ let timer: number | undefined;
 
 onMounted(() => {
   void loadJobs();
+  void markDataJobsSeen();
   timer = window.setInterval(() => {
     if (items.value.some((item) => item.status === "pending" || item.status === "running")) {
       void loadJobs();
@@ -205,6 +236,9 @@ async function loadJobs() {
   try {
     const result = await listDataJobs({
       keyword: filters.keyword,
+      kind: filters.kind || "",
+      status: filters.status || "",
+      created_by: filters.created_by || "",
       connection_id: activeConnectionId.value,
       sort_order: filters.sort_order,
       page: pagination.page,
@@ -233,6 +267,14 @@ function resetSearch() {
 function clearConnectionScope() {
   activeConnectionId.value = null;
   activeConnectionName.value = "";
+  pagination.page = 1;
+  void loadJobs();
+}
+
+function handleTableFilters(next: DataTableFilterState) {
+  filters.kind = singleFilterValue(next, "kind") as "import" | "export" | null;
+  filters.status = singleFilterValue(next, "status") as DataJobStatus | null;
+  filters.created_by = singleFilterValue(next, "created_by") as "me" | "others" | null;
   pagination.page = 1;
   void loadJobs();
 }

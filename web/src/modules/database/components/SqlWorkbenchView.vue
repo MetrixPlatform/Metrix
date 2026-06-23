@@ -36,6 +36,18 @@
             </permission-button>
           </template>
         </n-empty>
+        <div v-if="serverInfo" class="database-server-info">
+          <div class="database-server-info-row">
+            <span class="database-server-info-label">{{ t("database.serverInfo.version") }}</span>
+            <span class="database-server-info-value" :title="serverInfo.version">{{ serverInfo.version || "-" }}</span>
+          </div>
+          <div class="database-server-info-row">
+            <span class="database-server-info-label">{{ t("database.serverInfo.loadData") }}</span>
+            <n-tag size="tiny" :type="serverInfo.load_data_infile ? 'success' : 'default'" :bordered="false">
+              {{ serverInfo.load_data_infile ? t("database.serverInfo.loadDataOn") : t("database.serverInfo.loadDataOff") }}
+            </n-tag>
+          </div>
+        </div>
       </aside>
       <div
         class="database-sidebar-resizer"
@@ -407,7 +419,8 @@ import {
   deleteSqlScript,
   dropSchema,
   dropTable,
-  getDataJobDownloadCount,
+  getDataJobUnseenCount,
+  getDatabaseServerInfo,
   getSqlScript,
   getTableStructure,
   getTableData,
@@ -426,6 +439,7 @@ import {
   type ColumnItem,
   type ColumnDefinition,
   type DatabaseConnection,
+  type DatabaseServerInfo,
   type DataFormat,
   type IndexDefinition,
   type QueryResult,
@@ -451,6 +465,7 @@ const SIDEBAR_MAX_WIDTH = 560;
 const SIDEBAR_MIN_MAIN_WIDTH = 520;
 const SIDEBAR_WIDTH_STORAGE_KEY = "metrix.databaseWorkbench.sidebarWidth";
 const schemas = ref<{ name: string }[]>([]);
+const serverInfo = ref<DatabaseServerInfo | null>(null);
 const tables = ref<TableItem[]>([]);
 const treeData = ref<TreeOption[]>([]);
 const expandedKeys = ref<string[]>([]);
@@ -787,11 +802,20 @@ function columnWidthKeys(widths: Record<string, number>) {
   return Object.fromEntries(Object.keys(widths).map((key) => [key, key]));
 }
 
+async function loadServerInfo() {
+  try {
+    serverInfo.value = await getDatabaseServerInfo(props.connection.conn_id);
+  } catch {
+    serverInfo.value = null;
+  }
+}
+
 onMounted(async () => {
   sidebarWidth.value = clampSidebarWidth(sidebarWidth.value);
   window.addEventListener("resize", clampSidebarWidthToViewport);
   await refreshMetadata();
   await loadDownloadCount();
+  void loadServerInfo();
 });
 
 onBeforeUnmount(() => {
@@ -2153,7 +2177,7 @@ function goJobs() {
 
 async function loadDownloadCount() {
   try {
-    pendingDownloadCount.value = (await getDataJobDownloadCount({ connection_id: props.connection.id })).count;
+    pendingDownloadCount.value = (await getDataJobUnseenCount()).count;
   } catch {
     pendingDownloadCount.value = 0;
   }

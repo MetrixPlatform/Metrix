@@ -62,3 +62,13 @@ class DataJob(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+
+
+class DataJobView(Base):
+    """Per-user "last time the data-transfer jobs list was viewed", used to drive the
+    unread badge (jobs finished after seen_at count as unseen)."""
+
+    __tablename__ = "data_job_views"
+
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
+    seen_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)

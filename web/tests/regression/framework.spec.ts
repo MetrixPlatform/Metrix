@@ -207,10 +207,22 @@ test("keeps database workbench layout readable", async ({ page }) => {
       body: JSON.stringify({ items: [], total: 0, page: 1, page_size: 100 })
     })
   );
-  await page.route("**/api/database-transfer-jobs/download-count**", (route) =>
+  await page.route("**/api/database-transfer-jobs/unseen-count**", (route) =>
     route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ count: 0 })
+    })
+  );
+  await page.route("**/api/database-transfer-jobs/mark-seen**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ count: 0 })
+    })
+  );
+  await page.route("**/api/databases/*/server-info**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ db_type: "mysql", version: "8.0.0", load_data_infile: true })
     })
   );
   await loginWithMockSession(page);

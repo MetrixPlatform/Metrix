@@ -75,6 +75,7 @@
     "private": "Private",
     "creatorAll": "All users",
     "creatorMe": "Only mine",
+    "creatorOthers": "Others",
     "idPlaceholder": "Leave empty to auto-generate",
     "passwordKeep": "Leave empty to keep unchanged",
     "defaultDatabaseHint": "Leave empty to access all databases",
@@ -87,6 +88,12 @@
     "tree": {
       "tables": "Tables",
       "scripts": "Scripts"
+    },
+    "serverInfo": {
+      "version": "Version",
+      "loadData": "Quick import (LOAD DATA)",
+      "loadDataOn": "Available",
+      "loadDataOff": "Off"
     },
     "tabs": {
       "data": "Data",

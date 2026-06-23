@@ -31,6 +31,7 @@ from app.modules.database.schemas import (
     DatabaseTransferJobDownloadCount,
     DatabaseTransferJobItem,
     DatabaseTransferJobListResponse,
+    DatabaseTransferJobUnseenCount,
     ExportRequest,
     ImportRequest,
     JobSubmitResponse,
@@ -153,6 +154,16 @@ class DataJobService:
 
     def finished_download_count(self, actor: User, connection_id: int | None = None) -> DatabaseTransferJobDownloadCount:
         return DatabaseTransferJobDownloadCount(count=self.jobs.count_finished_exports_for_download(actor.id, connection_id))
+
+    def unseen_count(self, actor: User) -> DatabaseTransferJobUnseenCount:
+        visible_to = None if has_permission(actor, DATABASE_MANAGE_OTHERS) else actor.id
+        seen_at = self.jobs.get_seen_at(actor.id)
+        return DatabaseTransferJobUnseenCount(count=self.jobs.count_unseen(seen_at, visible_to))
+
+    def mark_seen(self, actor: User) -> DatabaseTransferJobUnseenCount:
+        self.jobs.mark_seen(actor.id, utc_now())
+        self.db.commit()
+        return DatabaseTransferJobUnseenCount(count=0)
 
     def get_job(self, actor: User, job_id: str) -> DatabaseTransferJobItem:
         job = self._get_visible(actor, job_id)

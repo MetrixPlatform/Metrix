@@ -27,10 +27,12 @@ from app.modules.database.schemas import (
     DatabaseConnectionItem,
     DatabaseConnectionListResponse,
     DatabaseConnectionPayload,
+    DatabaseServerInfo,
     DatabaseTestRequest,
     DatabaseTransferJobDownloadCount,
     DatabaseTransferJobItem,
     DatabaseTransferJobListResponse,
+    DatabaseTransferJobUnseenCount,
     ExportRequest,
     ImportRequest,
     JobSubmitResponse,
@@ -126,6 +128,15 @@ def list_schemas(
     actor: User = Depends(require_permission(DATABASE_READ)),
 ) -> list[SchemaItem]:
     return DatabaseService(db).schemas(actor, conn_id)
+
+
+@router.get("/{conn_id}/server-info", response_model=DatabaseServerInfo, tags=DATA_TAGS)
+def database_server_info(
+    conn_id: str,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(DATABASE_READ)),
+) -> DatabaseServerInfo:
+    return DatabaseService(db).server_info(actor, conn_id)
 
 
 @router.get("/{conn_id}/tables", response_model=list[TableItem], tags=DATA_TAGS)
@@ -437,6 +448,22 @@ def database_transfer_job_download_count(
     actor: User = Depends(require_permission(DATABASE_READ)),
 ) -> DatabaseTransferJobDownloadCount:
     return DataJobService(db).finished_download_count(actor, connection_id)
+
+
+@jobs_router.get("/unseen-count", response_model=DatabaseTransferJobUnseenCount)
+def database_transfer_job_unseen_count(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(DATABASE_READ)),
+) -> DatabaseTransferJobUnseenCount:
+    return DataJobService(db).unseen_count(actor)
+
+
+@jobs_router.post("/mark-seen", response_model=DatabaseTransferJobUnseenCount)
+def database_transfer_job_mark_seen(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission(DATABASE_READ)),
+) -> DatabaseTransferJobUnseenCount:
+    return DataJobService(db).mark_seen(actor)
 
 
 @jobs_router.get("/{job_id}", response_model=DatabaseTransferJobItem)

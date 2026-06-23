@@ -115,6 +115,12 @@ class TableItem(BaseModel):
     name: str
 
 
+class DatabaseServerInfo(BaseModel):
+    db_type: str
+    version: str = ""
+    load_data_infile: bool = False
+
+
 class ColumnItem(BaseModel):
     name: str
     type: str
@@ -427,6 +433,10 @@ class DatabaseTransferJobListResponse(BaseModel):
 
 
 class DatabaseTransferJobDownloadCount(BaseModel):
+    count: int
+
+
+class DatabaseTransferJobUnseenCount(BaseModel):
     count: int
 
 

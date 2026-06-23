@@ -127,7 +127,7 @@ import { maxLengthRule, numberRequiredRule, requiredRule, validateForm } from ".
 import {
   createDatabaseConnection,
   deleteDatabaseConnection,
-  getDataJobDownloadCount,
+  getDataJobUnseenCount,
   listDatabaseConnections,
   testDatabaseConnection,
   updateDatabaseConnection,
@@ -404,7 +404,7 @@ async function loadConnections() {
 
 async function loadDownloadCount() {
   try {
-    pendingDownloadCount.value = (await getDataJobDownloadCount()).count;
+    pendingDownloadCount.value = (await getDataJobUnseenCount()).count;
   } catch {
     pendingDownloadCount.value = 0;
   }

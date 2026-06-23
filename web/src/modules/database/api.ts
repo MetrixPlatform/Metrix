@@ -65,6 +65,12 @@ export interface TableItem {
   name: string;
 }
 
+export interface DatabaseServerInfo {
+  db_type: string;
+  version: string;
+  load_data_infile: boolean;
+}
+
 export interface ColumnItem {
   name: string;
   type: string;
@@ -232,6 +238,10 @@ export function listSchemas(connId: string) {
   return request<SchemaItem[]>(`/databases/${encodeURIComponent(connId)}/schemas`);
 }
 
+export function getDatabaseServerInfo(connId: string) {
+  return request<DatabaseServerInfo>(`/databases/${encodeURIComponent(connId)}/server-info`);
+}
+
 export function listTables(connId: string, database = "") {
   return request<TableItem[]>(`/databases/${encodeURIComponent(connId)}/tables${queryString({ database })}`);
 }
@@ -352,8 +362,12 @@ export function listDataJobs(
   return request<PageResult<DataJob>>(`/database-transfer-jobs${queryString(filters)}`);
 }
 
-export function getDataJobDownloadCount(filters: { connection_id?: number | null } = {}) {
-  return request<{ count: number }>(`/database-transfer-jobs/download-count${queryString(filters)}`);
+export function getDataJobUnseenCount() {
+  return request<{ count: number }>(`/database-transfer-jobs/unseen-count`);
+}
+
+export function markDataJobsSeen() {
+  return post<{ count: number }>(`/database-transfer-jobs/mark-seen`, {});
 }
 
 export function downloadDataJob(jobId: string) {

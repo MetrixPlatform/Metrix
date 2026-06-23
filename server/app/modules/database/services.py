@@ -34,6 +34,7 @@ from app.modules.database.schemas import (
     DatabaseConnectionItem,
     DatabaseConnectionListResponse,
     DatabaseConnectionPayload,
+    DatabaseServerInfo,
     DatabaseTestRequest,
     QueryRequest,
     QueryResponse,
@@ -200,6 +201,15 @@ class DatabaseService:
         connection = self._get_usable(actor, conn_id)
         with self._runtime(connection) as runtime:
             return [SchemaItem(name=name) for name in runtime.schemas()]
+
+    def server_info(self, actor: User, conn_id: str) -> DatabaseServerInfo:
+        connection = self._get_usable(actor, conn_id)
+        with self._runtime(connection) as runtime:
+            return DatabaseServerInfo(
+                db_type=connection.db_type,
+                version=runtime.server_version(),
+                load_data_infile=runtime.supports_load_data(),
+            )
 
     def tables(self, actor: User, conn_id: str, database: str = "") -> list[TableItem]:
         connection = self._get_usable(actor, conn_id)

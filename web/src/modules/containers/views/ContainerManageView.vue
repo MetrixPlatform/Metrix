@@ -1,23 +1,35 @@
 <template>
   <section class="work-card table-page-card container-page">
-    <div class="container-engine-card">
-      <div>
-        <div class="container-engine-title">{{ t("container.engine") }}</div>
-        <div class="container-engine-meta">
-          <n-tag :type="engineStatus.available ? 'success' : 'error'" size="small">
-            {{ engineStatus.available ? t("container.connected") : t("container.disconnected") }}
-          </n-tag>
-          <span>{{ t("container.dockerHost") }}: {{ engineStatus.docker_host || "-" }}</span>
-          <span v-if="engineStatus.version">{{ t("container.version") }}: {{ engineStatus.version }}</span>
-          <span v-if="engineStatus.os_type">{{ t("container.osType") }}: {{ engineStatus.os_type }}</span>
+    <n-collapse
+      class="container-engine-collapse"
+      :expanded-names="engineExpandedNames"
+      @update:expanded-names="handleEngineToggle"
+    >
+      <n-collapse-item name="engine">
+        <template #header>
+          <div class="container-engine-header">
+            <span class="container-engine-title">{{ t("container.engine") }}</span>
+            <n-tag :type="engineStatus.available ? 'success' : 'error'" size="small" :bordered="false">
+              {{ engineStatus.available ? t("container.connected") : t("container.disconnected") }}
+            </n-tag>
+          </div>
+        </template>
+        <template #header-extra>
+          <n-button size="small" :loading="statusLoading" @click.stop="refreshAll">{{ t("common.refresh") }}</n-button>
+        </template>
+        <div class="container-engine-body">
+          <div class="container-engine-meta">
+            <span>{{ t("container.dockerHost") }}: {{ engineStatus.docker_host || "-" }}</span>
+            <span v-if="engineStatus.version">{{ t("container.version") }}: {{ engineStatus.version }}</span>
+            <span v-if="engineStatus.os_type">{{ t("container.osType") }}: {{ engineStatus.os_type }}</span>
+          </div>
+          <n-alert v-if="!engineStatus.available" class="container-engine-alert" type="warning" :show-icon="false">
+            <div>{{ engineStatus.message || t("container.emptyHint") }}</div>
+            <div>{{ t("container.socketHint") }}</div>
+          </n-alert>
         </div>
-        <n-alert v-if="!engineStatus.available" class="container-engine-alert" type="warning" :show-icon="false">
-          <div>{{ engineStatus.message || t("container.emptyHint") }}</div>
-          <div>{{ t("container.socketHint") }}</div>
-        </n-alert>
-      </div>
-      <n-button :loading="statusLoading" @click="refreshAll">{{ t("common.refresh") }}</n-button>
-    </div>
+      </n-collapse-item>
+    </n-collapse>
 
     <n-tabs v-model:value="activeTab" type="line" class="container-tabs">
       <n-tab-pane name="containers" :tab="t('container.tabContainers')">
@@ -174,7 +186,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from "vue";
 import { ArrowRight20Regular } from "@vicons/fluent";
-import { NAlert, NButton, NDataTable, NDropdown, NIcon, NInput, NSelect, NTabPane, NTabs, NTag, useDialog, useMessage } from "naive-ui";
+import { NAlert, NButton, NCollapse, NCollapseItem, NDataTable, NDropdown, NIcon, NInput, NSelect, NTabPane, NTabs, NTag, useDialog, useMessage } from "naive-ui";
 import type { DataTableColumns, DropdownOption } from "naive-ui";
 
 import PermissionButton from "../../../components/PermissionButton.vue";
@@ -238,6 +250,12 @@ const engineStatus = reactive<ContainerEngineStatus>({
   containers: 0,
   images: 0
 });
+const ENGINE_EXPAND_KEY = "metrix.containers.engineExpanded";
+const engineExpandedNames = ref<string[]>(localStorage.getItem(ENGINE_EXPAND_KEY) === "true" ? ["engine"] : []);
+function handleEngineToggle(names: Array<string | number>) {
+  engineExpandedNames.value = names.map(String);
+  localStorage.setItem(ENGINE_EXPAND_KEY, engineExpandedNames.value.includes("engine") ? "true" : "false");
+}
 const containers = ref<ContainerItem[]>([]);
 const images = ref<ImageItem[]>([]);
 const volumes = ref<VolumeItem[]>([]);
@@ -715,19 +733,28 @@ function columnWidthKeys(widths: Record<string, number>) {
   gap: 14px;
 }
 
-.container-engine-card {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+.container-engine-collapse {
+  padding: 2px 16px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--card-color);
 }
 
+.container-engine-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .container-engine-title {
-  margin-bottom: 8px;
   font-weight: 600;
+}
+
+.container-engine-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 .container-engine-meta {

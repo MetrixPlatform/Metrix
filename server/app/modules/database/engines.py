@@ -215,6 +215,16 @@ class ExternalDatabase:
             return False
         return bool(row) and str(row[1]).upper() in {"ON", "1"}
 
+    def server_version(self) -> str:
+        """Best-effort server version string (empty when unavailable)."""
+        sql = "SELECT sqlite_version()" if self.connection.db_type == "sqlite" else "SELECT VERSION()"
+        try:
+            with self.engine.connect() as conn:
+                row = conn.execute(text(sql)).first()
+        except SQLAlchemyError:
+            return ""
+        return str(row[0]) if row and row[0] is not None else ""
+
     def load_data_local(self, file_path: str, table: str, columns: list[str], database: str = "") -> int:
         """Bulk-load a UTF-8 CSV (header row, comma separated, "-quoted, \\n lines) into an
         existing table via LOAD DATA LOCAL INFILE. Columns are listed explicitly so the CSV

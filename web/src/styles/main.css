@@ -2542,6 +2542,38 @@ a {
   overflow: hidden;
 }
 
+.database-server-info {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.database-server-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.database-server-info-label {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--text-color) 55%, transparent);
+}
+
+.database-server-info-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: color-mix(in srgb, var(--text-color) 82%, transparent);
+}
+
 .database-sidebar-resizer {
   position: relative;
   cursor: col-resize;
