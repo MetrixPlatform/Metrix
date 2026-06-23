@@ -1,0 +1,4 @@
+[submodule "CapacityReport"]
+	path = CapacityReport
+	url = https://github.com/nixevol/CapacityReport.git
+	branch = metrix-integration
