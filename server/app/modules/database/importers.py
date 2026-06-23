@@ -48,14 +48,30 @@ def _import_csv(
         headers = reader.fieldnames or []
         target_columns = _target_columns(headers, mapping)
         _prepare_table(runtime, database, target_table, target_columns, mode, create_table)
+
+    # Fast path: LOAD DATA LOCAL streams the whole file server-side (10-50x faster than
+    # row INSERTs). Only for plain append/overwrite on MySQL/MariaDB with local_infile ON;
+    # upsert keeps the row-by-row path because LOAD DATA has no ON DUPLICATE KEY UPDATE.
+    if mode in {"append", "overwrite"} and runtime.supports_load_data():
+        normalized = _normalize_newlines(input_path)
+        try:
+            return runtime.load_data_local(str(normalized), target_table, list(target_columns.values()), database)
+        finally:
+            if normalized != input_path:
+                normalized.unlink(missing_ok=True)
+
+    # Fallback: reuse one connection for the whole import instead of reconnecting per batch.
+    with input_path.open("r", encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file)
         count = 0
         batch: list[dict[str, Any]] = []
-        for row in reader:
-            batch.append({target_columns[source]: value for source, value in row.items() if source in target_columns})
-            if len(batch) >= BATCH_SIZE:
-                count += _insert_batch(runtime, database, target_table, batch, mode)
-                batch = []
-        count += _insert_batch(runtime, database, target_table, batch, mode)
+        with runtime.session_connection() as conn:
+            for row in reader:
+                batch.append({target_columns[source]: value for source, value in row.items() if source in target_columns})
+                if len(batch) >= BATCH_SIZE:
+                    count += _insert_batch(runtime, database, target_table, batch, mode, conn)
+                    batch = []
+            count += _insert_batch(runtime, database, target_table, batch, mode, conn)
         return count
 
 
@@ -159,7 +175,7 @@ def _prepare_table(
             runtime.execute_write(f"TRUNCATE TABLE {runtime.qualified_table(table, database)}")
 
 
-def _insert_batch(runtime: ExternalDatabase, database: str, table: str, rows: list[dict[str, Any]], mode: str) -> int:
+def _insert_batch(runtime: ExternalDatabase, database: str, table: str, rows: list[dict[str, Any]], mode: str, conn: Any = None) -> int:
     if not rows:
         return 0
     columns = list(rows[0].keys())
@@ -180,4 +196,19 @@ def _insert_batch(runtime: ExternalDatabase, database: str, table: str, rows: li
             )
     sql = f"{prefix} INTO {table_sql} ({cols_sql}) VALUES ({values_sql}){suffix}"
     bound_rows = [{placeholders[column]: row.get(column) for column in columns} for row in rows]
+    if conn is not None:
+        return runtime.execute_many_on(conn, sql, bound_rows)
     return runtime.execute_many(sql, bound_rows)
+
+
+def _normalize_newlines(input_path: Path) -> Path:
+    """LOAD DATA uses LINES TERMINATED BY '\\n'; rewrite CRLF/CR files to LF (next to the
+    original) so the last column never keeps a trailing '\\r'. Returns the original path
+    when it is already LF-only."""
+    raw = input_path.read_bytes()
+    if b"\r" not in raw:
+        return input_path
+    fixed = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    target = input_path.with_suffix(input_path.suffix + ".lf")
+    target.write_bytes(fixed)
+    return target

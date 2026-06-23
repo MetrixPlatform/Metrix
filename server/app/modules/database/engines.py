@@ -164,6 +164,14 @@ class ExternalDatabase:
             result = conn.execute(text(sql), rows)
             return result.rowcount if result.rowcount and result.rowcount > 0 else len(rows)
 
+    def execute_many_on(self, conn: Any, sql: str, rows: list[dict[str, Any]]) -> int:
+        """executemany reusing a caller-held connection, so a multi-batch import opens one
+        connection instead of reconnecting (NullPool) per batch."""
+        if not rows:
+            return 0
+        result = conn.execute(text(sql), rows)
+        return result.rowcount if result.rowcount and result.rowcount > 0 else len(rows)
+
     @contextmanager
     def session_connection(self):
         """Yield one AUTOCOMMIT connection reused for a whole script run so that
@@ -193,6 +201,46 @@ class ExternalDatabase:
     def execute_write_on(self, conn: Any, sql: str) -> int:
         result = conn.execute(text(sql))
         return result.rowcount if result.rowcount and result.rowcount > 0 else 0
+
+    def supports_load_data(self) -> bool:
+        """True when the server allows LOAD DATA LOCAL INFILE (MySQL/MariaDB with
+        local_infile enabled). SQLite and a server with local_infile=OFF return False
+        so the caller falls back to row-by-row inserts."""
+        if self.connection.db_type not in {"mysql", "mariadb"}:
+            return False
+        try:
+            with self.engine.connect() as conn:
+                row = conn.execute(text("SHOW GLOBAL VARIABLES LIKE 'local_infile'")).first()
+        except SQLAlchemyError:
+            return False
+        return bool(row) and str(row[1]).upper() in {"ON", "1"}
+
+    def load_data_local(self, file_path: str, table: str, columns: list[str], database: str = "") -> int:
+        """Bulk-load a UTF-8 CSV (header row, comma separated, "-quoted, \\n lines) into an
+        existing table via LOAD DATA LOCAL INFILE. Columns are listed explicitly so the CSV
+        column order maps onto the (already prepared) target columns. Returns affected rows.
+        Uses a raw DBAPI cursor because the local-infile handshake is driver-level."""
+        quoted_cols = ", ".join(self.quote_identifier(column) for column in columns)
+        local_path = file_path.replace("\\", "/").replace("'", "''")
+        sql = (
+            f"LOAD DATA LOCAL INFILE '{local_path}' INTO TABLE {self.qualified_table(table, database)} "
+            "CHARACTER SET utf8mb4 "
+            "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\\\\' "
+            "LINES TERMINATED BY '\\n' IGNORE 1 LINES "
+            f"({quoted_cols})"
+        )
+        raw = self.engine.raw_connection()
+        try:
+            cursor = raw.cursor()
+            try:
+                cursor.execute(sql)
+                affected = cursor.rowcount
+            finally:
+                cursor.close()
+            raw.commit()
+            return int(affected) if affected and affected > 0 else 0
+        finally:
+            raw.close()
 
     def qualified_table(self, table: str, database: str = "") -> str:
         name = self.quote_identifier(clean_identifier(table, "table"))
@@ -235,6 +283,10 @@ def create_external_engine(connection: DatabaseConnection, password: str, databa
                 "connect_timeout": DEFAULT_TIMEOUT_SECONDS,
                 "read_timeout": DEFAULT_QUERY_TIMEOUT_SECONDS,
                 "write_timeout": DEFAULT_QUERY_TIMEOUT_SECONDS,
+                # Allow LOAD DATA LOCAL INFILE so bulk CSV imports can stream the file to the
+                # server instead of doing row-by-row INSERTs. Harmless for normal queries; only
+                # takes effect when an import actually issues a LOAD DATA LOCAL statement.
+                "local_infile": 1,
             },
         )
     except SQLAlchemyError as exc:

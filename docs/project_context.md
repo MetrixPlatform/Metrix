@@ -1117,3 +1117,13 @@
 - 改动：新增 `DEFAULT_QUERY_TIMEOUT_SECONDS=3600`；`connect_timeout` 仍用 30s（连不上快速失败），`read_timeout`/`write_timeout` 改用 3600s（导入与报表 SQL 的大表长语句不再被打断）。
 - 影响：所有外部 MySQL/MariaDB 连接（浏览/执行/run-script/导入）共用此引擎；交互式查询仍走分页 LIMIT，长读超时主要让合法的大数据写/建表语句得以完成。
 - 验证：端到端测试中该报错消失，`CREATE TABLE 4g AS SELECT * FROM 4g_ud`（570 万行）成功执行，报表 SQL 继续产出中间表。
+
+## 2026-06-23：CSV 导入支持 LOAD DATA LOCAL INFILE（大数据量导入提速 1-2 个数量级）
+
+- 背景：`importers.py` 的 CSV 导入用 `csv.DictReader` 按 500 行/批调 `execute_many`，而 `execute_many` 每批 `engine.begin()`，引擎是 `NullPool` → 每 500 行新建连接+提交一次。570 万行≈1.1 万次建连接/提交，单表导入约 17 分钟。
+- 改动：
+  - `engines.py`：MySQL 连接 `connect_args` 增 `local_infile=1`（不开则客户端不允许 LOAD LOCAL；对普通查询无副作用）。`ExternalDatabase` 新增 `supports_load_data()`（mysql/mariadb 且 `SHOW GLOBAL VARIABLES LIKE 'local_infile'`=ON）、`load_data_local(file,table,columns,db)`（用 raw DBAPI 游标执行 `LOAD DATA LOCAL INFILE ... FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\' LINES TERMINATED BY '\n' IGNORE 1 LINES (列清单)`）、`execute_many_on(conn,...)`（复用连接版批量插入）。
+  - `importers.py`：`_import_csv` 先 `_prepare_table`，若 `mode∈{append,overwrite}` 且 `supports_load_data()` → 走 LOAD DATA（先 `_normalize_newlines` 把 CRLF/CR 改写为 LF 临时文件，避免最后一列残留 `\r`，用完即删）；否则回退「复用单连接 + 逐批 `_insert_batch(...,conn)`」。`upsert`/非 mysql/`local_infile=OFF` 自动回退（LOAD DATA 无 ON DUPLICATE KEY UPDATE，保持语义）。`_insert_batch` 增可选 `conn` 参数；xlsx/sqlite 仍走原 `execute_many`。
+  - 列映射沿用 `_target_columns`（mapping 改名照常），LOAD DATA 用显式列清单按 CSV 表头顺序映射到目标列；create_table（全 TEXT）/overwrite（TRUNCATE）逻辑不变。
+- 验证：50 万行/29MB CSV 经平台 `/import`（create_table+overwrite）导入耗时 **3.33s、500000 行全部成功**；含逗号字段（`站点,N`）50 万行全部保留逗号不错位、含内层引号字段（`小区"N"`）50 万行全部正确解析——`OPTIONALLY ENCLOSED BY '"'` 解析正确、无列错位。`py_compile`/ReadLints 通过。
+- 影响：平台所有 CSV 导入（含 CapacityReport 的 overwrite 暂存表）自动走快速路径；其他格式/upsert 不受影响。
