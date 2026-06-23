@@ -1,10 +1,15 @@
-"""Single-window dev launcher: runs backend and frontend together in one terminal.
+"""Single-window dev launcher: runs Metrix + CapacityReport backends and frontends together.
 
 Usage:
-    python dev.py            # start backend (auto-reload) + frontend (HMR)
+    python dev.py            # start all services with auto-reload / HMR
 
-Logs from both services are merged into this window with [backend] / [web] prefixes.
-Press Ctrl+C once to stop both services (including their child processes).
+Starts up to four processes and merges their logs into this window:
+  [backend]  Metrix API          http://127.0.0.1:8000  (auto-reload)
+  [web]      Metrix web          http://127.0.0.1:5173  (vite HMR)
+  [capa-api] CapacityReport API  http://127.0.0.1:9081  (auto-reload, own venv)
+  [capa-web] CapacityReport web  http://127.0.0.1:5174  (vite HMR)
+CapacityReport is the optional submodule under CapacityReport/; it is skipped if absent and
+its failures never stop the Metrix services. Press Ctrl+C once to stop everything.
 """
 
 from __future__ import annotations
@@ -28,6 +33,11 @@ try:
     BACKEND_PORT = int(os.environ.get("METRIX_PORT", "8000"))
 except ValueError:
     BACKEND_PORT = 8000
+
+CAPA_DIR = ROOT / "CapacityReport"
+CAPA_VENV_PYTHON = CAPA_DIR / ".venv" / ("Scripts" if IS_WINDOWS else "bin") / ("python.exe" if IS_WINDOWS else "python")
+CAPA_BACKEND_PORT = 9081
+CAPA_WEB_PORT = 5174
 
 _processes: list[tuple[str, subprocess.Popen]] = []
 _stopping = threading.Event()
@@ -84,16 +94,15 @@ def _stop_all() -> None:
             pass
 
 
-def _wait_for_backend(host: str, port: int, timeout: float = 60.0) -> bool:
-    """Block until the backend answers HTTP, so the frontend (and the browser it serves)
-    does not fire requests at a backend that has not finished starting (avoids the
-    startup ECONNREFUSED flood on /api/install/status, /api/auth/me, etc.)."""
-    url = f"http://{host}:{port}/api/health"
+def _wait_for_http(proc_name: str, url: str, timeout: float = 60.0) -> bool:
+    """Block until `url` answers HTTP, so a frontend (and the browser it serves) does not
+    fire requests at a backend that has not finished starting (avoids the startup
+    ECONNREFUSED flood on /api/install/status, /api/auth/me, etc.)."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if _stopping.is_set():
             return False
-        if any(name == "backend" and proc.poll() is not None for name, proc in _processes):
+        if any(name == proc_name and proc.poll() is not None for name, proc in _processes):
             return False
         try:
             with urllib.request.urlopen(url, timeout=2):
@@ -103,6 +112,62 @@ def _wait_for_backend(host: str, port: int, timeout: float = 60.0) -> bool:
         except (urllib.error.URLError, OSError):
             time.sleep(0.4)
     return False
+
+
+def _ensure_capa_venv() -> Path | None:
+    """Return the CapacityReport venv python, creating the venv and installing requirements
+    on first run. Returns None when the submodule is absent or setup fails, so CapacityReport
+    is skipped without affecting the Metrix services."""
+    if not CAPA_DIR.exists():
+        return None
+    if CAPA_VENV_PYTHON.exists():
+        return CAPA_VENV_PYTHON
+    log("capa-api", "creating venv (first run)...")
+    if subprocess.run([str(VENV_PYTHON), "-m", "venv", str(CAPA_DIR / ".venv")], check=False).returncode != 0:
+        log("capa-api", "venv creation failed; skipping CapacityReport backend")
+        return None
+    log("capa-api", "installing requirements (first run, may take a while)...")
+    if subprocess.run(
+        [str(CAPA_VENV_PYTHON), "-m", "pip", "install", "-r", str(CAPA_DIR / "requirements.txt")],
+        cwd=str(CAPA_DIR),
+        check=False,
+    ).returncode != 0:
+        log("capa-api", "pip install failed; skipping CapacityReport backend")
+        return None
+    return CAPA_VENV_PYTHON
+
+
+def _start_capacity_report(node: str | None) -> None:
+    """Start the optional CapacityReport submodule: backend :9081 (own venv) + web :5174.
+    Anything missing is logged and skipped without affecting the Metrix services."""
+    capa_python = _ensure_capa_venv()
+    if capa_python is None:
+        log("capa-api", f"CapacityReport submodule not set up at {CAPA_DIR}; skipping")
+        return
+
+    _spawn(
+        "capa-api",
+        [str(capa_python), "-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", str(CAPA_BACKEND_PORT)],
+        CAPA_DIR,
+    )
+    log("capa-api", f"starting -> http://127.0.0.1:{CAPA_BACKEND_PORT} (auto-reload)")
+
+    capa_web_dir = CAPA_DIR / "frontend"
+    capa_vite = capa_web_dir / "node_modules" / "vite" / "bin" / "vite.js"
+    if not capa_vite.exists():
+        npm = shutil.which("npm")
+        if npm:
+            log("capa-web", "installing dependencies (first run)...")
+            subprocess.run([npm, "install"], cwd=str(capa_web_dir), shell=IS_WINDOWS, check=False)
+    if not node or not capa_vite.exists():
+        log("capa-web", "node or vite not found; skipping CapacityReport frontend")
+        return
+
+    # Let the API answer before the frontend so opening :5174 early does not flood proxy errors.
+    if _wait_for_http("capa-api", f"http://127.0.0.1:{CAPA_BACKEND_PORT}/health", timeout=90.0):
+        log("capa-web", "backend ready")
+    _spawn("capa-web", [node, str(capa_vite), "--host", "127.0.0.1", "--port", str(CAPA_WEB_PORT)], capa_web_dir)
+    log("capa-web", f"starting -> http://127.0.0.1:{CAPA_WEB_PORT} (hot reload)")
 
 
 def main() -> int:
@@ -140,7 +205,7 @@ def main() -> int:
     # Start the frontend only after the backend is serving, so the browser does not hit
     # a cold backend and flood the console with proxy ECONNREFUSED errors.
     log("web", "waiting for backend to be ready...")
-    if _wait_for_backend(BACKEND_HOST, BACKEND_PORT):
+    if _wait_for_http("backend", f"http://{BACKEND_HOST}:{BACKEND_PORT}/api/health"):
         log("web", "backend ready")
     elif not _stopping.is_set():
         log("web", "backend not ready in time; starting frontend anyway")
@@ -152,15 +217,23 @@ def main() -> int:
 
     _spawn("web", [node, str(vite_bin), "--host", "127.0.0.1", "--port", "5173"], web_dir)
     log("web", "starting -> http://127.0.0.1:5173 (hot reload)")
-    log("dev", "press Ctrl+C to stop both services")
 
+    _start_capacity_report(node)
+    log("dev", "press Ctrl+C to stop all services")
+
+    critical = {"backend", "web"}
+    reported: set[str] = set()
     try:
         while not _stopping.is_set():
             for name, process in _processes:
                 code = process.poll()
-                if code is not None:
-                    log(name, f"exited with code {code}; shutting down the other service")
+                if code is None or name in reported:
+                    continue
+                reported.add(name)
+                if name in critical:
+                    log(name, f"exited with code {code}; shutting down all services")
                     return code or 0
+                log(name, f"exited with code {code}; other services keep running")
             time.sleep(0.5)
     except KeyboardInterrupt:
         log("dev", "received Ctrl+C")
