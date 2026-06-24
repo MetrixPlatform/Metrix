@@ -68,7 +68,9 @@ def _spawn(name: str, args: list[str], cwd: Path, env: dict[str, str] | None = N
         "env": env,
     }
     if IS_WINDOWS:
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        # Keep reload/HMR children from sharing console control events with this
+        # launcher. Their stdout/stderr still flows through the pipes above.
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "CREATE_NO_WINDOW", 0)
     else:
         kwargs["start_new_session"] = True
     process = subprocess.Popen(args, **kwargs)  # type: ignore[arg-type]
