@@ -1,5 +1,85 @@
 # 项目上下文记录
 
+> 本文件顶部为「交接总览（新会话优先阅读）」，其下为按时间顺序（旧 → 新）的历史变更记录。
+> 新对话请先读完本总览掌握背景/约束/坑，再按需查阅下方对应日期的详细条目。
+
+---
+
+# 交接总览（新会话优先阅读 · 更新于 2026-06-24）
+
+## 0. 背景一句话
+- **Metrix**：内网运行的 Web 数据处理平台（后端 FastAPI / 前端 Vue3+Vite+Naive UI），含登录/RBAC、数据库管理、容器管理、脚本管理、存储、系统设置等模块。
+- **CapacityReport**：一个自包含的容量报表应用，已作为 Metrix 的 **git 子模块**（位于根目录 `CapacityReport/`）。它可独立运行，也可把「数据源 / 数据仓库」切到 Metrix 平台（双模式）。
+
+## 1. 运行环境与工具（关键，避免踩坑）
+- **OS = Windows，Shell = PowerShell**（不是 bash）。
+  - 不能用 `head`/`cat`/`/dev/null`/`&&` 串联；用 `;` 串联、`Select-Object -First/-Last N`、`Test-Path`、`Get-Content`、`2>$null` 抑制 stderr。
+  - 读文件/改文件一律用工具（Read/StrReplace/Write），不要用 sed/awk/cat。
+- **内网/离线约束**：平台**运行期无外网**——UI 组件/图标/字体/文档/依赖都必须本地化或随构建打包；库走内网镜像源或预装/离线 wheel。**但当前开发机有外网**（可 npm install / pip install / docker pull 多数情况，docker hub 偶尔被代理挡）。
+- **Python 解释器**：开发机用 uv 的 cpython：`D:\Program Files\uv\python\cpython-3.14.3-windows-x86_64-none\python.exe`（`C:\Users\Administrator\.local\bin\python.exe` 是坏掉的 uv shim，**别用**）。Metrix 后端 venv 在 `e:\code\Metrix\.venv`（注意：Glob 默认跳过点目录，确认存在用 `Test-Path .venv\Scripts\python.exe`）。CapacityReport 自己的 venv 在 `CapacityReport\.venv`（dev.py 会按需创建）。
+- **Node**：v24 / npm 11。`web/` 与 `CapacityReport/frontend/` 各自有 `node_modules`。
+- **git autocrlf=true**：很多文件在 `git status` 里显示 `M`，但 `git diff` 没有实际差异——这是 CRLF/LF 幽灵改动。`git add` 会自动规整、**不会**把幽灵改动写进提交。提交前务必用 `git diff --cached --name-status` / `--shortstat` 核实真正改动的文件数，避免误以为改了一大片。
+- **中文提交信息在 PowerShell 下偶有显示乱码**：用 `git commit -F <临时消息文件>` 最稳（写到 `temp/` 下、提交后删除）。
+
+## 2. 必须遵守的开发习惯 / 约束（来自 `.cursor/rules` + 实际沟通）
+- **语言**：始终用**中文**与用户沟通。
+- **KISS / YAGNI**：用最简单正确的实现解决当前问题；不过度设计、不为假想需求铺垫；优先复用项目现有能力/约定/工具/服务层；非必要不加依赖。
+- **清理**：完成后删除临时文件/脚本/测试产物/假凭据/旁路；删注释掉的旧代码、无用导入/函数/变量/资源、调试日志。
+- **项目记忆**：每次功能/修改/修复后、最终回复前，更新本文件 `docs/project_context.md`（CapacityReport 的改动写到 `CapacityReport/docs/project_context.md`）。不要把记忆分散到多个文件。
+- **版本控制**：**默认只提交、不推送**（除非用户明确说"推送"）。提交信息格式 `<type>: <中文一句话描述>`，type ∈ feat/fix/refactor/style/docs/chore/revert。只提交真实有意义改动，不要空提交。
+- **i18n**：所有界面文本/权限名/错误信息都要国际化。database/scripts/containers 等模块各自有 `i18n/zh-CN.json` + `en-US.json`；另有全局 `web/src/i18n/locales/{zh-CN,en-US}.json`。新增 key 要 zh+en 同步加。
+- **测试节奏**：用户常说"你只改和提交，我自己测"；但也会让我做端到端测试/修复。拿不准时按"实现+编译/构建自检+提交"走，重活（起服务、跑容器）交给用户或显式确认。
+- **完成顺序**：实现 → 清理 → 更新记忆 → （必要时）更新文档 → git → 校验 `.gitignore` → 提交。
+
+## 3. 仓库与模块结构
+- **后端 `server/`**：FastAPI。模块在 `server/app/modules/<name>/`（典型含 `api.py / services.py / repositories.py / models.py / schemas.py / __init__.py(AppModule + permissions + table_syncs)`）。建表靠 `server/app/db/init.py` 的 `Base.metadata.create_all`（新表新增 model 即自动建；加列才用 `table_syncs`）。
+- **前端 `web/`**：Vue3 + Vite + Naive UI + TS（vue-tsc 严格，**有 noUnusedLocals**，未用导入会构建失败）。模块在 `web/src/modules/<name>/`（`api.ts / views/ / components/ / permissions.ts / i18n/ / index.ts(defineModule)`）。公共样式在 `web/src/styles/main.css`，列筛选/表格工具在 `web/src/utils/table.ts`（`singleFilterValue / withResizableColumns / sumColumnWidths`）。
+- **联调入口 `dev.py`**：一个窗口同时起 Metrix 前后端 + CapacityReport 前后端（见 §5）。
+- **`CapacityReport/`**：git 子模块（见 §4）。
+- 已实现模块要点：
+  - **scripts**：容器隔离执行（Docker）、Monaco 编辑器（仅内置语言服务：JSON/TS/JS/CSS/HTML 全功能，其余高亮+基础补全；XML/INI 仅高亮）、xterm 终端（底部分页、VSCode 式上下键/TAB、注入环境变量、自动激活 `/workspace/.venv`）、APScheduler 定时；`run_script` 用 `/bin/sh -c` 包装并自动激活工作区 `.venv`。
+  - **database**：连接管理 + SQL 工作台（左侧库表树，进入自动展开默认库）+ 导数任务（导入/导出）+ run-script。外部 MySQL 引擎：`connect_timeout=30s`、`read/write_timeout=3600s`、`local_infile=1`；CSV 导入走 `LOAD DATA LOCAL INFILE`（mysql 且 local_infile=ON、append/overwrite），否则回退单连接批插。
+  - **containers**：Docker 容器/镜像/卷管理；高危写操作仅 Web 登录（`require_web_session`，API Token 不可调）。
+  - **权限模型**：动作型资源权限（create/delete/update/read/operate）；`<resource>:read` 作为"页面访问"门槛（任一资源动作自动展开 read）；**路由型页面权限已弃用**。
+  - **系统设置**：含 `session_token_expire_hours`（默认 12，0=永不过期）、脚本并发/保留/配额（0=不限制）等。
+
+## 4. CapacityReport 子模块（双模式）要点
+- 子模块仓库 `github.com/nixevol/CapacityReport`，工作分支 **`metrix-integration`**；Metrix 用 `.gitmodules` + gitlink 记录指针。**新克隆需 `git submodule update --init`**。
+- **双模式**：源（SFTP/FTP 直连 或 Metrix 存储平台）与 仓库（MySQL 直连 或 Metrix 数据库平台）**各自独立选择**，互不依赖。在「系统设置 → 数据源 / 仓库」配置；Metrix 连接信息存 `Configure.json` 的 `MetrixConfig`（base_url / token / storage_id / database_conn_id / target_database / recent_days / data_dir_to_table）。
+- **Metrix 模式数据流**：源走平台存储 API 下载 → CSV 处理（`csv_processor.py`）→ 平台 `/import`（overwrite，自动建表）入暂存表 → 平台 `run-script(single_session)` 跑报表 SQL → 「数据管理」查看/导出**代理到 Metrix**。
+- **报表 SQL 固定执行本地 `ReportScript.sql` 内容**（`content`），**绝不**用 Metrix 库内保存的脚本（`script_id`）——`platform.py::run_script` 已移除 `script_id` 参数，只能按 content 执行。
+- 关键工程点：`app/api/routers/database.py` 的处理函数都是 **`def`（不是 async def）**，因为是阻塞 I/O（pymysql / Metrix HTTP / 大表导出轮询），必须走 FastAPI 线程池，否则会冻结事件循环（实测大表导出把 `/health` 也卡死）。
+- 已精简：**去掉对外 API 文档 + API Token**（业务接口仅登录态）；授权默认到期日 `2026-12-30`（`app/services/license.py::DEFAULT_EXPIRES_ON`，连点品牌图标 8 次开延期窗）。设置页卡片横向自适应。
+- Docker 镜像：单阶段（`python:3.13.11-slim` + 预构建前端 `frontend/dist`），运行态落 `/data` 数据卷。
+
+## 5. dev.py 联调（四进程）
+- `[backend]` Metrix API `:8000`（reload，用 `e:\code\Metrix\.venv`）／`[web]` Metrix 前端 `:5173`（vite）。
+- `[capa-api]` CapacityReport API `:9081`（reload，用 `CapacityReport/.venv`，缺失按 `requirements.txt` 自动建）／`[capa-web]` CapacityReport 前端 `:5174`（vite，代理 `/api`、`/health` → 9081）。
+- CapacityReport 是**可选**子模块：缺失或崩溃只记日志、**不影响** Metrix；只有 Metrix 的 backend/web 退出才整体关停。`Ctrl+C` 一并退出。
+
+## 6. 关键技术决策与坑（务必知晓）
+- **run-script `single_session=True`**：整段脚本在同一数据库连接执行，支持 `TEMPORARY TABLE`/临时中间表；带 `script_id` 会覆盖 `content`（Metrix 服务端逻辑）。
+- **LOAD DATA**：`engines.py` 的 `ExternalDatabase` 有 `supports_load_data() / load_data_local() / execute_many_on() / server_version()`；CSV 含逗号/内层引号已验证不错位（`OPTIONALLY ENCLOSED BY '"'`），导入前 `_normalize_newlines` 处理 CRLF。
+- **大表性能坑**：报表 SQL 里对**无索引文本列**（如 `小区名称`）做 `UPDATE...JOIN` 在 570 万行级会很慢（曾 >2h），属业务 SQL 本身问题，需加索引优化（尚未做）。
+- **超时**：HTTP 客户端侧导入 `upload_timeout=1800s`、报表 `run_timeout=7200s`；DB 引擎读写 3600s。
+- **容器联通**：容器内访问宿主 Metrix 用 `host.docker.internal`，且 Metrix 后端要 `METRIX_HOST=0.0.0.0` 才可达（默认 127.0.0.1 不行）。
+- **导数任务角标**：从"待下载导出数"改为"**未读已结束任务数**"——新增 `data_job_views(user_id, seen_at)` 表，`finished_at > seen_at` 计未读，进入「导数任务」页 `mark-seen` 清零；原 `downloaded_at` 清理逻辑保留。`download-count` 后端端点保留（有测试）但前端不再用。
+- **容器引擎区**：容器管理页 Docker 引擎信息改为默认收起的 `n-collapse`，状态在收起态头部可见，展开态记忆在 `localStorage`。
+
+## 7. 当前 Git 状态与待办（截至 2026-06-24，会随后续提交变化）
+- **Metrix**（`main`）：本地 HEAD ≈ `a84dfab`（更新子模块指针），`origin/main` ≈ `a6ab8b6`（用户已推送到这）。本地领先约 1 个未推送。
+- **CapacityReport**（`metrix-integration`）：本地 HEAD ≈ `328a30d`（报表 SQL 固定本地脚本），`origin/metrix-integration` ≈ `3d036a6`。本地领先 1 个未推送。
+- **⚠️ 子模块推送一致性**：若把 Metrix 的子模块指针提交推到远端，**必须同时把 CapacityReport 的 `metrix-integration` 分支也推上去**，否则远端/新克隆解析不到子模块指向的 commit。
+- dev.py 四进程为本机联调入口，尚未在当前环境实跑过（需各自 venv/node_modules）。
+
+## 8. 验证手段速查
+- 前端：`cd web && npm run build`（vue-tsc 严格类型检查 + vite 构建）；CapacityReport 前端同理 `cd CapacityReport/frontend && npm run build`。
+- 后端语法：`& "D:\Program Files\uv\python\cpython-3.14.3-windows-x86_64-none\python.exe" -m compileall -q server/app`（或 CapacityReport 的 `app`）。
+- 后端单测：`.venv\Scripts\python.exe -m pytest server/tests/test_<module>.py -q`（测试用内存/临时库，`create_all` 自动建表）。
+- 单文件类型检查：编辑后用 ReadLints（偶发超时，重试或以整体构建为准）。
+
+---
+
 ## 2026-06-02：建立 Metrix 平台总体设计
 
 - 新增 `docs/design/platform_architecture_design.md`，记录 Metrix Web 数据处理平台的总体定位、技术选型、开发规范、代码风格、主仓库结构、submodule 结构、模块职责边界、数据流、调度、脚本、存储、安全、部署和阶段路线。
