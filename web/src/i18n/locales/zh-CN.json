@@ -470,11 +470,11 @@
     "dockerModeAuto": "自动检测",
     "dockerModeManual": "手动配置",
     "dockerHostPlaceholder": "例如 unix:///var/run/docker.sock、npipe:////./pipe/docker_engine 或 tcp://127.0.0.1:2375",
-    "dockerHostHelp": "自动模式会按 DOCKER_HOST、Linux/macOS socket、Windows named pipe 和本地 TCP 的顺序检测，使用第一个可连接的 Docker Host。手动模式会只使用这里填写的地址。",
+    "dockerHostHelp": "自动检测适合大多数部署；手动模式请填写 Docker Host。",
     "audit": "日志策略",
     "auditDesc": "设置操作日志保留范围。",
     "backup": "数据备份",
-    "backupDesc": "导出当前核心数据，便于开发环境迁移或留档。",
+    "backupDesc": "导出当前核心数据，便于备份或迁移。",
     "backupData": "备份数据",
     "saved": "系统设置已保存",
     "retention7": "最近 7 天",
@@ -506,7 +506,7 @@
     "create": "创建 Token",
     "created": "Token 已创建",
     "createdTip": "请立即复制保存，关闭后将无法再次查看完整 Token。",
-    "createdRevealTip": "请复制保存。系统当前允许后续在列表中再次显示或复制完整 Token。",
+    "createdRevealTip": "请复制保存，也可稍后在列表中再次查看。",
     "neverExpires": "永不过期",
     "customExpires": "自定义时间",
     "fullToken": "完整 Token",
@@ -592,7 +592,7 @@
       },
       "announcements.create_announcement": {
         "summary": "创建公告",
-        "description": "创建一条公告，并按推送范围控制后续可见用户。"
+        "description": "创建一条公告，并设置可见范围。"
       },
       "announcements.batch_delete_announcements": {
         "summary": "批量删除公告",
@@ -617,13 +617,13 @@
     },
     "parameter": {
       "common": {
-        "actor_scope": "日志账号范围。self 表示只看自己，all 表示查看全部账号且需要额外权限。",
+        "actor_scope": "日志账号范围。",
         "approval_status": "审核状态，例如 pending、approved、rejected。",
         "created_by": "公告创建人范围。me 表示自己，all 表示全部。",
         "display_mode": "公告展示方式，例如 popup、ticker、sidebar。",
         "end_time": "结束时间，ISO 8601 格式。",
         "is_active": "是否启用。true 表示启用，false 表示禁用。",
-        "keyword": "关键字，按接口说明匹配账号、标题、内容或详情等字段。",
+        "keyword": "关键字，可匹配账号、标题、内容或详情。",
         "page": "页码，从 1 开始。",
         "page_size": "每页条数，最大 500。",
         "sort_order": "创建时间排序。descend 为倒序，ascend 为正序。",
@@ -695,7 +695,7 @@
         "log_retention_days": "日志保留天数。",
         "default_locale": "默认语言。",
         "api_enabled": "是否开放 API 功能。",
-        "api_token_reveal_enabled": "是否允许后续显示或复制完整 Token。",
+        "api_token_reveal_enabled": "是否允许再次查看或复制完整 Token。",
         "docker_connection_mode": "Docker 连接模式，auto 为自动检测，manual 为手动配置。",
         "docker_host": "手动模式下使用的 Docker Host。"
       }

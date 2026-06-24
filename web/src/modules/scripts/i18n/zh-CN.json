@@ -180,12 +180,12 @@
       "sourceConfigured": "已配置内网源",
       "sourcePublic": "公共源/未配置",
       "packages": "已装库",
-      "hint": "点击刷新加载镜像环境信息（会临时启动一次容器）"
+      "hint": "点击刷新环境信息"
     },
     "terminalCustom": "自定义",
     "terminalConnect": "连接",
     "terminalDisconnect": "断开",
-    "terminalIdle": "点击“连接”启动终端（按项目镜像和工作区起常驻容器，离开工作台自动清理）。"
+    "terminalIdle": "点击“连接”启动终端。"
   },
   "auditLog": {
     "action": {

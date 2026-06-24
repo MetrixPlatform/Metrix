@@ -151,10 +151,10 @@
     "logsCleared": "日志已清空",
     "logEmpty": "暂无日志",
     "emptyHint": "Docker 未连接时无法加载容器和镜像，请检查部署配置。",
-    "socketHint": "请在系统设置的 Docker 连接中选择自动检测或手动配置 Docker Host；容器部署通常需要挂载 /var/run/docker.sock。",
-    "envPlaceholder": "每行一个 KEY=VALUE，敏感键名会被后端过滤",
+    "socketHint": "请在系统设置中配置 Docker 连接。",
+    "envPlaceholder": "每行一个 KEY=VALUE",
     "portPlaceholder": "例如 8080:80/tcp，每行一条",
-    "volumePlaceholder": "例如 data_volume:/data:rw，每行一条，仅支持 Docker volume，不支持任意宿主目录",
+    "volumePlaceholder": "例如 data_volume:/data:rw，每行一条",
     "uploadTar": "选择 Docker 镜像 tar 文件",
     "importProgress": "上传进度 {percent}%",
     "jobKindImport": "导入",
@@ -235,7 +235,7 @@
       },
       "container_volumes.create_container_volume": {
         "summary": "创建储存卷",
-        "description": "创建一个平台归属的 Docker named volume，用于后续容器挂载。"
+        "description": "创建 Docker 储存卷。"
       },
       "container_volumes.delete_container_volume": {
         "summary": "删除储存卷",
