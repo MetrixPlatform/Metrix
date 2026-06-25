@@ -9,6 +9,7 @@ const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const appConfig = loadAppConfig();
 
 export default defineConfig({
+  root: ROOT_DIR,
   define: {
     __APP_CONFIG__: JSON.stringify(appConfig)
   },
