@@ -4,6 +4,7 @@ import json
 import posixpath
 import secrets
 import shutil
+import stat
 import tempfile
 import zipfile
 from datetime import datetime, timezone
@@ -395,6 +396,8 @@ class ScriptProjectService:
             for item in sorted(staging.rglob("*")):
                 if item.is_dir():
                     continue
+                if item.is_symlink():
+                    raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt=name)
                 relative = item.relative_to(staging).as_posix()
                 dest = _safe_target(root, posixpath.join(virtual_dir, relative))
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -506,7 +509,7 @@ def _extract_to(name: str, archive_path: Path, dest_dir: Path) -> None:
     if lower.endswith(".zip"):
         try:
             with zipfile.ZipFile(archive_path) as archive:
-                archive.extractall(dest_dir)
+                _extract_zip_safely(archive, dest_dir)
         except zipfile.BadZipFile:
             raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="zip")
         return
@@ -517,6 +520,7 @@ def _extract_to(name: str, archive_path: Path, dest_dir: Path) -> None:
             raise bad_request("error.scriptArchiveToolMissing", "7z support is not installed", fmt="7z")
         try:
             with py7zr.SevenZipFile(archive_path, mode="r") as archive:
+                _validate_archive_names(archive.getnames())
                 archive.extractall(path=dest_dir)
         except Exception:
             raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="7z")
@@ -528,6 +532,7 @@ def _extract_to(name: str, archive_path: Path, dest_dir: Path) -> None:
             raise bad_request("error.scriptArchiveToolMissing", "rar support is not installed", fmt="rar")
         try:
             with rarfile.RarFile(archive_path) as archive:
+                _validate_archive_names(archive.namelist())
                 archive.extractall(dest_dir)
         except rarfile.RarCannotExec:
             raise bad_request("error.scriptArchiveToolMissing", "An unrar/7z tool is required on the server", fmt="rar")
@@ -535,6 +540,59 @@ def _extract_to(name: str, archive_path: Path, dest_dir: Path) -> None:
             raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="rar")
         return
     raise bad_request("error.scriptArchiveInvalid", "Unsupported archive", fmt=name)
+
+
+def _extract_zip_safely(archive: zipfile.ZipFile, dest_dir: Path) -> None:
+    for member in archive.infolist():
+        relative = _archive_member_path(member.filename)
+        if relative is None:
+            continue
+        if _zip_member_is_symlink(member):
+            raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="zip")
+        target = _archive_target(dest_dir, relative)
+        if member.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with archive.open(member) as source, target.open("wb") as output:
+            shutil.copyfileobj(source, output)
+
+
+def _validate_archive_names(names: list[str]) -> None:
+    for name in names:
+        _archive_member_path(name)
+
+
+def _archive_member_path(name: str) -> Path | None:
+    cleaned = str(name or "").replace("\\", "/")
+    if "\0" in cleaned or cleaned.startswith("/") or cleaned.startswith("//") or _has_windows_drive(cleaned):
+        raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="path")
+    parts: list[str] = []
+    for part in cleaned.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="path")
+        parts.append(part)
+    if not parts:
+        return None
+    return Path(*parts)
+
+
+def _archive_target(dest_dir: Path, relative: Path) -> Path:
+    root = dest_dir.resolve()
+    target = (dest_dir / relative).resolve()
+    if target != root and root not in target.parents:
+        raise bad_request("error.scriptArchiveInvalid", "Invalid archive", fmt="path")
+    return target
+
+
+def _has_windows_drive(value: str) -> bool:
+    return len(value) >= 2 and value[1] == ":" and value[0].isalpha()
+
+
+def _zip_member_is_symlink(member: zipfile.ZipInfo) -> bool:
+    return stat.S_IFMT(member.external_attr >> 16) == stat.S_IFLNK
 
 
 def _validated_name(name: str) -> str:

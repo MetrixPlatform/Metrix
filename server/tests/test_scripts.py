@@ -483,6 +483,34 @@ def test_script_archive_upload_extracts(tmp_path, monkeypatch):
     assert any(item["action"] == "script.archive_extract" for item in page_items(logs))
 
 
+def test_script_archive_upload_rejects_unsafe_paths(tmp_path, monkeypatch):
+    client = create_client(tmp_path, monkeypatch)
+    payload = install_sqlite(client, tmp_path)
+    admin_headers = login(client, payload["admin_username"], payload["admin_password"])
+    install_fake_docker(monkeypatch)
+
+    project = client.post("/api/scripts", json=project_payload(), headers=admin_headers).json()
+    pid = project["id"]
+
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("../escape.py", "print('escape')\n")
+        zf.writestr("main.py", "print('ok')\n")
+    archive.seek(0)
+
+    upload = client.post(
+        f"/api/scripts/{pid}/upload",
+        params={"path": "/"},
+        files={"file": ("code.zip", archive, "application/zip")},
+        headers=admin_headers,
+    )
+    assert upload.status_code == 400
+    assert upload.json()["detail"]["code"] == "error.scriptArchiveInvalid"
+
+    entries = client.get(f"/api/scripts/{pid}/files", headers=admin_headers).json()["entries"]
+    assert entries == []
+
+
 def test_script_sharing_visibility_and_edit_scope(tmp_path, monkeypatch):
     client = create_client(tmp_path, monkeypatch)
     payload = install_sqlite(client, tmp_path)
